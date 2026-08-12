@@ -1,703 +1,954 @@
-# Database Design — AI-CLO PTIT HCM
+# Database Design --- AI-CLO PTIT HCM
 
-Tài liệu thiết kế cơ sở dữ liệu cho hệ thống **AI-CLO PTIT HCM**.
+Tài liệu mô tả cấu trúc database chính thức của hệ thống **AI-CLO PTIT
+HCM**.
 
-**Version:** 1.0
-**Database:** Supabase PostgreSQL
-**Project:** AI-CLO PTIT HCM
+## 1. Nguyên tắc tổng thể
 
----
+Hệ thống sử dụng **Supabase PostgreSQL** làm database chung.
 
-## 1. Mục tiêu
+Đơn vị học thuật chính là **Môn học**.
 
-Database phải hỗ trợ:
+Mỗi Môn học được xác định bởi:
 
-* Quản lý người dùng.
-* Phân quyền Student / Teacher / Admin.
-* Quản lý học phần.
-* Quản lý các khóa học/lớp học theo từng học kỳ.
-* Quản lý sinh viên và giảng viên trong từng khóa học.
-* Quản lý ngân hàng câu hỏi.
-* Phân loại câu hỏi theo chương, chủ đề, CLO và độ khó.
-* Tạo và quản lý đề thi.
-* Sau này tích hợp AI.
-
----
-
-# 2. Các khái niệm chính
-
-Hệ thống phân biệt rõ các khái niệm sau:
-
-### 2.1. Học phần (Subject)
-
-Là môn học mang tính học thuật.
+-   Tên môn học.
+-   Học kỳ.
+-   Năm học.
 
 Ví dụ:
 
-```text
-Giải tích 1
-Đại số tuyến tính
-Giải tích 2
+``` text
+Giải tích 1 — HK1 — 2026-2027
 ```
 
-Một học phần có thể được mở thành nhiều khóa học khác nhau.
+Một Môn học có:
 
----
+-   Nhiều giảng viên.
+-   Nhiều sinh viên.
+-   Một bộ CLO.
+-   Nhiều Chương.
+-   Nhiều Chủ đề.
+-   Một Ngân hàng câu hỏi chung.
+-   Nhiều bài kiểm tra chương.
+-   Một hoạt động Đánh giá CLO.
 
-### 2.2. Khóa học (Course)
+Một sinh viên có thể thuộc nhiều Môn học.
 
-Là một lớp/học phần được tổ chức cụ thể trong một học kỳ.
+Một giảng viên có thể được phân công nhiều Môn học.
 
-Ví dụ:
+------------------------------------------------------------------------
 
-```text
-Giải tích 1_Nhóm 01_HK1_2026-2027
-Giải tích 1_Nhóm 02_HK1_2026-2027
-Giải tích 1_Nhóm 01_HK2_2026-2027
-```
+# 2. User và phân quyền
 
-Một `Course` thuộc về đúng một `Subject`.
+## 2.1. Admin
 
-Quan hệ:
+Admin là người quản lý tài khoản và cấu trúc học thuật chính thức.
 
-```text
-Subject
-   │
-   ├── Course 01
-   ├── Course 02
-   └── Course 03
-```
+Admin có quyền:
 
----
+-   Tạo tài khoản giảng viên.
+-   Tạo tài khoản sinh viên.
+-   Quản lý người dùng.
+-   Tạo Môn học.
+-   Gán giảng viên vào Môn học.
+-   Thêm/import sinh viên vào Môn học.
+-   Tạo, sửa, xóa CLO.
+-   Quản lý các cấu hình hệ thống.
 
-### 2.3. Ngân hàng câu hỏi (Question Bank)
+Sinh viên và giảng viên không tự đăng ký tài khoản trong V1.
 
-Ngân hàng câu hỏi chứa các câu hỏi được giảng viên xây dựng để sử dụng trong các đề thi.
+## 2.2. Giảng viên
 
-Câu hỏi được phân loại theo:
+Một Môn học có thể có nhiều giảng viên.
 
-```text
-Subject
- └── Chapter
-      └── Topic
+Các giảng viên trong cùng một Môn học có **quyền ngang nhau**.
 
-Question
- ├── CLO
- └── Difficulty
-```
+Giảng viên có thể:
 
-Ngân hàng câu hỏi **không đồng nhất với một Course cụ thể**.
+-   Xem và sử dụng CLO.
+-   Thêm/sửa/xóa Chương.
+-   Thêm/sửa/xóa Chủ đề.
+-   Quản lý Ngân hàng câu hỏi.
+-   Tạo câu hỏi thủ công.
+-   Sử dụng AI để tạo câu hỏi.
+-   Duyệt câu hỏi AI tạo.
+-   Tạo bài kiểm tra chương.
+-   Quản lý Đánh giá CLO.
+-   Xem kết quả của tất cả sinh viên trong Môn học.
+-   Phân tích kết quả CLO.
 
-Ví dụ câu hỏi thuộc ngân hàng của `Giải tích 1` có thể được sử dụng cho nhiều khóa học:
+## 2.3. Sinh viên
 
-```text
-Question Bank
-      │
-      ├── Giải tích 1_Nhóm 01
-      ├── Giải tích 1_Nhóm 02
-      └── Giải tích 1_Nhóm 03
-```
+Sinh viên có thể thuộc nhiều Môn học.
 
----
+Sinh viên có thể:
+
+-   Xem các Môn học được gán.
+-   Làm bài kiểm tra chương.
+-   Làm Đánh giá CLO nhiều lần.
+-   Xem kết quả của bản thân.
+
+------------------------------------------------------------------------
 
 # 3. Các bảng chính
 
-Database v1 dự kiến gồm:
+Cấu trúc database V1:
 
-```text
+``` text
 profiles
 subjects
-courses
-course_members
+subject_members
+clos
 chapters
 topics
-clos
-difficulties
 questions
 question_options
 exams
 exam_questions
+exam_attempts
+student_answers
 ```
 
-Sau này có thể bổ sung:
+------------------------------------------------------------------------
 
-```text
-ai_logs
-question_reviews
-exam_results
+# 4. profiles
+
+Lưu thông tin tài khoản người dùng.
+
+``` text
+profiles
+├── id
+├── mssv
+├── full_name
+├── email
+├── role
+└── created_at
 ```
 
----
+## Các trường
 
-# 4. Bảng `profiles`
+### id
 
-Lưu thông tin người dùng của hệ thống.
+-   UUID.
+-   Khóa chính.
+-   Liên kết với Supabase Auth user.
 
-Authentication được thực hiện bằng **Supabase Auth**.
+### mssv
 
-Bảng `profiles` lưu thông tin mở rộng của người dùng.
+-   MSSV.
+-   Dùng cho sinh viên.
+-   Là mã sinh viên chính và duy nhất.
+-   Với giảng viên/admin có thể NULL nếu không sử dụng MSSV.
 
-| Field        | Type      | Ý nghĩa                                   |
-| ------------ | --------- | ----------------------------------------- |
-| `id`         | UUID      | ID người dùng, liên kết với Supabase Auth |
-| `full_name`  | TEXT      | Họ và tên                                 |
-| `email`      | TEXT      | Email                                     |
-| `role`       | TEXT      | `admin`, `teacher`, `student`             |
-| `created_at` | TIMESTAMP | Ngày tạo                                  |
-| `updated_at` | TIMESTAMP | Ngày cập nhật                             |
+### full_name
+
+Họ và tên.
+
+### email
+
+Email tài khoản.
+
+### role
+
+Các giá trị:
+
+``` text
+admin
+teacher
+student
+```
+
+### created_at
+
+Thời điểm tạo tài khoản.
+
+------------------------------------------------------------------------
+
+# 5. subjects
+
+Lưu thông tin Môn học.
+
+``` text
+subjects
+├── id
+├── name
+├── semester
+├── academic_year
+└── created_at
+```
 
 Ví dụ:
 
-```text
-Nguyễn Văn Nam
-role = admin
-```
-
-```text
-Nguyễn Thị Hoa
-role = teacher
-```
-
-```text
-Trần Văn A
-role = student
-```
-
----
-
-# 5. Bảng `subjects`
-
-Lưu thông tin học phần.
-
-Ví dụ:
-
-```text
+``` text
 Giải tích 1
-Đại số tuyến tính
-Giải tích 2
+HK1
+2026-2027
 ```
 
-| Field         | Type      | Ý nghĩa      |
-| ------------- | --------- | ------------ |
-| `id`          | UUID      | ID học phần  |
-| `code`        | TEXT      | Mã học phần  |
-| `name`        | TEXT      | Tên học phần |
-| `description` | TEXT      | Mô tả        |
-| `created_at`  | TIMESTAMP | Ngày tạo     |
+## Quan hệ
 
-Ví dụ:
-
-```text
-code = MATH101
-name = Giải tích 1
-```
-
----
-
-# 6. Bảng `courses`
-
-Lưu các khóa học/lớp học cụ thể.
-
-| Field           | Type      | Ý nghĩa      |
-| --------------- | --------- | ------------ |
-| `id`            | UUID      | ID khóa học  |
-| `subject_id`    | UUID      | Học phần     |
-| `name`          | TEXT      | Tên khóa học |
-| `group_name`    | TEXT      | Nhóm/lớp     |
-| `semester`      | TEXT      | Học kỳ       |
-| `academic_year` | TEXT      | Năm học      |
-| `created_at`    | TIMESTAMP | Ngày tạo     |
-
-Ví dụ:
-
-```text
-subject_id  = Giải tích 1
-group_name  = Nhóm 01
-semester    = HK1
-academic_year = 2026-2027
-```
-
-Tên hiển thị:
-
-```text
-Giải tích 1_Nhóm 01_HK1_2026-2027
-```
-
----
-
-# 7. Bảng `course_members`
-
-Xác định người dùng tham gia khóa học nào.
-
-Một khóa học có nhiều sinh viên.
-
-Một sinh viên có thể tham gia nhiều khóa học.
-
-Do đó cần bảng trung gian.
-
-| Field        | Type      | Ý nghĩa                  |
-| ------------ | --------- | ------------------------ |
-| `id`         | UUID      | ID                       |
-| `course_id`  | UUID      | Khóa học                 |
-| `user_id`    | UUID      | Người dùng               |
-| `role`       | TEXT      | `teacher` hoặc `student` |
-| `created_at` | TIMESTAMP | Ngày tham gia            |
-
-Quan hệ:
-
-```text
-Course
+``` text
+subjects
    │
-   ├── Teacher
-   ├── Student
-   ├── Student
-   └── Student
+   ├── subject_members
+   ├── clos
+   ├── chapters
+   ├── questions
+   └── exams
 ```
 
----
+------------------------------------------------------------------------
 
-# 8. Bảng `chapters`
+# 6. subject_members
 
-Lưu các chương của một học phần.
+Quản lý người dùng thuộc Môn học.
 
-| Field            | Type    | Ý nghĩa    |
-| ---------------- | ------- | ---------- |
-| `id`             | UUID    | ID         |
-| `subject_id`     | UUID    | Học phần   |
-| `name`           | TEXT    | Tên chương |
-| `chapter_number` | INTEGER | Số chương  |
-| `description`    | TEXT    | Mô tả      |
+``` text
+subject_members
+├── id
+├── subject_id
+├── user_id
+├── role
+└── created_at
+```
+
+## role
+
+``` text
+teacher
+student
+```
+
+Admin không cần nằm trong `subject_members` vì Admin quản lý toàn hệ
+thống.
+
+## Quan hệ
+
+Một user có thể thuộc nhiều Môn học:
+
+``` text
+Student A
+├── Giải tích 1
+├── Đại số tuyến tính
+└── Xác suất thống kê
+```
+
+Một Môn học có nhiều giảng viên và sinh viên.
+
+Các giảng viên trong cùng Môn học có quyền ngang nhau.
+
+------------------------------------------------------------------------
+
+# 7. clos
+
+CLO thuộc trực tiếp về Môn học.
+
+``` text
+clos
+├── id
+├── subject_id
+├── code
+├── description
+└── created_at
+```
 
 Ví dụ:
 
-```text
-Giải tích 1
-├── Chương 1: Hàm số
-├── Chương 2: Đạo hàm
-├── Chương 3: Tích phân
-└── Chương 4: Chuỗi
-```
-
----
-
-# 9. Bảng `topics`
-
-Lưu chủ đề/categorization của câu hỏi.
-
-| Field         | Type | Ý nghĩa    |
-| ------------- | ---- | ---------- |
-| `id`          | UUID | ID         |
-| `chapter_id`  | UUID | Chương     |
-| `name`        | TEXT | Tên chủ đề |
-| `description` | TEXT | Mô tả      |
-
-Ví dụ:
-
-```text
-Chương 2: Đạo hàm
-├── Định nghĩa đạo hàm
-├── Quy tắc tính đạo hàm
-├── Cực trị
-└── Khảo sát hàm số
-```
-
----
-
-# 10. Bảng `clos`
-
-Lưu chuẩn đầu ra học phần.
-
-| Field         | Type | Ý nghĩa        |
-| ------------- | ---- | -------------- |
-| `id`          | UUID | ID             |
-| `subject_id`  | UUID | Học phần       |
-| `code`        | TEXT | Mã CLO         |
-| `name`        | TEXT | Tên/mô tả CLO  |
-| `description` | TEXT | Mô tả chi tiết |
-
-Ví dụ:
-
-```text
+``` text
 CLO1
 CLO2
 CLO3
 ```
 
-Một CLO thuộc về một học phần.
+## Quyền
 
----
+Chỉ **Admin** được:
 
-# 11. Bảng `difficulties`
+-   Tạo CLO.
+-   Sửa CLO.
+-   Xóa CLO.
 
-Lưu các mức độ khó.
+Giảng viên chỉ sử dụng CLO đã được Admin thiết lập.
 
-| Field         | Type | Ý nghĩa   |
-| ------------- | ---- | --------- |
-| `id`          | UUID | ID        |
-| `code`        | TEXT | Mã độ khó |
-| `name`        | TEXT | Tên       |
-| `description` | TEXT | Mô tả     |
+Mỗi câu hỏi phải gắn **đúng một CLO**.
+
+------------------------------------------------------------------------
+
+# 8. chapters
+
+Lưu Chương của Môn học.
+
+``` text
+chapters
+├── id
+├── subject_id
+├── name
+├── order_index
+└── created_at
+```
+
+## Quyền
+
+Admin và giảng viên của Môn học đều có thể:
+
+-   Thêm.
+-   Sửa.
+-   Xóa.
+
+Chương là trường bắt buộc của câu hỏi.
+
+------------------------------------------------------------------------
+
+# 9. topics
+
+Lưu Chủ đề trong từng Chương.
+
+``` text
+topics
+├── id
+├── chapter_id
+├── name
+├── order_index
+└── created_at
+```
+
+Mỗi Chương nên có chủ đề:
+
+``` text
+Khác
+```
+
+`Khác` dùng cho các câu hỏi không cần hoặc chưa cần phân loại vào một
+chủ đề cụ thể.
+
+## Quyền
+
+Admin và giảng viên của Môn học đều có thể:
+
+-   Thêm.
+-   Sửa.
+-   Xóa.
+
+Mỗi câu hỏi phải có một Chủ đề.
+
+------------------------------------------------------------------------
+
+# 10. questions
+
+Lưu thông tin chính của câu hỏi.
+
+``` text
+questions
+├── id
+├── subject_id
+├── chapter_id
+├── topic_id
+├── clo_id
+├── content
+├── explanation
+├── created_by
+├── status
+├── created_at
+└── updated_at
+```
+
+## Các thuộc tính quan trọng
+
+### subject_id
+
+Môn học mà câu hỏi thuộc về.
+
+### chapter_id
+
+Chương của câu hỏi.
+
+**Bắt buộc.**
+
+### topic_id
+
+Chủ đề của câu hỏi.
+
+**Bắt buộc.**
+
+Không dùng `NULL` để biểu diễn câu hỏi chưa phân loại. Nếu không cần
+phân loại cụ thể thì dùng Chủ đề:
+
+``` text
+Khác
+```
+
+### clo_id
+
+CLO của câu hỏi.
+
+**Bắt buộc và chỉ có đúng một CLO.**
+
+### content
+
+Nội dung câu hỏi.
+
+Hỗ trợ:
+
+-   Văn bản.
+-   LaTeX.
+-   Hình ảnh.
+
+### explanation
+
+Lời giải/giải thích đáp án.
+
+Có thể được AI tạo và được giảng viên kiểm tra/chỉnh sửa.
+
+### created_by
+
+UUID người tạo câu hỏi.
+
+Dùng để ghi nhận tác giả ban đầu.
+
+`created_by` **không dùng để giới hạn quyền**.
+
+Sau khi câu hỏi thuộc ngân hàng của Môn học, các giảng viên trong Môn
+học có quyền ngang nhau đối với câu hỏi.
+
+### status
+
+Các trạng thái tối thiểu:
+
+``` text
+active
+inactive
+```
+
+`active`:
+
+-   Có thể sử dụng trong bài kiểm tra.
+-   Có thể được AI chọn.
+-   Hiển thị trong ngân hàng đang hoạt động.
+
+`inactive`:
+
+-   Không được chọn vào bài kiểm tra mới.
+-   Không được AI chọn.
+-   Không xóa vật lý khỏi database.
+-   Giữ lại để bảo toàn lịch sử các bài đã sử dụng câu hỏi.
+
+------------------------------------------------------------------------
+
+# 11. question_options
+
+Lưu bốn phương án của câu hỏi.
+
+``` text
+question_options
+├── id
+├── question_id
+├── option_key
+├── content
+└── image_path
+```
+
+## option_key
+
+Chỉ có:
+
+``` text
+A
+B
+C
+D
+```
+
+Mỗi câu phải có đúng 4 phương án.
+
+Mỗi câu chỉ có **một đáp án đúng**.
+
+Có thể lưu đáp án đúng ở `questions.correct_answer` hoặc thiết kế
+constraint tương đương. Nếu dùng trường này thì:
+
+``` text
+correct_answer ∈ {A, B, C, D}
+```
+
+## content
+
+Nội dung phương án.
+
+Hỗ trợ:
+
+-   Văn bản.
+-   LaTeX.
+
+## image_path
+
+Đường dẫn hình ảnh của phương án nếu có.
+
+------------------------------------------------------------------------
+
+# 12. Hình ảnh câu hỏi
+
+Hệ thống hỗ trợ hình ảnh trong:
+
+-   Nội dung câu hỏi.
+-   Phương án A.
+-   Phương án B.
+-   Phương án C.
+-   Phương án D.
+
+Không lưu binary ảnh trực tiếp trong PostgreSQL.
+
+Sử dụng:
+
+``` text
+Supabase Storage
+```
 
 Ví dụ:
 
-```text
-D1 — Dễ
-D2 — Trung bình
-D3 — Khó
+``` text
+questions/
+├── q001/
+│   ├── question-1.png
+│   └── diagram.png
+└── q002/
+    └── graph.png
 ```
 
-Có thể thay đổi cách phân loại sau này mà không phải sửa cấu trúc `questions`.
+Database chỉ lưu path/reference tới file.
 
----
+Giảng viên upload ảnh trực tiếp từ giao diện.
 
-# 12. Bảng `questions`
+------------------------------------------------------------------------
 
-Đây là bảng trung tâm của ngân hàng câu hỏi.
+# 13. AI tạo câu hỏi
 
-Mỗi câu hỏi hiện tại có:
+AI hỗ trợ giảng viên tạo câu hỏi.
 
-* Một học phần.
-* Một chương.
-* Một chủ đề.
-* Một CLO.
-* Một độ khó.
-* Một người tạo.
+Thông tin đầu vào có thể gồm:
 
-| Field           | Type      | Ý nghĩa             |
-| --------------- | --------- | ------------------- |
-| `id`            | UUID      | ID câu hỏi          |
-| `subject_id`    | UUID      | Học phần            |
-| `chapter_id`    | UUID      | Chương              |
-| `topic_id`      | UUID      | Chủ đề              |
-| `clo_id`        | UUID      | CLO                 |
-| `difficulty_id` | UUID      | Độ khó              |
-| `created_by`    | UUID      | Người tạo           |
-| `question_type` | TEXT      | Loại câu hỏi        |
-| `content`       | TEXT      | Nội dung            |
-| `explanation`   | TEXT      | Lời giải/giải thích |
-| `status`        | TEXT      | Trạng thái          |
-| `created_at`    | TIMESTAMP | Ngày tạo            |
-| `updated_at`    | TIMESTAMP | Ngày cập nhật       |
-
-### Nguyên tắc hiện tại
-
-**Mỗi câu hỏi chỉ có:**
-
-```text
-1 CLO
-1 Difficulty
-1 Chapter
-1 Topic
+``` text
+Môn học
+Chương
+Chủ đề
+CLO
+Số lượng câu
+Yêu cầu bổ sung
 ```
 
-Đây là thiết kế đã thống nhất cho phiên bản hiện tại.
+Không còn trường Độ khó trong V1.
 
----
+Workflow:
 
-# 13. Bảng `question_options`
+``` text
+Giảng viên
+    ↓
+Nhập yêu cầu
+    ↓
+AI tạo câu hỏi
+    ↓
+Giảng viên xem toàn bộ
+    ↓
+Duyệt tất cả / Tạo lại
+    ↓
+Ngân hàng câu hỏi
+```
 
-Lưu các phương án trả lời của câu hỏi trắc nghiệm.
+Câu hỏi được duyệt trở thành tài sản chung của Môn học.
 
-| Field          | Type    | Ý nghĩa             |
-| -------------- | ------- | ------------------- |
-| `id`           | UUID    | ID                  |
-| `question_id`  | UUID    | Câu hỏi             |
-| `option_label` | TEXT    | A/B/C/D             |
-| `content`      | TEXT    | Nội dung phương án  |
-| `is_correct`   | BOOLEAN | Có phải đáp án đúng |
-| `option_order` | INTEGER | Thứ tự              |
+------------------------------------------------------------------------
+
+# 14. exams
+
+Lưu các bài kiểm tra.
+
+``` text
+exams
+├── id
+├── subject_id
+├── title
+├── description
+├── exam_type
+├── total_questions
+├── duration_minutes
+├── is_clo_assessment
+├── created_by
+├── status
+├── created_at
+└── updated_at
+```
+
+## exam_type
+
+Hệ thống không áp đặt cứng các loại như:
+
+-   Giữa kỳ.
+-   Cuối kỳ.
+
+Giảng viên có thể đặt loại/tên bài theo nhu cầu.
+
+Trong mô hình hiện tại chỉ có hai nhóm nghiệp vụ chính:
+
+``` text
+Bài kiểm tra chương
+Đánh giá CLO
+```
+
+## is_clo_assessment
+
+Đánh dấu bài Đánh giá CLO:
+
+``` text
+true  → Đánh giá CLO
+false → Bài kiểm tra chương
+```
+
+Mỗi Môn học chỉ có **một** bài có:
+
+``` text
+is_clo_assessment = true
+```
+
+------------------------------------------------------------------------
+
+# 15. exam_questions
+
+Lưu các câu hỏi được đưa vào một bài kiểm tra.
+
+``` text
+exam_questions
+├── id
+├── exam_id
+├── question_id
+└── question_order
+```
+
+Một bài kiểm tra có nhiều câu.
+
+Một câu hỏi có thể được sử dụng trong nhiều bài kiểm tra.
+
+------------------------------------------------------------------------
+
+# 16. Random đề có ràng buộc
+
+Đặc biệt đối với **Đánh giá CLO**, hệ thống không random hoàn toàn ngẫu
+nhiên.
+
+AI/hệ thống phải đảm bảo các yêu cầu do giảng viên cấu hình:
+
+``` text
+Tổng số câu
+CLO
+Chương
+```
+
+Không còn ràng buộc theo Độ khó.
+
+Quy trình:
+
+``` text
+Ngân hàng câu hỏi active
+        ↓
+Kiểm tra số lượng câu phù hợp
+        ↓
+Random có ràng buộc
+        ↓
+Đề hợp lệ
+```
+
+Nếu không đủ câu:
+
+``` text
+Không tạo đề
+      ↓
+Thông báo điều kiện còn thiếu
+```
+
+Không tạo đề không đáp ứng yêu cầu.
+
+Thuật toán random thuộc logic hệ thống, không cần gọi AI ở mỗi lần sinh
+đề.
+
+------------------------------------------------------------------------
+
+# 17. CLO Assessment
+
+Mỗi Môn học có một Đánh giá CLO.
+
+Giảng viên cấu hình:
+
+-   Tổng số câu.
+-   Trọng số từng CLO.
+-   Số câu theo từng Chương.
+
+Sinh viên được phép làm nhiều lần.
+
+Mỗi lần làm, hệ thống tạo một bộ câu khác từ ngân hàng `active`.
+
+Điểm CLO được tổng hợp từ các lần làm theo quy định của hệ thống.
+
+------------------------------------------------------------------------
+
+# 18. CLO Weight
+
+Có thể cần bảng cấu hình trọng số CLO cho bài Đánh giá CLO:
+
+``` text
+exam_clos
+├── id
+├── exam_id
+├── clo_id
+├── weight
+└── created_at
+```
 
 Ví dụ:
 
-```text
-Question 001
-
-A. 0       false
-B. 2       true
-C. 3       false
-D. 4       false
+``` text
+CLO1 → 30%
+CLO2 → 40%
+CLO3 → 30%
 ```
 
-Thiết kế này cho phép sau này hỗ trợ nhiều loại câu hỏi hơn.
+Tổng trọng số của các CLO phải bằng:
 
----
+``` text
+100%
+```
 
-# 14. Bảng `exams`
+------------------------------------------------------------------------
 
-Lưu thông tin các đề thi được tạo.
+# 19. Số câu theo Chương
 
-| Field            | Type      | Ý nghĩa   |
-| ---------------- | --------- | --------- |
-| `id`             | UUID      | ID đề     |
-| `course_id`      | UUID      | Khóa học  |
-| `created_by`     | UUID      | Người tạo |
-| `name`           | TEXT      | Tên đề    |
-| `question_count` | INTEGER   | Số câu    |
-| `created_at`     | TIMESTAMP | Ngày tạo  |
+Để Đánh giá CLO có thể yêu cầu số câu theo từng Chương, có thể sử dụng:
+
+``` text
+exam_chapters
+├── id
+├── exam_id
+├── chapter_id
+├── question_count
+└── created_at
+```
 
 Ví dụ:
 
-```text
-Giữa kỳ Giải tích 1
-Course:
-Giải tích 1_Nhóm 01_HK1_2026-2027
+``` text
+Chương 1 → 10 câu
+Chương 2 → 12 câu
+Chương 3 → 8 câu
 ```
 
----
+Hệ thống kiểm tra ngân hàng trước khi random.
 
-# 15. Bảng `exam_questions`
+------------------------------------------------------------------------
 
-Bảng trung gian giữa đề thi và câu hỏi.
+# 20. exam_attempts
 
-Một đề có nhiều câu hỏi.
+Lưu mỗi lần sinh viên làm một bài.
 
-Một câu hỏi có thể được sử dụng trong nhiều đề.
-
-| Field            | Type    | Ý nghĩa        |
-| ---------------- | ------- | -------------- |
-| `id`             | UUID    | ID             |
-| `exam_id`        | UUID    | Đề thi         |
-| `question_id`    | UUID    | Câu hỏi        |
-| `question_order` | INTEGER | Vị trí câu hỏi |
-| `points`         | NUMERIC | Điểm           |
-
-Quan hệ:
-
-```text
-Exam
- │
- ├── Question 01
- ├── Question 02
- ├── Question 03
- └── ...
+``` text
+exam_attempts
+├── id
+├── exam_id
+├── student_id
+├── attempt_number
+├── started_at
+├── submitted_at
+└── score
 ```
 
----
-
-# 16. Quan hệ tổng thể
-
-```text
-                         profiles
-                            │
-             ┌──────────────┼──────────────┐
-             │              │              │
-          Teacher         Student        Admin
-             │              │
-             └──────┬───────┘
-                    │
-             course_members
-                    │
-                    ▼
-                  courses
-                    │
-                    ▼
-                 subjects
-                    │
-          ┌─────────┼─────────┐
-          ▼         ▼         ▼
-      chapters     CLOs     Questions
-          │                   │
-          ▼                   ├── difficulty
-       topics                 ├── question_options
-                              │
-                              ▼
-                            exams
-                              │
-                              ▼
-                       exam_questions
-```
-
-Một cách nhìn khác:
-
-```text
-Subject
-│
-├── Chapters
-│    └── Topics
-│
-├── CLOs
-│
-├── Question Bank
-│    └── Questions
-│         ├── CLO
-│         ├── Difficulty
-│         ├── Chapter
-│         ├── Topic
-│         └── Options
-│
-└── Courses
-     ├── Teacher
-     └── Students
-```
-
----
-
-# 17. Quy tắc sở hữu dữ liệu
-
-### Teacher
-
-Có thể:
-
-* Tạo câu hỏi.
-* Sửa câu hỏi do mình quản lý.
-* Xem ngân hàng câu hỏi được cấp quyền.
-* Tạo đề.
-* Quản lý khóa học được phân công.
-
-### Student
-
-Có thể:
-
-* Xem khóa học mình tham gia.
-* Xem nội dung được công khai.
-* Làm đề.
-* Xem kết quả được cho phép.
-* Sử dụng các chức năng AI dành cho sinh viên.
-
-Không được:
-
-* Sửa câu hỏi.
-* Xóa câu hỏi.
-* Quản lý CLO.
-* Quản lý ngân hàng câu hỏi.
-
-### Admin
-
-Có toàn quyền quản lý hệ thống.
-
----
-
-# 18. Row Level Security
-
-Khi triển khai trên Supabase, database phải sử dụng **Row Level Security (RLS)**.
-
-Không được chỉ dựa vào JavaScript để bảo vệ dữ liệu.
+Một sinh viên có thể có nhiều attempt đối với Đánh giá CLO.
 
 Ví dụ:
 
-```text
-Frontend
+``` text
+Student A
+├── Attempt 1 → 7.0
+├── Attempt 2 → 8.0
+└── Attempt 3 → 7.5
+```
+
+------------------------------------------------------------------------
+
+# 21. student_answers
+
+Lưu câu trả lời của sinh viên.
+
+``` text
+student_answers
+├── id
+├── attempt_id
+├── question_id
+├── selected_option
+├── is_correct
+└── created_at
+```
+
+`selected_option`:
+
+``` text
+A
+B
+C
+D
+```
+
+`is_correct` được hệ thống xác định dựa trên đáp án đúng của câu hỏi tại
+thời điểm chấm.
+
+------------------------------------------------------------------------
+
+# 22. CLO Result
+
+Hệ thống cần tính được:
+
+``` text
+Sinh viên
    ↓
-Supabase
+Bài đánh giá CLO
    ↓
-RLS kiểm tra quyền
+Câu hỏi
    ↓
-Cho phép / từ chối
+CLO của câu hỏi
+   ↓
+Điểm từng CLO
+   ↓
+Trọng số CLO
+   ↓
+Kết quả CLO
 ```
 
-Các chính sách RLS sẽ được thiết kế riêng khi bắt đầu triển khai Supabase.
+Quy tắc đạt:
 
----
-
-# 19. Dữ liệu không được lưu trực tiếp trong code
-
-Không lưu:
-
-```text
-password
-API key
-Supabase service role key
-secret key
+``` text
+CLO >= 4.0 → Đạt
+CLO < 4.0  → Không đạt
 ```
 
-trong các file:
+Các mức phân loại:
 
-```text
-*.html
-*.js
+``` text
+Xuất sắc
+Giỏi
+Khá
+Trung bình
+Yếu
+Kém
 ```
 
-Thông tin nhạy cảm phải được quản lý bằng cơ chế phù hợp của Supabase hoặc môi trường triển khai.
+Ngưỡng của từng mức do giảng viên quy định cho Môn học.
 
----
+------------------------------------------------------------------------
 
-# 20. Nguyên tắc mở rộng
+# 23. Không có bảng Difficulty
 
-Database v1 được thiết kế để sau này có thể bổ sung:
+V1 **bỏ hoàn toàn Độ khó**.
 
-```text
-question_reviews
-    ↓
-Giảng viên duyệt câu hỏi
+Không tạo:
 
-ai_logs
-    ↓
-Lưu lịch sử sử dụng AI
-
-exam_versions
-    ↓
-Các mã đề A/B/C/D
-
-exam_results
-    ↓
-Kết quả sinh viên
-
-question_statistics
-    ↓
-Thống kê câu hỏi
-
-attachments
-    ↓
-Hình ảnh / tài liệu / media
-
-question_tags
-    ↓
-Các tag bổ sung
+``` text
+difficulties
 ```
 
-Không thêm các bảng này cho đến khi chức năng thực sự cần.
+và không có:
 
----
-
-# 21. Nguyên tắc quan trọng
-
-Database phải phản ánh nghiệp vụ thực tế:
-
-```text
-Học phần ≠ Khóa học
-Khóa học ≠ Ngân hàng câu hỏi
-Ngân hàng câu hỏi ≠ Đề thi
-Người dùng ≠ Thành viên khóa học
+``` text
+difficulty_id
 ```
 
-Ví dụ:
+trong `questions`.
 
-```text
-Học phần:
-Giải tích 1
-       │
-       ├── Khóa học 01
-       │   └── Nhóm 01 — HK1
-       │
-       ├── Khóa học 02
-       │   └── Nhóm 02 — HK1
-       │
-       └── Khóa học 03
-           └── Nhóm 01 — HK2
+Việc random Đánh giá CLO chỉ dựa trên:
+
+``` text
+Tổng số câu
+CLO
+Chương
 ```
 
-Trong khi đó:
+------------------------------------------------------------------------
 
-```text
-Ngân hàng câu hỏi Giải tích 1
-       │
-       ├── Câu hỏi 001
-       ├── Câu hỏi 002
-       ├── Câu hỏi 003
-       └── ...
+# 24. Quyền truy cập tổng quát
+
+## Admin
+
+Có quyền quản lý toàn hệ thống.
+
+## Giảng viên
+
+Chỉ có quyền trong các Môn học được Admin gán.
+
+Trong cùng một Môn học, các giảng viên có quyền ngang nhau.
+
+## Sinh viên
+
+Chỉ có quyền trên các Môn học được Admin gán.
+
+Sinh viên không thể:
+
+-   Sửa câu hỏi.
+-   Sửa CLO.
+-   Sửa Chương.
+-   Sửa Chủ đề.
+-   Xem kết quả sinh viên khác.
+
+------------------------------------------------------------------------
+
+# 25. Quan hệ tổng thể
+
+``` text
+profiles
+   │
+   ├──────────────┐
+   │              │
+   ↓              ↓
+subject_members   subjects
+                     │
+       ┌─────────────┼─────────────┐
+       ↓             ↓             ↓
+      CLO         chapters       exams
+                    │               │
+                    ↓               ↓
+                  topics      exam_questions
+                    │               │
+                    └──────┐        │
+                           ↓        ↓
+                        questions
+                           │
+                           ↓
+                    question_options
+
+exams
+  ↓
+exam_attempts
+  ↓
+student_answers
 ```
 
-Các câu hỏi có thể được sử dụng để tạo đề cho nhiều `Course` khác nhau.
+------------------------------------------------------------------------
 
----
+# 26. Nguyên tắc cập nhật database
 
-## 22. Trạng thái tài liệu
+Database là tài sản dùng chung của dự án.
 
-Đây là **Database Design v1.0**.
+**Nam chịu trách nhiệm chính về schema và migration.**
 
-Mọi thay đổi lớn về cấu trúc database phải được cập nhật trong tài liệu này trước hoặc đồng thời với việc thay đổi database thực tế.
+Dev1 và Dev2:
 
+-   Có thể đọc dữ liệu.
+-   Có thể phát triển chức năng theo schema.
+-   Có thể đề xuất thay đổi schema.
+-   Không tự ý thay đổi schema production.
+
+Mọi thay đổi schema quan trọng phải:
+
+1.  Trao đổi.
+2.  Cập nhật tài liệu.
+3.  Tạo migration.
+4.  Test.
+5.  Review.
+6.  Áp dụng vào database.
+
+------------------------------------------------------------------------
+
+**Version:** 2.0\
 **Project:** AI-CLO PTIT HCM
-**Database:** Supabase PostgreSQL
-**Version:** 1.0
-
