@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-CLO PTIT HCM</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f5f7fb;
+            color: #1f2937;
+        }
+
+        /* HEADER */
+        header {
+            background: #1e3a8a;
+            color: white;
+            padding: 0 30px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .logo span {
+            color: #93c5fd;
+        }
+
+        nav {
+            display: flex;
+            gap: 25px;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-size: 15px;
+        }
+
+        nav a:hover {
+            color: #bfdbfe;
+        }
+
+        .login-btn {
+            background: white;
+            color: #1e3a8a;
+            border: none;
+            padding: 9px 18px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* HERO */
+        .hero {
+            background: linear-gradient(135deg, #1e3a8a, #2563eb);
+            color: white;
+            padding: 70px 20px;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 42px;
+            margin-bottom: 15px;
+        }
+
+        .hero p {
+            font-size: 18px;
+            opacity: 0.9;
+            max-width: 700px;
+            margin: auto;
+            line-height: 1.6;
+        }
+
+        .hero-buttons {
+            margin-top: 30px;
+        }
+
+        .primary-btn,
+        .secondary-btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+            margin: 5px;
+        }
+
+        .primary-btn {
+            background: white;
+            color: #1e3a8a;
+            font-weight: bold;
+        }
+
+        .secondary-btn {
+            background: transparent;
+            border: 1px solid white;
+            color: white;
+        }
+
+        /* MAIN */
+        .container {
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .section-title h2 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .section-title p {
+            color: #6b7280;
+        }
+
+        /* CARDS */
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.07);
+            transition: 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 7px 20px rgba(0,0,0,0.1);
+        }
+
+        .icon {
+            font-size: 32px;
+            margin-bottom: 15px;
+        }
+
+        .card h3 {
+            margin-bottom: 10px;
+        }
+
+        .card p {
+            color: #6b7280;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        /* QUESTION DEMO */
+        .question-box {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-top: 45px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.07);
+        }
+
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .tag {
+            background: #dbeafe;
+            color: #1d4ed8;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 13px;
+        }
+
+        .question {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .answer {
+            padding: 12px 15px;
+            border: 1px solid #d1d5db;
+            border-radius: 7px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .answer:hover {
+            background: #eff6ff;
+            border-color: #3b82f6;
+        }
+
+        /* FOOTER */
+        footer {
+            margin-top: 60px;
+            background: #111827;
+            color: #9ca3af;
+            text-align: center;
+            padding: 25px;
+            font-size: 14px;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 800px) {
+            .cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            nav {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 32px;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .cards {
+                grid-template-columns: 1fr;
+            }
+
+            header {
+                padding: 0 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div class="logo">
+        AI-CLO <span>PTIT HCM</span>
+    </div>
+
+    <nav>
+        <a href="#">Trang chủ</a>
+        <a href="#question-bank">Ngân hàng câu hỏi</a>
+        <a href="#ai">AI</a>
+        <a href="#about">Giới thiệu</a>
+    </nav>
+
+    <button class="login-btn" onclick="login()">
+        Đăng nhập
+    </button>
+</header>
+
+
+<section class="hero">
+
+    <h1>AI-CLO PTIT HCM</h1>
+
+    <p>
+        Hệ thống quản lý ngân hàng câu hỏi và hỗ trợ giảng viên
+        xây dựng đề thi theo CLO.
+    </p>
+
+    <div class="hero-buttons">
+        <button class="primary-btn" onclick="startQuestionBank()">
+            Bắt đầu
+        </button>
+
+        <button class="secondary-btn" onclick="showAI()">
+            Khám phá AI
+        </button>
+    </div>
+
+</section>
+
+
+<main class="container">
+
+    <section id="question-bank">
+
+        <div class="section-title">
+            <h2>Ngân hàng câu hỏi</h2>
+            <p>Quản lý câu hỏi theo cấu trúc của học phần</p>
+        </div>
+
+        <div class="cards">
+
+            <div class="card">
+                <div class="icon">📚</div>
+                <h3>Môn học</h3>
+                <p>
+                    Quản lý các học phần và thông tin môn học.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="icon">📖</div>
+                <h3>Chương & Chủ đề</h3>
+                <p>
+                    Phân loại câu hỏi theo chương và chủ đề.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="icon">🎯</div>
+                <h3>CLO</h3>
+                <p>
+                    Gắn mỗi câu hỏi với CLO tương ứng.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="icon">📊</div>
+                <h3>Độ khó</h3>
+                <p>
+                    Phân loại câu hỏi theo mức độ khó.
+                </p>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <section id="ai" class="question-box">
+
+        <div class="question-header">
+
+            <div>
+                <span class="tag">CLO2</span>
+                <span class="tag">Thông hiểu</span>
+                <span class="tag">Chương 2</span>
+            </div>
+
+            <strong>Câu hỏi mẫu</strong>
+
+        </div>
+
+        <div class="question">
+            Cho hàm số $f(x)=x^3-3x$. Số điểm cực trị của hàm số là:
+        </div>
+
+        <div class="answer" onclick="checkAnswer(this, false)">
+            A. 0
+        </div>
+
+        <div class="answer" onclick="checkAnswer(this, true)">
+            B. 2
+        </div>
+
+        <div class="answer" onclick="checkAnswer(this, false)">
+            C. 3
+        </div>
+
+        <div class="answer" onclick="checkAnswer(this, false)">
+            D. 4
+        </div>
+
+    </section>
+
+
+    <section class="question-box">
+
+        <div class="section-title">
+            <h2>AI hỗ trợ giảng viên</h2>
+            <p>
+                AI không thay thế giảng viên — AI hỗ trợ giảng viên.
+            </p>
+        </div>
+
+        <div class="cards">
+
+            <div class="card">
+                <div class="icon">🤖</div>
+                <h3>Gợi ý CLO</h3>
+                <p>
+                    AI phân tích nội dung câu hỏi và đề xuất CLO phù hợp.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="icon">💡</div>
+                <h3>Gợi ý độ khó</h3>
+                <p>
+                    AI hỗ trợ xác định mức độ nhận biết, thông hiểu,
+                    vận dụng.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="icon">✍️</div>
+                <h3>Kiểm tra câu hỏi</h3>
+                <p>
+                    Phát hiện lỗi diễn đạt, phương án trùng lặp
+                    hoặc câu hỏi chưa rõ ràng.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="icon">📝</div>
+                <h3>Tạo câu tương tự</h3>
+                <p>
+                    Hỗ trợ giảng viên tạo thêm câu hỏi dựa trên
+                    câu hỏi mẫu.
+                </p>
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<footer>
+    <p>
+        AI-CLO PTIT HCM © 2026
+    </p>
+
+    <p>
+        Question Bank • CLO • AI Assistant
+    </p>
+</footer>
+
+
+<script>
+
+function login() {
+    alert("Demo: Chức năng đăng nhập sẽ được kết nối với Supabase.");
+}
+
+function startQuestionBank() {
+    alert("Demo: Mở ngân hàng câu hỏi.");
+}
+
+function showAI() {
+    document.getElementById("ai").scrollIntoView({
+        behavior: "smooth"
+    });
+}
+
+function checkAnswer(element, correct) {
+
+    if (correct) {
+        element.style.background = "#dcfce7";
+        element.style.borderColor = "#22c55e";
+        alert("Chính xác!");
+    } else {
+        element.style.background = "#fee2e2";
+        element.style.borderColor = "#ef4444";
+        alert("Chưa chính xác.");
+    }
+}
+
+</script>
+
+</body>
+</html>
