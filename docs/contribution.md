@@ -7,7 +7,7 @@ Tài liệu quy định cách các thành viên cùng phát triển dự án **A
 | Thành viên | Vai trò              | Phụ trách chính                                              |
 | ---------- | -------------------- | ------------------------------------------------------------ |
 | **Nam**    | Admin / Project Lead | Quản lý repository, kiến trúc hệ thống, review và merge code |
-| **Hoa**    | Dev1                 | Authentication, User và các chức năng liên quan              |
+| **Hòa**    | Dev1                 | Authentication, User và các chức năng liên quan              |
 | **Tiến**   | Dev2                 | Question Bank và các chức năng liên quan                     |
 
 Các thành viên có thể hỗ trợ lẫn nhau khi cần, nhưng nên ưu tiên phạm vi phụ trách chính để tránh xung đột code.
@@ -80,7 +80,7 @@ docs/
 
 Nam cũng chịu trách nhiệm quyết định các thay đổi ảnh hưởng đến kiến trúc chung của hệ thống.
 
-### Hoa — Dev1
+### Hòa — Dev1
 
 Phụ trách chính:
 
