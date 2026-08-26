@@ -1,240 +1,29 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<<<<<<< Updated upstream
-    <title>AI-CLO PTITHCM</title>
-=======
-    <title>AI-CLO PTITHCM 2026</title>
->>>>>>> Stashed changes
-    
-    <link rel="stylesheet" href="/css/style.css">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Ngân hàng câu hỏi và đánh giá theo CLO cho PTIT HCM">
+  <title>AI-CLO PTITHCM</title>
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/ai.css">
+  <link rel="stylesheet" href="css/public.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="js/config.js"></script><script defer src="js/app.js"></script>
 </head>
-
 <body>
-<header>
-    <div class="logo">
-        AI-CLO <span>PTIT HCM</span>
-    </div>
+  <div id="toast" class="toast" role="status"></div>
+  <section id="auth" class="public-home">
+    <header class="public-nav"><div class="logo">AI<span>·CLO</span> <em>PTITHCM</em></div><button id="openLogin" class="public-login">Đăng nhập</button></header>
+    <main class="public-main"><div class="public-copy"><div class="eyebrow">HỆ THỐNG HỖ TRỢ GIẢNG DẠY VÀ ĐÁNH GIÁ</div><h1>AI-CLO<br><span>PTITHCM</span></h1><p>Quản lý ngân hàng câu hỏi, xây dựng đề thi và phân tích kết quả học tập theo chuẩn đầu ra học phần.</p><button id="heroLogin" class="public-cta">Đăng nhập hệ thống <b>→</b></button></div><div class="public-visual" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="clo-mark">CLO<small>QUESTION BANK · AI ASSISTANT</small></div></div></main>
+    <footer class="public-footer"><span>Học phần</span><b>→</b><span>Ngân hàng câu hỏi</span><b>→</b><span>Đề thi</span><b>→</b><span>Phân tích CLO</span></footer>
+    <div id="loginPanel" class="login-overlay hidden"><form id="loginForm" class="auth-card login-card"><button id="closeLogin" class="login-close" type="button" aria-label="Đóng">×</button><small>AI-CLO PTITHCM</small><h2>Đăng nhập hệ thống</h2><label>Email<input id="email" type="email" required autocomplete="email" placeholder="giangvien@ptithcm.edu.vn"></label><label>Mật khẩu<input id="password" type="password" required minlength="6" autocomplete="current-password"></label><button class="primary" type="submit">Đăng nhập</button><button id="resetBtn" class="link-btn" type="button">Quên mật khẩu?</button><p class="hint">Tài khoản do quản trị viên cấp.</p></form></div>
+  </section>
 
-    <nav>
-        <a href="/index.html">Trang chủ</a>
-        <a href="/pages/courses/index.html">Môn học</a>
-        <a href="/pages/ai/index.html">AI</a>
-        <a href="/pages/about/index.html">Giới thiệu</a>
-    </nav>
+  <div id="app" class="app hidden">
+    <aside><div class="logo">AI<span>·CLO</span></div><nav id="nav"><button data-view="dashboard" class="active">⌂ Tổng quan</button><button data-view="subjects">▣ Học phần</button><button data-view="structure">⌘ Chương · CLO</button><button data-view="questions">? Ngân hàng câu hỏi</button><button data-view="exams">✎ Đề thi</button><button data-view="results">◫ Kết quả CLO</button><button data-view="users" data-admin>♙ Người dùng</button></nav><div class="aside-foot"><div id="miniUser"></div><button id="logoutBtn">Đăng xuất</button></div></aside>
+    <main><header><button id="menuBtn" aria-label="Mở menu">☰</button><div><h2 id="pageTitle">Tổng quan</h2><p id="pageSub">Theo dõi dữ liệu học phần và hoạt động gần đây</p></div><div class="subject-pick"><label>Học phần hiện tại</label><select id="subjectSelect"></select></div></header><div id="content" class="content"></div></main>
+  </div>
 
-    <button class="login-btn" onclick="login()">
-        Đăng nhập
-    </button>
-</header>
-
-
-<section class="hero">
-
-    <h1>AI-CLO PTIT HCM</h1>
-
-    <p>
-        Hệ thống quản lý ngân hàng câu hỏi và hỗ trợ giảng viên
-        xây dựng đề thi theo CLO.
-    </p>
-
-    <div class="hero-buttons">
-        <button class="primary-btn" onclick="startQuestionBank()">
-            Bắt đầu
-        </button>
-
-        <button class="secondary-btn" onclick="showAI()">
-            Khám phá AI
-        </button>
-    </div>
-
-</section>
-
-
-<main class="container">
-
-    <section id="question-bank">
-
-        <div class="section-title">
-            <h2>Ngân hàng câu hỏi</h2>
-            <p>Quản lý câu hỏi theo cấu trúc của học phần</p>
-        </div>
-
-        <div class="cards">
-
-            <div class="card">
-                <div class="icon">📚</div>
-                <h3>Môn học</h3>
-                <p>
-                    Quản lý các học phần và thông tin môn học.
-                </p>
-            </div>
-
-            <div class="card">
-                <div class="icon">📖</div>
-                <h3>Chương & Chủ đề</h3>
-                <p>
-                    Phân loại câu hỏi theo chương và chủ đề.
-                </p>
-            </div>
-
-            <div class="card">
-                <div class="icon">🎯</div>
-                <h3>CLO</h3>
-                <p>
-                    Gắn mỗi câu hỏi với CLO tương ứng.
-                </p>
-            </div>
-
-            <div class="card">
-                <div class="icon">📊</div>
-                <h3>Độ khó</h3>
-                <p>
-                    Phân loại câu hỏi theo mức độ khó.
-                </p>
-            </div>
-
-        </div>
-
-    </section>
-
-
-    <section id="ai" class="question-box">
-
-        <div class="question-header">
-
-            <div>
-                <span class="tag">CLO2</span>
-                <span class="tag">Thông hiểu</span>
-                <span class="tag">Chương 2</span>
-            </div>
-
-            <strong>Câu hỏi mẫu</strong>
-
-        </div>
-
-        <div class="question">
-            Cho hàm số $f(x)=x^3-3x$. Số điểm cực trị của hàm số là:
-        </div>
-
-        <div class="answer" onclick="checkAnswer(this, false)">
-            A. 0
-        </div>
-
-        <div class="answer" onclick="checkAnswer(this, true)">
-            B. 2
-        </div>
-
-        <div class="answer" onclick="checkAnswer(this, false)">
-            C. 3
-        </div>
-
-        <div class="answer" onclick="checkAnswer(this, false)">
-            D. 4
-        </div>
-
-    </section>
-
-
-    <section class="question-box">
-
-        <div class="section-title">
-            <h2>AI hỗ trợ giảng viên</h2>
-            <p>
-                AI không thay thế giảng viên — AI hỗ trợ giảng viên.
-            </p>
-        </div>
-
-        <div class="cards">
-
-            <div class="card">
-                <div class="icon">🤖</div>
-                <h3>Gợi ý CLO</h3>
-                <p>
-                    AI phân tích nội dung câu hỏi và đề xuất CLO phù hợp.
-                </p>
-            </div>
-
-            <div class="card">
-                <div class="icon">💡</div>
-                <h3>Gợi ý độ khó</h3>
-                <p>
-                    AI hỗ trợ xác định mức độ nhận biết, thông hiểu,
-                    vận dụng.
-                </p>
-            </div>
-
-            <div class="card">
-                <div class="icon">✍️</div>
-                <h3>Kiểm tra câu hỏi</h3>
-                <p>
-                    Phát hiện lỗi diễn đạt, phương án trùng lặp
-                    hoặc câu hỏi chưa rõ ràng.
-                </p>
-            </div>
-
-            <div class="card">
-                <div class="icon">📝</div>
-                <h3>Tạo câu tương tự</h3>
-                <p>
-                    Hỗ trợ giảng viên tạo thêm câu hỏi dựa trên
-                    câu hỏi mẫu.
-                </p>
-            </div>
-
-        </div>
-
-    </section>
-
-</main>
-
-
-<footer>
-    <p>
-        AI-CLO PTIT HCM © 2026
-    </p>
-
-    <p>
-        Question Bank • CLO • AI Assistant
-    </p>
-</footer>
-
-
-<!--Kết nối Supabase-->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script type="module" src="/js/app.js"></script>
-<script>
-
-function login() {
-    alert("Demo: Chức năng đăng nhập sẽ được kết nối với Supabase.");
-}
-
-function startQuestionBank() {
-    alert("Demo: Mở ngân hàng câu hỏi.");
-}
-
-function showAI() {
-    document.getElementById("ai").scrollIntoView({
-        behavior: "smooth"
-    });
-}
-
-function checkAnswer(element, correct) {
-
-    if (correct) {
-        element.style.background = "#dcfce7";
-        element.style.borderColor = "#22c55e";
-        alert("Chính xác!");
-    } else {
-        element.style.background = "#fee2e2";
-        element.style.borderColor = "#ef4444";
-        alert("Chưa chính xác.");
-    }
-}
-
-</script>
-<script type="module" src="/js/app.js"></script>
-</body>
-</html>
+  <dialog id="modal"><form method="dialog" class="modal-head"><h3 id="modalTitle"></h3><button value="cancel" aria-label="Đóng">×</button></form><div id="modalBody"></div></dialog>
+  <template id="emptyTpl"><div class="empty"><b>Chưa có dữ liệu</b><span>Hãy tạo bản ghi đầu tiên để bắt đầu.</span></div></template>
+</body></html>

@@ -1,0 +1,15 @@
+schemaname,tablename,rls_enabled
+public,chapters,true
+public,clos,true
+public,exam_attempts,true
+public,exam_chapters,true
+public,exam_clos,true
+public,exam_questions,true
+public,exams,true
+public,profiles,true
+public,question_options,true
+public,questions,true
+public,student_answers,true
+public,subject_members,true
+public,subjects,true
+public,topics,true

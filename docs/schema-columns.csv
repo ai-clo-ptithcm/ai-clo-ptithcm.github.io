@@ -1,0 +1,97 @@
+table_name,ordinal_position,column_name,data_type,is_nullable,column_default
+chapters,1,id,uuid,NO,gen_random_uuid()
+chapters,2,subject_id,uuid,NO,null
+chapters,3,name,text,NO,null
+chapters,4,order_index,integer,NO,0
+chapters,5,created_at,timestamp with time zone,NO,now()
+chapters,6,updated_at,timestamp with time zone,NO,now()
+clos,1,id,uuid,NO,gen_random_uuid()
+clos,2,subject_id,uuid,NO,null
+clos,3,code,text,NO,null
+clos,4,description,text,NO,null
+clos,5,created_at,timestamp with time zone,NO,now()
+clos,6,updated_at,timestamp with time zone,NO,now()
+exam_attempts,1,id,uuid,NO,gen_random_uuid()
+exam_attempts,2,exam_id,uuid,NO,null
+exam_attempts,3,student_id,uuid,NO,null
+exam_attempts,4,attempt_number,integer,NO,null
+exam_attempts,5,started_at,timestamp with time zone,NO,now()
+exam_attempts,6,submitted_at,timestamp with time zone,YES,null
+exam_attempts,7,score,numeric,YES,null
+exam_attempts,8,created_at,timestamp with time zone,NO,now()
+exam_chapters,1,id,uuid,NO,gen_random_uuid()
+exam_chapters,2,exam_id,uuid,NO,null
+exam_chapters,3,chapter_id,uuid,NO,null
+exam_chapters,4,question_count,integer,NO,null
+exam_chapters,5,created_at,timestamp with time zone,NO,now()
+exam_clos,1,id,uuid,NO,gen_random_uuid()
+exam_clos,2,exam_id,uuid,NO,null
+exam_clos,3,clo_id,uuid,NO,null
+exam_clos,4,weight,numeric,NO,null
+exam_clos,5,created_at,timestamp with time zone,NO,now()
+exam_questions,1,id,uuid,NO,gen_random_uuid()
+exam_questions,2,exam_id,uuid,NO,null
+exam_questions,3,question_id,uuid,NO,null
+exam_questions,4,question_order,integer,NO,null
+exam_questions,5,created_at,timestamp with time zone,NO,now()
+exams,1,id,uuid,NO,gen_random_uuid()
+exams,2,subject_id,uuid,NO,null
+exams,3,title,text,NO,null
+exams,4,description,text,YES,null
+exams,5,exam_type,text,NO,'chapter_test'::text
+exams,6,total_questions,integer,NO,null
+exams,7,duration_minutes,integer,YES,null
+exams,8,is_clo_assessment,boolean,NO,false
+exams,9,created_by,uuid,NO,null
+exams,10,status,text,NO,'active'::text
+exams,11,created_at,timestamp with time zone,NO,now()
+exams,12,updated_at,timestamp with time zone,NO,now()
+profiles,1,id,uuid,NO,null
+profiles,2,mssv,text,YES,null
+profiles,3,full_name,text,NO,null
+profiles,4,email,text,NO,null
+profiles,5,role,text,NO,null
+profiles,6,created_at,timestamp with time zone,NO,now()
+profiles,7,updated_at,timestamp with time zone,NO,now()
+question_options,1,id,uuid,NO,gen_random_uuid()
+question_options,2,question_id,uuid,NO,null
+question_options,3,option_key,character,NO,null
+question_options,4,content,text,NO,null
+question_options,5,image_path,text,YES,null
+question_options,6,created_at,timestamp with time zone,NO,now()
+question_options,7,updated_at,timestamp with time zone,NO,now()
+questions,1,id,uuid,NO,gen_random_uuid()
+questions,2,subject_id,uuid,NO,null
+questions,3,chapter_id,uuid,NO,null
+questions,4,topic_id,uuid,NO,null
+questions,5,clo_id,uuid,NO,null
+questions,6,content,text,NO,null
+questions,7,explanation,text,YES,null
+questions,8,correct_answer,character,NO,null
+questions,9,created_by,uuid,NO,null
+questions,10,status,text,NO,'active'::text
+questions,11,created_at,timestamp with time zone,NO,now()
+questions,12,updated_at,timestamp with time zone,NO,now()
+student_answers,1,id,uuid,NO,gen_random_uuid()
+student_answers,2,attempt_id,uuid,NO,null
+student_answers,3,question_id,uuid,NO,null
+student_answers,4,selected_option,character,YES,null
+student_answers,5,is_correct,boolean,NO,false
+student_answers,6,created_at,timestamp with time zone,NO,now()
+subject_members,1,id,uuid,NO,gen_random_uuid()
+subject_members,2,subject_id,uuid,NO,null
+subject_members,3,user_id,uuid,NO,null
+subject_members,4,role,text,NO,null
+subject_members,5,created_at,timestamp with time zone,NO,now()
+subjects,1,id,uuid,NO,gen_random_uuid()
+subjects,2,name,text,NO,null
+subjects,3,semester,text,NO,null
+subjects,4,academic_year,text,NO,null
+subjects,5,created_at,timestamp with time zone,NO,now()
+subjects,6,updated_at,timestamp with time zone,NO,now()
+topics,1,id,uuid,NO,gen_random_uuid()
+topics,2,chapter_id,uuid,NO,null
+topics,3,name,text,NO,null
+topics,4,order_index,integer,NO,0
+topics,5,created_at,timestamp with time zone,NO,now()
+topics,6,updated_at,timestamp with time zone,NO,now()

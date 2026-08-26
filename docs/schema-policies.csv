@@ -1,0 +1,126 @@
+schemaname,tablename,policyname,permissive,roles,cmd,qual,with_check
+public,chapters,chapters_select_subject_members,PERMISSIVE,{authenticated},SELECT,"(is_admin() OR (EXISTS ( SELECT 1
+   FROM subject_members sm
+  WHERE ((sm.subject_id = chapters.subject_id) AND (sm.user_id = auth.uid())))))",null
+public,chapters,chapters_teacher_or_admin_delete,PERMISSIVE,{authenticated},DELETE,(is_admin() OR is_subject_teacher(subject_id)),null
+public,chapters,chapters_teacher_or_admin_insert,PERMISSIVE,{authenticated},INSERT,null,(is_admin() OR is_subject_teacher(subject_id))
+public,chapters,chapters_teacher_or_admin_update,PERMISSIVE,{authenticated},UPDATE,(is_admin() OR is_subject_teacher(subject_id)),(is_admin() OR is_subject_teacher(subject_id))
+public,clos,clos_admin_delete,PERMISSIVE,{authenticated},DELETE,is_admin(),null
+public,clos,clos_admin_insert,PERMISSIVE,{authenticated},INSERT,null,is_admin()
+public,clos,clos_admin_update,PERMISSIVE,{authenticated},UPDATE,is_admin(),is_admin()
+public,clos,clos_select_subject_members,PERMISSIVE,{authenticated},SELECT,"(is_admin() OR (EXISTS ( SELECT 1
+   FROM subject_members sm
+  WHERE ((sm.subject_id = clos.subject_id) AND (sm.user_id = auth.uid())))))",null
+public,exam_attempts,exam_attempts_own_update,PERMISSIVE,{authenticated},UPDATE,"((student_id = auth.uid()) OR is_admin() OR (EXISTS ( SELECT 1
+   FROM exams e
+  WHERE ((e.id = exam_attempts.exam_id) AND is_subject_teacher(e.subject_id)))))","((student_id = auth.uid()) OR is_admin() OR (EXISTS ( SELECT 1
+   FROM exams e
+  WHERE ((e.id = exam_attempts.exam_id) AND is_subject_teacher(e.subject_id)))))"
+public,exam_attempts,exam_attempts_select_own_or_teacher_admin,PERMISSIVE,{authenticated},SELECT,"((student_id = auth.uid()) OR is_admin() OR (EXISTS ( SELECT 1
+   FROM exams e
+  WHERE ((e.id = exam_attempts.exam_id) AND is_subject_teacher(e.subject_id)))))",null
+public,exam_attempts,exam_attempts_student_insert,PERMISSIVE,{authenticated},INSERT,null,"((student_id = auth.uid()) AND (EXISTS ( SELECT 1
+   FROM exams e
+  WHERE ((e.id = exam_attempts.exam_id) AND is_subject_student(e.subject_id)))))"
+public,exam_chapters,exam_chapters_select_subject_members,PERMISSIVE,{authenticated},SELECT,"(is_admin() OR (EXISTS ( SELECT 1
+   FROM (exams e
+     JOIN subject_members sm ON ((sm.subject_id = e.subject_id)))
+  WHERE ((e.id = exam_chapters.exam_id) AND (sm.user_id = auth.uid())))))",null
+public,exam_chapters,exam_chapters_teacher_or_admin_delete,PERMISSIVE,{authenticated},DELETE,"(is_admin() OR (EXISTS ( SELECT 1
+   FROM exams e
+  WHERE ((e.id = exam_chapters.exam_id) AND is_subject_teacher(e.subject_id)))))",null
+public,exam_chapters,exam_chapters_teacher_or_admin_insert,PERMISSIVE,{authenticated},INSERT,null,"(is_admin() OR (EXISTS ( SELECT 1
+   FROM exams e
+  WHERE ((e.id = exam_chapters.exam_id) AND is_subject_teacher(e.subject_id)))))"
+public,exam_chapters,exam_chapters_teacher_or_admin_update,PERMISSIVE,{authenticated},UPDATE,"(is_admin() OR (EXISTS ( SELECT 1
+   FROM exams e
+  WHERE ((e.id = exam_chapters.exam_id) AND is_subject_teacher(e.subject_id)))))","(is_admin() OR (EXISTS ( SELECT 1
+   FROM exams e
+  WHERE ((e.id = exam_chapters.exam_id) AND is_subject_teacher(e.subject_id)))))"
+public,exam_clos,exam_clos_select_subject_members,PERMISSIVE,{authenticated},SELECT,"(is_admin() OR (EXISTS ( SELECT 1
+   FROM (exams e
+     JOIN subject_members sm ON ((sm.subject_id = e.subject_id)))
+  WHERE ((e.id = exam_clos.exam_id) AND (sm.user_id = auth.uid())))))",null
+public,exam_clos,exam_clos_teacher_or_admin_delete,PERMISSIVE,{authenticated},DELETE,"(is_admin() OR (EXISTS ( SELECT 1
+   FROM exams e
+  WHERE ((e.id = exam_clos.exam_id) AND is_subject_teacher(e.subject_id)))))",null
+public,exam_clos,exam_clos_teacher_or_admin_insert,PERMISSIVE,{authenticated},INSERT,null,"(is_admin() OR (EXISTS ( SELECT 1
+   FROM exams e
+  WHERE ((e.id = exam_clos.exam_id) AND is_subject_teacher(e.subject_id)))))"
+public,exam_clos,exam_clos_teacher_or_admin_update,PERMISSIVE,{authenticated},UPDATE,"(is_admin() OR (EXISTS ( SELECT 1
+   FROM exams e
+  WHERE ((e.id = exam_clos.exam_id) AND is_subject_teacher(e.subject_id)))))","(is_admin() OR (EXISTS ( SELECT 1
+   FROM exams e
+  WHERE ((e.id = exam_clos.exam_id) AND is_subject_teacher(e.subject_id)))))"
+public,exam_questions,exam_questions_select_subject_members,PERMISSIVE,{authenticated},SELECT,"(is_admin() OR (EXISTS ( SELECT 1
+   FROM (exams e
+     JOIN subject_members sm ON ((sm.subject_id = e.subject_id)))
+  WHERE ((e.id = exam_questions.exam_id) AND (sm.user_id = auth.uid())))))",null
+public,exam_questions,exam_questions_teacher_or_admin_delete,PERMISSIVE,{authenticated},DELETE,"(is_admin() OR (EXISTS ( SELECT 1
+   FROM exams e
+  WHERE ((e.id = exam_questions.exam_id) AND is_subject_teacher(e.subject_id)))))",null
+public,exam_questions,exam_questions_teacher_or_admin_insert,PERMISSIVE,{authenticated},INSERT,null,"(is_admin() OR (EXISTS ( SELECT 1
+   FROM exams e
+  WHERE ((e.id = exam_questions.exam_id) AND is_subject_teacher(e.subject_id)))))"
+public,exam_questions,exam_questions_teacher_or_admin_update,PERMISSIVE,{authenticated},UPDATE,"(is_admin() OR (EXISTS ( SELECT 1
+   FROM exams e
+  WHERE ((e.id = exam_questions.exam_id) AND is_subject_teacher(e.subject_id)))))","(is_admin() OR (EXISTS ( SELECT 1
+   FROM exams e
+  WHERE ((e.id = exam_questions.exam_id) AND is_subject_teacher(e.subject_id)))))"
+public,exams,exams_select_subject_members,PERMISSIVE,{authenticated},SELECT,"(is_admin() OR (EXISTS ( SELECT 1
+   FROM subject_members sm
+  WHERE ((sm.subject_id = exams.subject_id) AND (sm.user_id = auth.uid())))))",null
+public,exams,exams_teacher_or_admin_delete,PERMISSIVE,{authenticated},DELETE,(is_admin() OR is_subject_teacher(subject_id)),null
+public,exams,exams_teacher_or_admin_insert,PERMISSIVE,{authenticated},INSERT,null,(is_admin() OR is_subject_teacher(subject_id))
+public,exams,exams_teacher_or_admin_update,PERMISSIVE,{authenticated},UPDATE,(is_admin() OR is_subject_teacher(subject_id)),(is_admin() OR is_subject_teacher(subject_id))
+public,profiles,profiles_admin_delete,PERMISSIVE,{authenticated},DELETE,is_admin(),null
+public,profiles,profiles_admin_insert,PERMISSIVE,{authenticated},INSERT,null,is_admin()
+public,profiles,profiles_select_own_or_admin,PERMISSIVE,{authenticated},SELECT,((id = auth.uid()) OR is_admin()),null
+public,profiles,profiles_update_own_or_admin,PERMISSIVE,{authenticated},UPDATE,((id = auth.uid()) OR is_admin()),((id = auth.uid()) OR is_admin())
+public,question_options,question_options_select_subject_members,PERMISSIVE,{authenticated},SELECT,(is_admin() OR is_subject_teacher(question_subject_id(question_id)) OR is_subject_student(question_subject_id(question_id))),null
+public,question_options,question_options_teacher_or_admin_delete,PERMISSIVE,{authenticated},DELETE,(is_admin() OR is_subject_teacher(question_subject_id(question_id))),null
+public,question_options,question_options_teacher_or_admin_insert,PERMISSIVE,{authenticated},INSERT,null,(is_admin() OR is_subject_teacher(question_subject_id(question_id)))
+public,question_options,question_options_teacher_or_admin_update,PERMISSIVE,{authenticated},UPDATE,(is_admin() OR is_subject_teacher(question_subject_id(question_id))),(is_admin() OR is_subject_teacher(question_subject_id(question_id)))
+public,questions,questions_select_subject_members,PERMISSIVE,{authenticated},SELECT,(is_admin() OR is_subject_teacher(subject_id) OR is_subject_student(subject_id)),null
+public,questions,questions_teacher_or_admin_delete,PERMISSIVE,{authenticated},DELETE,(is_admin() OR is_subject_teacher(subject_id)),null
+public,questions,questions_teacher_or_admin_insert,PERMISSIVE,{authenticated},INSERT,null,(is_admin() OR is_subject_teacher(subject_id))
+public,questions,questions_teacher_or_admin_update,PERMISSIVE,{authenticated},UPDATE,(is_admin() OR is_subject_teacher(subject_id)),(is_admin() OR is_subject_teacher(subject_id))
+public,student_answers,student_answers_own_update,PERMISSIVE,{authenticated},UPDATE,"(EXISTS ( SELECT 1
+   FROM exam_attempts ea
+  WHERE ((ea.id = student_answers.attempt_id) AND (ea.student_id = auth.uid()))))","(EXISTS ( SELECT 1
+   FROM exam_attempts ea
+  WHERE ((ea.id = student_answers.attempt_id) AND (ea.student_id = auth.uid()))))"
+public,student_answers,student_answers_select_own_or_teacher_admin,PERMISSIVE,{authenticated},SELECT,"(EXISTS ( SELECT 1
+   FROM exam_attempts ea
+  WHERE ((ea.id = student_answers.attempt_id) AND ((ea.student_id = auth.uid()) OR is_admin() OR (EXISTS ( SELECT 1
+           FROM exams e
+          WHERE ((e.id = ea.exam_id) AND is_subject_teacher(e.subject_id))))))))",null
+public,student_answers,student_answers_student_insert,PERMISSIVE,{authenticated},INSERT,null,"(EXISTS ( SELECT 1
+   FROM (exam_attempts ea
+     JOIN exams e ON ((e.id = ea.exam_id)))
+  WHERE ((ea.id = student_answers.attempt_id) AND (ea.student_id = auth.uid()) AND is_subject_student(e.subject_id))))"
+public,subject_members,subject_members_admin_delete,PERMISSIVE,{authenticated},DELETE,is_admin(),null
+public,subject_members,subject_members_admin_insert,PERMISSIVE,{authenticated},INSERT,null,is_admin()
+public,subject_members,subject_members_admin_update,PERMISSIVE,{authenticated},UPDATE,is_admin(),is_admin()
+public,subject_members,subject_members_select_member_or_admin,PERMISSIVE,{authenticated},SELECT,(is_admin() OR (user_id = auth.uid()) OR is_subject_teacher(subject_id)),null
+public,subjects,subjects_admin_delete,PERMISSIVE,{authenticated},DELETE,is_admin(),null
+public,subjects,subjects_admin_insert,PERMISSIVE,{authenticated},INSERT,null,is_admin()
+public,subjects,subjects_admin_update,PERMISSIVE,{authenticated},UPDATE,is_admin(),is_admin()
+public,subjects,subjects_select_members_or_admin,PERMISSIVE,{authenticated},SELECT,"(is_admin() OR (EXISTS ( SELECT 1
+   FROM subject_members sm
+  WHERE ((sm.subject_id = subjects.id) AND (sm.user_id = auth.uid())))))",null
+public,topics,topics_select_subject_members,PERMISSIVE,{authenticated},SELECT,"(is_admin() OR (EXISTS ( SELECT 1
+   FROM (subject_members sm
+     JOIN chapters c ON ((c.subject_id = sm.subject_id)))
+  WHERE ((c.id = topics.chapter_id) AND (sm.user_id = auth.uid())))))",null
+public,topics,topics_teacher_or_admin_delete,PERMISSIVE,{authenticated},DELETE,"(is_admin() OR (EXISTS ( SELECT 1
+   FROM chapters c
+  WHERE ((c.id = topics.chapter_id) AND is_subject_teacher(c.subject_id)))))",null
+public,topics,topics_teacher_or_admin_insert,PERMISSIVE,{authenticated},INSERT,null,"(is_admin() OR (EXISTS ( SELECT 1
+   FROM chapters c
+  WHERE ((c.id = topics.chapter_id) AND is_subject_teacher(c.subject_id)))))"
+public,topics,topics_teacher_or_admin_update,PERMISSIVE,{authenticated},UPDATE,"(is_admin() OR (EXISTS ( SELECT 1
+   FROM chapters c
+  WHERE ((c.id = topics.chapter_id) AND is_subject_teacher(c.subject_id)))))","(is_admin() OR (EXISTS ( SELECT 1
+   FROM chapters c
+  WHERE ((c.id = topics.chapter_id) AND is_subject_teacher(c.subject_id)))))"
