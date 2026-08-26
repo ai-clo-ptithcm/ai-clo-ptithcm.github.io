@@ -11,6 +11,8 @@
 - Thêm, sửa, xóa, tìm câu hỏi; quản lý bốn phương án A–D và đáp án đúng.
 - Tạo 1–10 câu bằng Gemini theo chương, chủ đề tùy chọn và CLO.
 - Lưu phiên AI, duyệt từng câu, sửa trực tiếp, xác nhận hoặc bỏ qua.
+- Admin tạo tài khoản teacher/student thủ công hoặc từ CSV, sinh mật khẩu tạm và xuất kết quả.
+- Admin thêm hoặc xóa nhiều giảng viên, sinh viên khỏi học phần đang chọn.
 - Tạo và theo dõi đề thi.
 - Xem lượt làm bài, điểm và trạng thái nộp bài.
 - Quản trị viên xem hồ sơ người dùng và số học phần tham gia.
