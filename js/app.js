@@ -57,11 +57,48 @@ async function subjects(c){
 function subjectForm(s={}){modal(s.id?'Sửa học phần':'Tạo học phần',`<form id="subjectForm" class="form-grid"><label class="field wide">Tên học phần<input name="name" required value="${esc(s.name)}"></label><label class="field">Học kỳ<input name="semester" required value="${esc(s.semester||'Học kỳ 1')}"></label><label class="field">Năm học<input name="academic_year" required value="${esc(s.academic_year||'2026-2027')}"></label><div class="form-actions"><button type="button" class="secondary" onclick="document.querySelector('#modal').close()">Hủy</button><button class="primary">Lưu</button></div></form>`);$('#subjectForm').onsubmit=async e=>{e.preventDefault();let v=Object.fromEntries(new FormData(e.target));let r=s.id?await db.from('subjects').update(v).eq('id',s.id):await db.from('subjects').insert(v);if(r.error)return err(r.error);closeModal();toast('Đã lưu học phần');await boot(state.user)}}
 
 async function structure(c){
- if(!state.subjectId){c.replaceChildren(empty());return}let [ch,topics,clos]=await Promise.all([q('chapters','*',x=>x.eq('subject_id',state.subjectId).order('order_index')),q('topics','*',x=>x.order('order_index')),q('clos','*',x=>x.eq('subject_id',state.subjectId).order('code'))]);let relevantTopics=topics.filter(t=>ch.some(x=>x.id===t.chapter_id));
- c.innerHTML=`<div class="grid2"><section class="panel"><div class="panel-head"><h3>Chương và chủ đề</h3>${canTeach()?'<button id="addChapter" class="primary">+ Chương</button>':''}</div><div id="chapterList">${ch.map(x=>`<div style="padding:12px 0;border-bottom:1px solid var(--line)"><b>${x.order_index}. ${esc(x.name)}</b>${canTeach()?`<button data-topic="${x.id}" style="float:right">+ Chủ đề</button>`:''}<div>${relevantTopics.filter(t=>t.chapter_id===x.id).map(t=>`<span class="badge">${esc(t.name)}</span> `).join('')||'<small>Chưa có chủ đề</small>'}</div></div>`).join('')||'<p>Chưa có chương.</p>'}</div></section><section class="panel"><div class="panel-head"><h3>Chuẩn đầu ra CLO</h3>${role()==='admin'?'<button id="addClo" class="primary">+ CLO</button>':''}</div>${clos.map(x=>`<div style="padding:12px 0;border-bottom:1px solid var(--line)"><span class="badge red">${esc(x.code)}</span> ${esc(x.description)}</div>`).join('')||'<p>Chưa có CLO.</p>'}</section></div>`;
- $('#addChapter')?.addEventListener('click',()=>simpleForm('Tạo chương',[['name','Tên chương'],['order_index','Thứ tự','number']],async v=>db.from('chapters').insert({...v,order_index:+v.order_index,subject_id:state.subjectId})));
+ if(!state.subjectId){c.replaceChildren(empty());return}
+ let [ch,topics,clos]=await Promise.all([
+   q('chapters','*',x=>x.eq('subject_id',state.subjectId).order('order_index')),
+   q('topics','*',x=>x.order('order_index')),
+   q('clos','*',x=>x.eq('subject_id',state.subjectId).order('code'))
+ ]);
+ let relevantTopics=topics.filter(t=>ch.some(x=>x.id===t.chapter_id));
+ c.innerHTML=`<div class="grid2"><section class="panel"><div class="panel-head"><h3>Chương và chủ đề</h3>${canTeach()?'<button id="addChapter" class="primary">+ Chương</button>':''}</div><div id="chapterList" class="structure-list">${ch.map(x=>{let ts=relevantTopics.filter(t=>t.chapter_id===x.id);return `<div class="structure-chapter"><div class="structure-chapter-head"><div><b>${esc(x.order_index)}. ${esc(x.name)}</b><small>${ts.length} chủ đề</small></div>${canTeach()?`<div class="structure-actions"><button data-topic="${x.id}">+ Chủ đề</button><button data-edit-chapter="${x.id}">Sửa</button><button class="danger-link" data-delete-chapter="${x.id}">Xóa</button></div>`:''}</div><div class="topic-list">${ts.map(t=>`<div class="topic-row"><span><span class="badge">${esc(t.order_index)}. ${esc(t.name)}</span></span>${canTeach()?`<span class="topic-actions"><button data-edit-topic="${t.id}">Sửa</button><button class="danger-link" data-delete-topic="${t.id}">Xóa</button></span>`:''}</div>`).join('')||'<small>Chưa có chủ đề</small>'}</div></div>`}).join('')||'<p>Chưa có chương.</p>'}</div></section><section class="panel"><div class="panel-head"><h3>Chuẩn đầu ra CLO</h3>${role()==='admin'?'<button id="addClo" class="primary">+ CLO</button>':''}</div>${clos.map(x=>`<div style="padding:12px 0;border-bottom:1px solid var(--line)"><span class="badge red">${esc(x.code)}</span> ${esc(x.description)}</div>`).join('')||'<p>Chưa có CLO.</p>'}</section></div>`;
+ $('#addChapter')?.addEventListener('click',()=>chapterForm(null,ch));
  $('#addClo')?.addEventListener('click',()=>simpleForm('Tạo CLO',[['code','Mã CLO'],['description','Mô tả']],async v=>db.from('clos').insert({...v,subject_id:state.subjectId})));
- $('#chapterList').onclick=e=>{let b=e.target.closest('[data-topic]');if(b)simpleForm('Tạo chủ đề',[['name','Tên chủ đề'],['order_index','Thứ tự','number']],async v=>db.from('topics').insert({...v,order_index:+v.order_index,chapter_id:b.dataset.topic}))};
+ $('#chapterList').onclick=e=>{
+   let b=e.target.closest('button');if(!b)return;
+   if(b.dataset.topic)return topicForm(b.dataset.topic,null,relevantTopics);
+   if(b.dataset.editChapter)return chapterForm(ch.find(x=>x.id===b.dataset.editChapter),ch);
+   if(b.dataset.deleteChapter)return deleteChapter(ch.find(x=>x.id===b.dataset.deleteChapter));
+   if(b.dataset.editTopic)return topicForm(relevantTopics.find(x=>x.id===b.dataset.editTopic)?.chapter_id,relevantTopics.find(x=>x.id===b.dataset.editTopic),relevantTopics);
+   if(b.dataset.deleteTopic)return deleteTopic(relevantTopics.find(x=>x.id===b.dataset.deleteTopic));
+ };
+}
+function chapterForm(x=null,chapters=[]){
+ x=x||{};let nextOrder=x.id?x.order_index:(Math.max(0,...chapters.map(v=>+v.order_index||0))+1);
+ modal(x.id?'Sửa chương':'Tạo chương',`<form id="chapterForm" class="form-grid"><label class="field wide">Tên chương<input name="name" required value="${esc(x.name||'')}"></label><label class="field wide">Thứ tự<input name="order_index" type="number" min="0" required value="${esc(nextOrder)}"></label><p class="hint wide">Có thể đổi tên và thứ tự chương. Các câu hỏi đang gắn với chương vẫn được giữ nguyên.</p><div class="form-actions"><button type="button" class="secondary" onclick="document.querySelector('#modal').close()">Hủy</button><button class="primary">Lưu</button></div></form>`);
+ $('#chapterForm').onsubmit=async e=>{e.preventDefault();let v=Object.fromEntries(new FormData(e.target));v.order_index=+v.order_index;let r=x.id?await db.from('chapters').update(v).eq('id',x.id):await db.from('chapters').insert({...v,subject_id:state.subjectId});if(r.error)return err(r.error);closeModal();toast(x.id?'Đã cập nhật chương':'Đã thêm chương');render()};
+}
+function topicForm(chapterId,x=null,topics=[]){
+ x=x||{};let sameChapter=topics.filter(t=>t.chapter_id===chapterId),nextOrder=x.id?x.order_index:(Math.max(0,...sameChapter.map(v=>+v.order_index||0))+1);
+ modal(x.id?'Sửa chủ đề':'Tạo chủ đề',`<form id="topicForm" class="form-grid"><label class="field wide">Tên chủ đề<input name="name" required value="${esc(x.name||'')}"></label><label class="field wide">Thứ tự<input name="order_index" type="number" min="0" required value="${esc(nextOrder)}"></label><div class="form-actions"><button type="button" class="secondary" onclick="document.querySelector('#modal').close()">Hủy</button><button class="primary">Lưu</button></div></form>`);
+ $('#topicForm').onsubmit=async e=>{e.preventDefault();let v=Object.fromEntries(new FormData(e.target));v.order_index=+v.order_index;let r=x.id?await db.from('topics').update(v).eq('id',x.id):await db.from('topics').insert({...v,chapter_id:chapterId});if(r.error)return err(r.error);closeModal();toast(x.id?'Đã cập nhật chủ đề':'Đã thêm chủ đề');render()};
+}
+async function dependencyCount(table,column,id){let {count,error}=await db.from(table).select('id',{count:'exact',head:true}).eq(column,id);if(error)throw error;return count||0}
+async function deleteChapter(x){
+ if(!x)return;
+ try{let [topicCount,questionCount,examCount]=await Promise.all([dependencyCount('topics','chapter_id',x.id),dependencyCount('questions','chapter_id',x.id),dependencyCount('exam_chapters','chapter_id',x.id)]);
+   if(topicCount||questionCount||examCount){modal('Không thể xóa chương',`<div class="safe-delete"><p><b>${esc(x.name)}</b> đang được sử dụng nên hệ thống không xóa để tránh mất dữ liệu.</p><div class="dependency-list"><span><b>${topicCount}</b> chủ đề</span><span><b>${questionCount}</b> câu hỏi</span><span><b>${examCount}</b> cấu hình đề thi</span></div><p class="hint">Bạn vẫn có thể đổi tên hoặc đổi thứ tự chương. Muốn xóa, cần xử lý các dữ liệu đang liên kết trước.</p><div class="form-actions"><button class="primary" type="button" onclick="document.querySelector('#modal').close()">Đã hiểu</button></div></div>`);return}
+   if(!confirm(`Xóa chương “${x.name}”?`))return;let {error}=await db.from('chapters').delete().eq('id',x.id);if(error)throw error;toast('Đã xóa chương');render();
+ }catch(ex){err(ex)}
+}
+async function deleteTopic(x){
+ if(!x)return;
+ try{let questionCount=await dependencyCount('questions','topic_id',x.id);if(questionCount){modal('Không thể xóa chủ đề',`<div class="safe-delete"><p><b>${esc(x.name)}</b> đang có <b>${questionCount}</b> câu hỏi liên kết.</p><p class="hint">Để bảo vệ ngân hàng câu hỏi, hãy chuyển hoặc xóa các câu hỏi liên quan trước khi xóa chủ đề.</p><div class="form-actions"><button class="primary" type="button" onclick="document.querySelector('#modal').close()">Đã hiểu</button></div></div>`);return}
+   if(!confirm(`Xóa chủ đề “${x.name}”?`))return;let {error}=await db.from('topics').delete().eq('id',x.id);if(error)throw error;toast('Đã xóa chủ đề');render();
+ }catch(ex){err(ex)}
 }
 function simpleForm(title,fields,save){modal(title,`<form id="simpleForm" class="form-grid">${fields.map(f=>`<label class="field wide">${f[1]}<input name="${f[0]}" type="${f[2]||'text'}" required></label>`).join('')}<div class="form-actions"><button class="primary">Lưu</button></div></form>`);$('#simpleForm').onsubmit=async e=>{e.preventDefault();let r=await save(Object.fromEntries(new FormData(e.target)));if(r.error)return err(r.error);closeModal();toast('Đã lưu');render()}}
 
