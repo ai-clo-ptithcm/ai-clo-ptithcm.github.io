@@ -14,3 +14,52 @@
 .password-result code{font-size:18px;font-weight:900;color:#4936b8}
 .password-result small{color:var(--muted)}
 @media(max-width:700px){.user-toolbar select{flex:1}.subject-memberships>div{display:grid}}
+
+html,body{width:100%;max-width:100%;overflow-x:hidden}
+body.public-active{height:100svh;overflow:hidden}
+.public-home{position:fixed;inset:0;width:100%;max-width:100vw;overflow-x:hidden}
+.app,.app>main,.content,.app header{width:100%;max-width:100%;min-width:0}
+.table-wrap{max-width:100%}
+button:disabled{opacity:.5;cursor:not-allowed}
+.class-stats{grid-template-columns:repeat(3,1fr)}
+
+@media(max-width:900px){
+  .app{overflow-x:hidden}
+  .app>main{overflow-x:hidden}
+  .app header{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(108px,42vw);gap:10px}
+  .app header>div:not(.subject-pick){min-width:0}
+  .app header h2,.app header p{white-space:normal;overflow-wrap:anywhere}
+  .subject-pick{margin-left:0;max-width:none;min-width:0}
+  .subject-pick select{width:100%;min-width:0;max-width:100%;padding-right:27px;text-overflow:ellipsis}
+  .content{overflow-x:hidden}
+  .panel{max-width:100%;min-width:0}
+  .public-home{height:100svh;min-height:0;max-height:100svh;overflow:hidden;grid-template-rows:68px minmax(0,1fr)}
+  .public-main{height:100%;min-height:0;grid-template-rows:auto minmax(0,1fr);overflow:hidden}
+  .public-copy{padding:clamp(24px,6vh,50px) 20px 10px}
+  .public-visual{height:100%;min-height:190px;max-height:300px;overflow:hidden}
+}
+
+@media(max-width:560px){
+  .app header{height:auto;min-height:82px;padding:10px 12px}
+  #menuBtn{padding:4px;min-width:28px}
+  .app header h2{font-size:19px}
+  .app header p{font-size:11px;line-height:1.25}
+  .content{padding:14px 12px}
+  .stats,.class-stats{grid-template-columns:1fr 1fr}
+  .stat{padding:16px;min-width:0}
+  .user-toolbar>*{width:100%;flex-basis:100%}
+  .public-copy h1{font-size:clamp(48px,16vw,64px);letter-spacing:-4px}
+  .public-copy p{font-size:14px}
+  .public-visual{max-height:260px}
+  .orbit-one{width:310px;max-width:88vw}
+  .orbit-two{width:360px;max-width:105vw}
+}
+
+@media(max-height:650px) and (max-width:850px){
+  .public-copy{padding-top:20px}
+  .public-copy h1{margin:12px 0;font-size:52px}
+  .public-copy p{font-size:13px;line-height:1.4}
+  .public-cta{margin-top:12px;padding:10px 16px}
+  .public-visual{min-height:150px;max-height:220px}
+  .clo-mark{width:170px;height:170px;font-size:42px}
+}
