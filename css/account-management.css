@@ -1,0 +1,16 @@
+.user-toolbar select{min-width:165px}
+.account-locked{opacity:.68;background:#fff8f8}
+.user-detail{padding:20px}
+.detail-identity{display:flex;align-items:center;gap:14px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.detail-identity h3{margin:0 0 5px}
+.detail-identity p{margin:0 0 9px;color:var(--muted)}
+.avatar{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:#f9e8eb;color:var(--red);font-size:23px;font-weight:900}
+.user-detail h4{margin:20px 0 10px}
+.subject-memberships{display:grid;gap:7px}
+.subject-memberships>div{display:flex;justify-content:space-between;gap:15px;border:1px solid var(--line);border-radius:8px;padding:10px}
+.subject-memberships small{color:var(--muted)}
+.account-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--line);flex-wrap:wrap}
+.password-result{margin-top:15px;padding:14px;border-radius:9px;background:#f4f1ff;border:1px solid #dcd3ff;display:grid;gap:7px}
+.password-result code{font-size:18px;font-weight:900;color:#4936b8}
+.password-result small{color:var(--muted)}
+@media(max-width:700px){.user-toolbar select{flex:1}.subject-memberships>div{display:grid}}

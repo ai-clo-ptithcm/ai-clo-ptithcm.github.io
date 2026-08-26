@@ -8,13 +8,14 @@
   <link rel="stylesheet" href="css/ai.css">
   <link rel="stylesheet" href="css/public.css">
   <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/account-management.css">
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script defer src="js/config.js"></script><script defer src="js/app.js"></script>
 </head>
 <body>
   <div id="toast" class="toast" role="status"></div>
   <section id="auth" class="public-home">
-    <header class="public-nav"><div class="logo">AI<span>·CLO</span> <em>PTITHCM</em></div><button id="openLogin" class="public-login">Đăng nhập</button></header>
+    <header class="public-nav"><div class="public-brand"><img src="assets/images/logo-PTIT.jpg" alt="Logo PTIT"><div class="logo">AI<span>·CLO</span> <em>PTITHCM</em></div></div><button id="openLogin" class="public-login">Đăng nhập</button></header>
     <main class="public-main"><div class="public-copy"><div class="eyebrow">HỆ THỐNG HỖ TRỢ GIẢNG DẠY VÀ ĐÁNH GIÁ</div><h1>AI-CLO<br><span>PTITHCM</span></h1><p>Quản lý ngân hàng câu hỏi, xây dựng đề thi và phân tích kết quả học tập theo chuẩn đầu ra học phần.</p><button id="heroLogin" class="public-cta">Đăng nhập hệ thống <b>→</b></button></div><div class="public-visual" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="clo-mark">CLO<small>QUESTION BANK · AI ASSISTANT</small></div></div></main>
     <footer class="public-footer"><span>Học phần</span><b>→</b><span>Ngân hàng câu hỏi</span><b>→</b><span>Đề thi</span><b>→</b><span>Phân tích CLO</span></footer>
     <div id="loginPanel" class="login-overlay hidden"><form id="loginForm" class="auth-card login-card"><button id="closeLogin" class="login-close" type="button" aria-label="Đóng">×</button><small>AI-CLO PTITHCM</small><h2>Đăng nhập hệ thống</h2><label>Email<input id="email" type="email" required autocomplete="email" placeholder="giangvien@ptithcm.edu.vn"></label><label>Mật khẩu<input id="password" type="password" required minlength="6" autocomplete="current-password"></label><button class="primary" type="submit">Đăng nhập</button><button id="resetBtn" class="link-btn" type="button">Quên mật khẩu?</button><p class="hint">Tài khoản do quản trị viên cấp.</p></form></div>
