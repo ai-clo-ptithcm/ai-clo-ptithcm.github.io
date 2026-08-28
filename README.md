@@ -52,3 +52,9 @@ docs/schema-constraints.csv
 docs/schema-rls.csv
 docs/schema-policies.csv
 ```
+
+## Nâng cấp v9 — Bài kiểm tra hoàn chỉnh
+
+Bản này có thêm `js/assessment.js`, migration `docs/assessment-v9-migration.sql` và Edge Function AI tùy chọn `supabase/functions/analyze-assessment/`.
+
+**Trước khi dùng trang Bài kiểm tra v9, cần chạy migration SQL đúng một lần.** Xem hướng dẫn chi tiết trong `UPGRADE-V9.md`.

@@ -1,0 +1,11 @@
+AI-CLO PTITHCM v9 — Complete Assessment Flow
+Base: ai-clo-ptithcm.github.io-ngay28-8(1).zip
+Date: 2026-08-28
+
+Core flow:
+1) Teacher configures assessment by chapter/topic/CLO counts.
+2) Questions are sampled from active question bank and frozen in exam_questions.
+3) Student starts/resumes timed attempt with autosave.
+4) Supabase RPC scores answers and returns total/CLO/chapter results.
+5) Teacher views student/class dashboards and exports reports.
+6) Gemini is strictly on-demand and cached; no automatic AI call after submission.
