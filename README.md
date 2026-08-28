@@ -1,60 +1,54 @@
-# AI-CLO PTITHCM — bản chạy thử GitHub Pages
+# AI-CLO PTITHCM — V9.1
 
-Ứng dụng web tĩnh kết nối trực tiếp với Supabase hiện có. Bản này bám theo schema 14 bảng và chính sách RLS được xuất ngày 26/08/2026.
+V9.1 mở rộng V9 theo hướng hoàn thiện quy trình bài kiểm tra, giữ lịch sử câu hỏi/bài làm ổn định và hạn chế mở cửa sổ mới.
 
-## Chức năng
+## Điểm mới chính
 
-- Đăng nhập, đăng xuất và đặt lại mật khẩu bằng Supabase Auth.
-- Giao diện theo vai trò `admin`, `teacher`/`lecturer` và `student`.
-- Quản lý học phần; chọn học phần làm việc.
-- Quản lý chương, chủ đề và CLO theo quyền RLS.
-- Thêm, sửa, xóa, tìm câu hỏi; quản lý bốn phương án A–D và đáp án đúng.
-- Tạo 1–10 câu bằng Gemini theo chương, chủ đề tùy chọn và CLO.
-- Lưu phiên AI, duyệt từng câu, sửa trực tiếp, xác nhận hoặc bỏ qua.
-- Admin tạo tài khoản teacher/student thủ công hoặc từ CSV, sinh mật khẩu tạm và xuất kết quả.
-- Admin thêm hoặc xóa nhiều giảng viên, sinh viên khỏi học phần đang chọn.
-- Tạo và theo dõi đề thi.
-- Xem lượt làm bài, điểm và trạng thái nộp bài.
-- Quản trị viên xem hồ sơ người dùng và số học phần tham gia.
-- Responsive cho máy tính và điện thoại.
+- Landing page luôn hiển thị kể cả khi người dùng đã đăng nhập; khi đó nút chính đổi thành **Vào hệ thống**.
+- Trang Bài kiểm tra dùng **drawer/panel bên phải** để xem cấu trúc đề, danh sách bài làm, chi tiết bài làm và hồ sơ sinh viên.
+- Danh sách bài làm có nút **Xem bài**; bấm tên sinh viên mở hồ sơ ngay trong panel.
+- Các thao tác quan trọng có hộp xác nhận: bắt đầu/nộp bài, phát hành/đóng/xóa, chỉnh cấu trúc, rút lại/đổi câu.
+- Ba chế độ rút câu:
+  - `common_fixed`: một bộ câu chung cố định;
+  - `student_fixed`: mỗi sinh viên có bộ câu riêng và giữ nguyên qua các lần làm;
+  - `attempt_random`: mỗi lượt làm rút lại, ưu tiên tránh câu đã gặp.
+- Có `exam_question_pool` để đóng băng nguồn câu khi tạo bài và `attempt_questions` để lưu snapshot từng lượt làm.
+- Trước khi có sinh viên làm, giảng viên có thể xem ma trận Chương/Chủ đề/CLO, đổi riêng câu hoặc rút lại bộ câu mẫu/chung.
+- Sau khi đã có lượt làm, cấu trúc đo lường và bộ câu bị khóa để bảo toàn kết quả.
+- Hồ sơ sinh viên có lịch sử bài kiểm tra, tiến bộ CLO và thống kê theo chương.
+- Gemini vẫn **on-demand**: không dùng để chấm điểm, tính CLO hay xuất báo cáo; chỉ gọi khi sinh viên/giảng viên chủ động nhấn nút AI.
 
-## Đưa lên GitHub Pages
+## Nâng từ V9 lên V9.1
 
-1. Giải nén toàn bộ nội dung ZIP vào repository GitHub cá nhân.
-2. Vào **Settings → Pages**.
-3. Chọn **Deploy from a branch**, nhánh `main`, thư mục `/ (root)`.
-4. Chờ GitHub cung cấp đường dẫn website.
+Nếu hệ thống hiện tại đã chạy V9, **không chạy lại migration V9**.
 
-Ứng dụng dùng đường dẫn tương đối nên chạy được cả ở repository dạng `username.github.io` và project Pages.
+1. Chạy `docs/assessment-v9.1-migration.sql` trong Supabase SQL Editor.
+2. Redeploy `supabase/functions/analyze-assessment/index.ts` bằng code V9.1.
+3. Đưa toàn bộ mã nguồn V9.1 lên GitHub Pages.
+4. Kiểm thử bằng một tài khoản giảng viên và ít nhất hai tài khoản sinh viên nếu muốn đối chiếu ba chế độ rút câu.
 
-## Cấu hình Supabase
+Xem chi tiết trong `UPGRADE-V9.1.md`.
 
-Thông tin public nằm trong `js/config.js`. Publishable key được phép đặt ở frontend; bảo mật dữ liệu dựa vào Auth và RLS. Tuyệt đối không đưa `service_role` key lên GitHub.
+## Cấu hình Supabase/Gemini
 
-Trong Supabase Authentication, thêm URL GitHub Pages vào **URL Configuration → Redirect URLs** để đặt lại mật khẩu hoạt động đúng.
+- `js/config.js` chỉ chứa thông tin public dành cho frontend; không đưa `service_role` key lên GitHub.
+- Edge Function `analyze-assessment` dùng `GEMINI_API_KEY` đã cấu hình trong Supabase Secrets.
+- V9.1 không yêu cầu đổi Gemini key nếu V9 đã chạy AI thành công.
 
-## Lưu ý về quyền hiện tại
-
-- Chỉ `admin` được tạo/sửa/xóa `subjects` và CLO theo RLS hiện có.
-- Giảng viên của học phần được quản lý chương, chủ đề, câu hỏi và đề thi.
-- Sinh viên chủ yếu có quyền đọc nội dung học phần và làm bài.
-- Tạo tài khoản Auth mới từ trình duyệt không an toàn nếu cần quyền quản trị. Nên tạo trong Supabase Dashboard hoặc bổ sung Edge Function riêng.
-
-## Cấu trúc
+## File quan trọng
 
 ```text
 index.html
 css/app.css
-js/config.js
+css/question-exam.css
+css/public.css
 js/app.js
-docs/schema-columns.csv
-docs/schema-constraints.csv
-docs/schema-rls.csv
-docs/schema-policies.csv
+js/assessment.js
+js/assessment-v91.js
+docs/assessment-v9.1-migration.sql
+supabase/functions/analyze-assessment/index.ts
+UPGRADE-V9.1.md
+VERSION-v9.1.txt
 ```
 
-## Nâng cấp v9 — Bài kiểm tra hoàn chỉnh
-
-Bản này có thêm `js/assessment.js`, migration `docs/assessment-v9-migration.sql` và Edge Function AI tùy chọn `supabase/functions/analyze-assessment/`.
-
-**Trước khi dùng trang Bài kiểm tra v9, cần chạy migration SQL đúng một lần.** Xem hướng dẫn chi tiết trong `UPGRADE-V9.md`.
+`js/assessment.js` của V9 vẫn được giữ làm nền tương thích; `js/assessment-v91.js` được nạp sau để cung cấp luồng Bài kiểm tra V9.1.

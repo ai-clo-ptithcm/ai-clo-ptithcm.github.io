@@ -66,29 +66,25 @@ Deno.serve(async (req) => {
     const attemptIds = attempts.map(x => x.id);
     const { data: answers, error: ansError } = await admin.from("student_answers").select("attempt_id,question_id,is_correct").in("attempt_id", attemptIds);
     if (ansError) throw ansError;
-    const qIds = [...new Set((answers || []).map((x: any) => x.question_id))];
-    const { data: questions, error: qError } = qIds.length ? await admin.from("questions").select("id,clo_id,chapter_id,topic_id").in("id", qIds) : { data: [], error: null } as any;
-    if (qError) throw qError;
-    const { data: clos } = await admin.from("clos").select("id,code,description").eq("subject_id", subjectId);
-    const { data: chapters } = await admin.from("chapters").select("id,name").eq("subject_id", subjectId);
-    const chapterIds = (chapters || []).map(x => x.id);
-    const { data: topics } = chapterIds.length ? await admin.from("topics").select("id,name,chapter_id").in("chapter_id", chapterIds) : { data: [] } as any;
-    const qMap = new Map((questions || []).map((x: any) => [x.id, x]));
-    const cloMap = new Map((clos || []).map((x: any) => [x.id, x]));
-    const chapterMap = new Map((chapters || []).map((x: any) => [x.id, x]));
-    const topicMap = new Map((topics || []).map((x: any) => [x.id, x]));
+    // V9.1: dùng snapshot của từng lượt làm thay vì đọc metadata hiện tại trong ngân hàng câu hỏi.
+    // Nhờ vậy nhận xét AI không thay đổi nếu giảng viên chỉnh câu/chương/chủ đề sau này.
+    const { data: attemptQuestions, error: aqError } = await admin.from("attempt_questions")
+      .select("attempt_id,question_id,clo_code,chapter_name,topic_name")
+      .in("attempt_id", attemptIds);
+    if (aqError) throw aqError;
+    const metaMap = new Map((attemptQuestions || []).map((x: any) => [`${x.attempt_id}|${x.question_id}`, x]));
     const aggregate = (getKey: (q: any) => string | null) => {
       const m = new Map<string, { correct: number; total: number }>();
       for (const a of answers || []) {
-        const q = qMap.get((a as any).question_id); if (!q) continue;
+        const q = metaMap.get(`${(a as any).attempt_id}|${(a as any).question_id}`); if (!q) continue;
         const key = getKey(q); if (!key) continue;
         const x = m.get(key) || { correct: 0, total: 0 }; x.total++; if ((a as any).is_correct) x.correct++; m.set(key, x);
       }
       return [...m.entries()].map(([name, x]) => ({ name, correct: x.correct, total: x.total, score: score(x.correct, x.total) }));
     };
-    const cloMetrics = aggregate((q: any) => cloMap.get(q.clo_id)?.code || null);
-    const chapterMetrics = aggregate((q: any) => chapterMap.get(q.chapter_id)?.name || null);
-    const topicMetrics = aggregate((q: any) => topicMap.get(q.topic_id)?.name || null).sort((a,b)=>a.score-b.score).slice(0,8);
+    const cloMetrics = aggregate((q: any) => q.clo_code || null);
+    const chapterMetrics = aggregate((q: any) => q.chapter_name || null);
+    const topicMetrics = aggregate((q: any) => q.topic_name || null).sort((a,b)=>a.score-b.score).slice(0,8);
     const avgScore = Math.round(attempts.reduce((s, a) => s + Number(a.score || 0), 0) * 100 / attempts.length) / 100;
     let studentInfo: any = null;
     if (studentId) {

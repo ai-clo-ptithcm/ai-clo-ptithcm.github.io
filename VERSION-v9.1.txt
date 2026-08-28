@@ -1,0 +1,17 @@
+AI-CLO PTITHCM — v9.1
+Ngày: 28/08/2026
+
+Nâng cấp trên v9 Complete Assessment Flow.
+
+Điểm chính:
+- Landing page luôn hiển thị dù đã đăng nhập; nút chuyển thành “Vào hệ thống”.
+- Giữ đúng hero index.html đã chốt: tên hệ thống dài ở eyebrow, AI-CLO PTITHCM là system-title.
+- Drawer/panel bên phải thay cho việc mở nhiều cửa sổ/modal chi tiết.
+- Nhấn tên bài kiểm tra -> danh sách bài làm; có nút Xem bài; tên sinh viên mở hồ sơ trong panel.
+- 3 chế độ câu: đề chung cố định / đề riêng cố định theo sinh viên / rút lại mỗi lần làm.
+- Pool câu hỏi được đóng băng khi tạo bài; mỗi lượt làm có snapshot câu hỏi/đáp án/CLO/chương/chủ đề.
+- Rút lại toàn bộ và đổi câu trước khi có lượt làm; khóa cấu trúc sau khi đã có lượt làm.
+- Ma trận xem trước Chương · Chủ đề · CLO.
+- Hồ sơ sinh viên có tiến bộ CLO qua nhiều lượt làm và xuất báo cáo.
+- Xác nhận các thao tác quan trọng: phát hành, đóng, sửa, xóa, bắt đầu/nộp bài, đổi/rút lại câu.
+- Gemini vẫn chỉ chạy theo nút bấm; analyze-assessment v9.1 dùng snapshot theo lượt làm.
