@@ -29,18 +29,15 @@ document.addEventListener('DOMContentLoaded',init);
 async function init(){
  if(!db){return err('Không tải được thư viện Supabase. Hãy kiểm tra kết nối mạng.')}
  $('#loginForm').onsubmit=login; $('#logoutBtn').onclick=async()=>{await window.logActivity?.('logout','session',null,'Đăng xuất hệ thống');await db.auth.signOut()}; $('#resetBtn').onclick=resetPassword;
- const openLogin=()=>{if(state.user&&state.profile)return enterApp();$('#loginPanel').classList.remove('hidden');setTimeout(()=>$('#email').focus(),50)};$('#openLogin').onclick=openLogin;$('#heroLogin').onclick=openLogin;$('#closeLogin').onclick=()=>$('#loginPanel').classList.add('hidden');$('#loginPanel').onclick=e=>{if(e.target===$('#loginPanel'))$('#loginPanel').classList.add('hidden')};
- $('#homeBtn').onclick=()=>showPublicAuthenticated();
+ setTimeout(()=>$('#email')?.focus(),50);
  $('#drawerClose').onclick=closeDrawer;$('#drawerBack').onclick=backDrawer;$('#drawerExpand').onclick=()=>$('#sideDrawer').classList.toggle('expanded');$('#drawerBackdrop').onclick=closeDrawer;
  $('#menuBtn').onclick=()=>$('aside').classList.toggle('open'); $('#subjectSelect').onchange=e=>{state.subjectId=e.target.value;localStorage.setItem('aiclo_subject',state.subjectId);render()};
  $('#nav').onclick=e=>{let b=e.target.closest('[data-view]');if(b)navigate(b.dataset.view)};
  db.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT')return showAuth();if(!session?.user)return;if(event==='SIGNED_IN'||event==='INITIAL_SESSION'||!state.user)boot(session.user);else state.user=session.user});
  const {data}=await db.auth.getSession(); data.session?.user?boot(data.session.user):showAuth();
 }
-function updatePublicSession(){let logged=!!(state.user&&state.profile),label=logged?'Vào hệ thống':'Đăng nhập';$('#openLogin').textContent=label;$('#heroLogin').innerHTML=logged?'Vào hệ thống <b>→</b>':'Đăng nhập hệ thống <b>→</b>';$('#openLogin').title=logged?`Đã đăng nhập: ${state.profile.full_name||state.profile.email||''}`:''}
-function showAuth(){closeDrawer();document.body.classList.add('public-active');$('#auth').classList.remove('hidden');$('#app').classList.add('hidden');$('#loginPanel')?.classList.add('hidden');state.user=null;state.profile=null;updatePublicSession()}
-function showPublicAuthenticated(){closeDrawer();document.body.classList.add('public-active');$('#auth').classList.remove('hidden');$('#app').classList.add('hidden');$('#loginPanel')?.classList.add('hidden');updatePublicSession();window.scrollTo({top:0,behavior:'smooth'})}
-function enterApp(){if(!state.user||!state.profile)return $('#loginPanel').classList.remove('hidden');document.body.classList.remove('public-active');$('#auth').classList.add('hidden');$('#app').classList.remove('hidden');fillSubjectSelect();navigate(state.view)}
+function showAuth(){closeDrawer();document.body.classList.add('login-active');$('#auth').classList.remove('hidden');$('#app').classList.add('hidden');state.user=null;state.profile=null;setTimeout(()=>$('#email')?.focus(),50)}
+function enterApp(){if(!state.user||!state.profile)return showAuth();document.body.classList.remove('login-active');$('#auth').classList.add('hidden');$('#app').classList.remove('hidden');fillSubjectSelect();navigate(state.view)}
 async function login(e){e.preventDefault();let {error}=await db.auth.signInWithPassword({email:$('#email').value.trim(),password:$('#password').value});if(error)err(error);else toast('Đăng nhập thành công')}
 async function resetPassword(){let email=$('#email').value.trim();if(!email)return toast('Nhập email trước khi yêu cầu đặt lại mật khẩu',true);let {error}=await db.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});error?err(error):toast('Đã gửi email đặt lại mật khẩu')}
 async function boot(user){
@@ -49,7 +46,7 @@ async function boot(user){
    if(!state.subjects.some(s=>s.id===state.subjectId))state.subjectId=state.subjects[0]?.id||'';
    $('#miniUser').innerHTML=`<b>${esc(data.full_name)}</b><br>${esc(data.email)} · ${esc(data.role)}`;
    if(window.logActivity)window.logActivity('login','session',null,'Đăng nhập hệ thống','success',null,{source:'web'});
-   $$('[data-admin]').forEach(x=>x.hidden=role()!=='admin');$$('[data-staff]').forEach(x=>x.hidden=!['admin','teacher','lecturer','giangvien'].includes(role()));$('#usersNavLabel').textContent=role()==='admin'?'Người dùng':'Danh sách lớp';fillSubjectSelect();showPublicAuthenticated();
+   $$('[data-admin]').forEach(x=>x.hidden=role()!=='admin');$$('[data-staff]').forEach(x=>x.hidden=!['admin','teacher','lecturer','giangvien'].includes(role()));$('#usersNavLabel').textContent=role()==='admin'?'Người dùng':'Danh sách lớp';fillSubjectSelect();enterApp();
  }catch(e){err(e)}
 }
 function fillSubjectSelect(){let s=$('#subjectSelect');s.innerHTML=state.subjects.length?state.subjects.map(x=>`<option value="${x.id}" ${x.id===state.subjectId?'selected':''}>${esc(x.name)} · ${esc(x.semester)}</option>`).join(''):'<option value="">Chưa có học phần</option>'}
