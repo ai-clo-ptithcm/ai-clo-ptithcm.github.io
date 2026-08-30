@@ -3,28 +3,46 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="Ngân hàng câu hỏi và đánh giá theo CLO cho PTIT HCM">
-  <title>AI-CLO PTITHCM</title>
+  <title>AI-CLO PTITHCM | Hệ thống ứng dụng trí tuệ nhân tạo hỗ trợ đánh giá sinh viên theo chuẩn đầu ra học phần</title>
   <link rel="stylesheet" href="css/app.css">
   <link rel="stylesheet" href="css/ai.css">
   <link rel="stylesheet" href="css/public.css">
-  <link rel="stylesheet" href="css/v92.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/account-management.css">
+  <link rel="stylesheet" href="css/question-exam.css">
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>window.MathJax={tex:{inlineMath:[['$','$'],['\\(','\\)']],displayMath:[['$$','$$'],['\\[','\\]']],processEscapes:true},options:{skipHtmlTags:['script','noscript','style','textarea','pre','code']}};</script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script defer src="js/config.js"></script><script defer src="js/app.js"></script><script defer src="js/v92.js"></script>
+  <script defer src="js/config.js"></script><script defer src="js/app.js"></script><script defer src="js/assessment.js"></script><script defer src="js/assessment-v91.js"></script>
 </head>
 <body>
   <div id="toast" class="toast" role="status"></div>
   <section id="auth" class="public-home">
-    <header class="public-nav"><div class="logo">AI<span>·CLO</span> <em>PTITHCM</em></div><button id="openLogin" class="public-login">Đăng nhập</button></header>
-    <main class="public-main"><div class="public-copy"><div class="eyebrow">HỆ THỐNG HỖ TRỢ GIẢNG DẠY VÀ ĐÁNH GIÁ</div><h1>AI-CLO<br><span>PTITHCM</span></h1><p>Quản lý ngân hàng câu hỏi, xây dựng đề thi và phân tích kết quả học tập theo chuẩn đầu ra học phần.</p><button id="heroLogin" class="public-cta">Đăng nhập hệ thống <b>→</b></button></div><div class="public-visual" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="clo-mark">CLO<small>QUESTION BANK · AI ASSISTANT</small></div></div></main>
-    <footer class="public-footer"><span>Học phần</span><b>→</b><span>Ngân hàng câu hỏi</span><b>→</b><span>Đề thi</span><b>→</b><span>Phân tích CLO</span></footer>
+    <header class="public-nav"><div class="public-brand"><div class="logo">AI<span>·CLO</span> <em>PTITHCM</em></div></div><button id="openLogin" class="public-login">Đăng nhập</button></header>
+    <main class="public-main"><div class="public-copy">
+
+<div class="eyebrow">HỆ THỐNG ỨNG DỤNG TRÍ TUỆ NHÂN TẠO HỖ TRỢ ĐÁNH GIÁ SINH VIÊN THEO CHUẨN ĐẦU RA HỌC PHẦN</div>
+<h1 class="system-title">AI-CLO PTITHCM</h1>
+
+<p>Quản lý ngân hàng câu hỏi, xây dựng đề thi và phân tích kết quả học tập theo chuẩn đầu ra học phần.</p><button id="heroLogin" class="public-cta">Đăng nhập hệ thống <b>→</b></button></div><div class="public-visual" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="ptit-hero-logo"><img src="assets/images/logo-PTIT.jpg" alt=""></div></div></main>
+    <footer class="public-footer site-footer"><span>© 2026 AI-CLO PTITHCM</span><nav><a href="gioi-thieu.html">Giới thiệu</a><a href="huong-dan.html">Hướng dẫn sử dụng</a></nav></footer>
     <div id="loginPanel" class="login-overlay hidden"><form id="loginForm" class="auth-card login-card"><button id="closeLogin" class="login-close" type="button" aria-label="Đóng">×</button><small>AI-CLO PTITHCM</small><h2>Đăng nhập hệ thống</h2><label>Email<input id="email" type="email" required autocomplete="email" placeholder="giangvien@ptithcm.edu.vn"></label><label>Mật khẩu<input id="password" type="password" required minlength="6" autocomplete="current-password"></label><button class="primary" type="submit">Đăng nhập</button><button id="resetBtn" class="link-btn" type="button">Quên mật khẩu?</button><p class="hint">Tài khoản do quản trị viên cấp.</p></form></div>
   </section>
 
   <div id="app" class="app hidden">
-    <aside><div class="logo">AI<span>·CLO</span></div><nav id="nav"><button data-view="dashboard" class="active">⌂ Tổng quan</button><button data-view="subjects">▣ Học phần</button><button data-view="structure">⌘ Chương · CLO</button><button data-view="questions">? Ngân hàng câu hỏi</button><button data-view="exams">✎ Đề thi</button><button data-view="results">◫ Kết quả CLO</button><button data-view="notifications">● Thông báo</button><button data-view="activity" data-teacher>≡ Nhật ký hoạt động</button><button data-view="users" data-admin>♙ Người dùng</button></nav><div class="aside-foot"><div id="miniUser"></div><button id="logoutBtn">Đăng xuất</button></div></aside>
-    <main><header><button id="menuBtn" aria-label="Mở menu">☰</button><div><h2 id="pageTitle">Tổng quan</h2><p id="pageSub">Theo dõi dữ liệu học phần và hoạt động gần đây</p></div><button id="notificationBell" class="notification-bell" aria-label="Thông báo">●<span id="notificationCount" hidden>0</span></button><div class="subject-pick"><label>Học phần hiện tại</label><select id="subjectSelect"></select></div></header><div id="content" class="content"></div></main>
+    <aside><div class="logo">AI<span>·CLO</span></div><nav id="nav"><button data-view="dashboard" class="active">⌂ Tổng quan</button><button data-view="subjects">▣ Học phần</button><button data-view="structure">⌘ Chương · CLO</button><button data-view="questions" data-staff hidden>? Ngân hàng câu hỏi</button><button data-view="exams">✎ Bài kiểm tra</button><button data-view="results">◫ Kết quả CLO</button><button data-view="users" data-staff hidden>♙ <span id="usersNavLabel">Người dùng</span></button></nav><div class="aside-foot"><div id="miniUser"></div><button id="homeBtn">Trang chủ</button><button id="logoutBtn">Đăng xuất</button></div></aside>
+    <main><header><button id="menuBtn" aria-label="Mở menu">☰</button><div><h2 id="pageTitle">Tổng quan</h2><p id="pageSub">Theo dõi dữ liệu học phần và hoạt động gần đây</p></div><div class="subject-pick"><label>Học phần hiện tại</label><select id="subjectSelect"></select></div></header><div id="content" class="content"></div><footer class="app-footer site-footer"><span>© 2026 AI-CLO PTITHCM</span><nav><a href="gioi-thieu.html">Giới thiệu</a><a href="huong-dan.html">Hướng dẫn sử dụng</a></nav></footer></main>
   </div>
+
+
+  <div id="drawerBackdrop" class="drawer-backdrop hidden" aria-hidden="true"></div>
+  <section id="sideDrawer" class="side-drawer hidden" aria-hidden="true" aria-label="Chi tiết">
+    <header class="drawer-head"><button id="drawerBack" class="drawer-back hidden" type="button" aria-label="Quay lại">←</button><div><small id="drawerEyebrow">CHI TIẾT</small><h3 id="drawerTitle"></h3></div><div class="drawer-spacer"></div><button id="drawerExpand" type="button" aria-label="Mở rộng">↔</button><button id="drawerClose" type="button" aria-label="Đóng">×</button></header>
+    <div id="drawerBody" class="drawer-body"></div>
+  </section>
+
+  <dialog id="confirmDialog" class="confirm-dialog"><div class="confirm-card"><div class="confirm-icon">!</div><h3 id="confirmTitle">Xác nhận thao tác</h3><p id="confirmMessage"></p><div class="confirm-actions"><button id="confirmCancel" class="secondary" type="button">Hủy</button><button id="confirmOk" class="primary" type="button">Xác nhận</button></div></div></dialog>
 
   <dialog id="modal"><form method="dialog" class="modal-head"><h3 id="modalTitle"></h3><button value="cancel" aria-label="Đóng">×</button></form><div id="modalBody"></div></dialog>
   <template id="emptyTpl"><div class="empty"><b>Chưa có dữ liệu</b><span>Hãy tạo bản ghi đầu tiên để bắt đầu.</span></div></template>
