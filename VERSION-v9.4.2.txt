@@ -1,0 +1,17 @@
+AI-CLO PTITHCM v9.4.2
+Ngày đóng gói: 30/08/2026
+
+Nền tảng: v9.1, nâng cấp cộng dồn đến v9.4.2.
+
+Thay đổi chính:
+- Tách riêng trang chủ, trang đăng nhập và ứng dụng.
+- Giữ sidebar cố định khi cuộn nội dung dài.
+- Chi tiết và chỉnh sửa câu hỏi hiển thị trong trang.
+- Lưu người tạo, ngày tạo, lần cập nhật gần nhất và lịch sử chỉnh sửa câu hỏi.
+- Trung tâm thông báo dùng biểu tượng chuông.
+- Nhật ký hoạt động lưu 6 tháng và hỗ trợ xuất Excel.
+- Sửa hiện tượng tải lại thông báo gây chớp khi chuyển nhanh giữa các tab Chrome.
+
+Supabase:
+- Nếu chưa nâng cấp v9.4, chạy supabase/v9.4-question-history.sql đúng một lần.
+- Bản sửa v9.4.2 không yêu cầu chạy thêm SQL.

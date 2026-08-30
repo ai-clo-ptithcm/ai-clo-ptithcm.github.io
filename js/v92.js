@@ -33,4 +33,11 @@ async function activity(c){
 const v91Dashboard=dashboard;dashboard=async c=>{await v91Dashboard(c);try{await refreshNotificationData();let items=await q('notifications','*',x=>x.eq('user_id',state.user.id).is('read_at',null).order('created_at',{ascending:false}).limit(5)),box=document.createElement('section');box.className='panel task-center';box.innerHTML=`<div class="panel-head"><h3>Việc cần xử lý</h3><button id="allNotices">Xem tất cả</button></div>${items.length?items.map(notificationCard).join(''):'<p class="hint">Hiện không có việc mới.</p>'}`;c.append(box);$('#allNotices').onclick=()=>navigate('notifications');$$('[data-notice]',box).forEach(b=>b.onclick=()=>openNotification(b.dataset.notice,items))}catch(ex){console.warn(ex)}};
 render=async function(){let c=$('#content');c.innerHTML='<div class="panel">Đang tải dữ liệu…</div>';try{await ({dashboard,subjects,structure,questions,exams,results,notifications,activity,users}[state.view]||dashboard)(c);refreshNotificationData()}catch(ex){c.innerHTML=`<div class="panel"><b>Không thể tải dữ liệu</b><p>${esc(ex.message)}</p></div>`;err(ex)}};
 $('#notificationBell').onclick=()=>navigate('notifications');
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshNotificationData(true)});
+let tabHiddenAt=0;
+document.addEventListener('visibilitychange',()=>{
+ if(document.hidden){tabHiddenAt=Date.now();return}
+ // Chuyển qua lại tab nhanh không được tải lại dữ liệu hoặc làm giao diện chớp.
+ // Chỉ đồng bộ thông báo khi người dùng đã rời ứng dụng ít nhất 5 phút.
+ if(tabHiddenAt&&Date.now()-tabHiddenAt>=300000)refreshNotificationData(false)
+ tabHiddenAt=0
+});
