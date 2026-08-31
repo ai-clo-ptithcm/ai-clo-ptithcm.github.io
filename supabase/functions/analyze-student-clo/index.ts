@@ -1,63 +1,8 @@
 // Supabase Edge Function: analyze-student-clo
 // Secret required: GEMINI_API_KEY
+// V10.5.2: multi-model fallback + quota/timeout protection.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "npm:@supabase/server@1";
-// V10.2: Gemini fallback self-contained for Supabase Dashboard deployment
-type GeminiAttempt = { model: string; status: number; message?: string };
-
-const DEFAULT_MODELS = [
-  "gemini-3.7-flash",
-  "gemini-3.6-flash",
-  "gemini-3.5-flash",
-  "gemini-3.5-flash-lite",
-];
-
-function configuredModels() {
-  const raw = Deno.env.get("GEMINI_MODELS") || Deno.env.get("GEMINI_MODEL") || "";
-  const configured = raw.split(",").map(x => x.trim()).filter(Boolean);
-  return [...new Set([...configured, ...DEFAULT_MODELS])];
-}
-
-function retryable(status: number, message: string) {
-  return status === 404 || status === 408 || status === 429 || status >= 500 ||
-    /quota|rate limit|resource exhausted|not found|unavailable|overloaded|temporar/i.test(message);
-}
-
-async function callGemini(
-  apiKey: string,
-  body: unknown,
-): Promise<{ data: any; model: string; attempts: GeminiAttempt[] }> {
-  const attempts: GeminiAttempt[] = [];
-  let lastMessage = "Gemini không thể xử lý yêu cầu.";
-
-  for (const model of configuredModels()) {
-    try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-goog-api-key": apiKey,
-          },
-          body: JSON.stringify(body),
-        },
-      );
-      const data = await response.json().catch(() => ({}));
-      const message = data?.error?.message || `Gemini API HTTP ${response.status}`;
-      attempts.push({ model, status: response.status, message: response.ok ? undefined : message });
-      if (response.ok) return { data, model, attempts };
-      lastMessage = message;
-      if (!retryable(response.status, message)) break;
-    } catch (error) {
-      lastMessage = error instanceof Error ? error.message : String(error);
-      attempts.push({ model, status: 0, message: lastMessage });
-    }
-  }
-
-  throw new Error(`${lastMessage} (đã thử: ${attempts.map(x => x.model).join(" → ")})`);
-}
-
 
 type RequestBody = {
   subject_id?: string;
@@ -68,6 +13,20 @@ type CloRecord = {
   code: string;
   description: string | null;
 };
+
+type ThinkingLevel = "minimal" | "low" | "medium" | "high";
+
+type GeminiModelConfig = {
+  id: string;
+  timeoutMs: number;
+  thinkingLevel: ThinkingLevel;
+};
+
+const GEMINI_MODELS: GeminiModelConfig[] = [
+  { id: "gemini-3.6-flash", timeoutMs: 30_000, thinkingLevel: "low" },
+  { id: "gemini-3.7-flash", timeoutMs: 26_000, thinkingLevel: "low" },
+  { id: "gemini-3.5-flash-lite", timeoutMs: 20_000, thinkingLevel: "minimal" },
+];
 
 function scoreLevel(score: number) {
   if (score < 4) return { level: "M0", status: "Chưa đạt" };
@@ -102,7 +61,288 @@ function parseGeminiJson(text: string) {
   return JSON.parse(cleaned);
 }
 
-console.info("analyze-student-clo started");
+class GeminiCallError extends Error {
+  code: string;
+  model: string;
+  status?: number;
+  retryable: boolean;
+
+  constructor(options: {
+    message: string;
+    code: string;
+    model: string;
+    status?: number;
+    retryable?: boolean;
+  }) {
+    super(options.message);
+    this.name = "GeminiCallError";
+    this.code = options.code;
+    this.model = options.model;
+    this.status = options.status;
+    this.retryable = options.retryable ?? false;
+  }
+}
+
+function safeJsonParse(text: string): any | null {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+function classifyHttpError(model: string, status: number, data: any) {
+  const message =
+    data?.error?.message || data?.message || `Gemini API trả về HTTP ${status}.`;
+
+  if (status === 429) {
+    return new GeminiCallError({
+      message,
+      code: "AI_QUOTA_EXCEEDED",
+      model,
+      status,
+      retryable: true,
+    });
+  }
+
+  if (status === 404) {
+    return new GeminiCallError({
+      message,
+      code: "AI_MODEL_UNAVAILABLE",
+      model,
+      status,
+      retryable: true,
+    });
+  }
+
+  if ([408, 409, 500, 502, 503, 504].includes(status)) {
+    return new GeminiCallError({
+      message,
+      code: "AI_TEMPORARILY_UNAVAILABLE",
+      model,
+      status,
+      retryable: true,
+    });
+  }
+
+  return new GeminiCallError({
+    message,
+    code: "AI_REQUEST_REJECTED",
+    model,
+    status,
+    retryable: false,
+  });
+}
+
+function responseSchema() {
+  return {
+    type: "object",
+    additionalProperties: false,
+    required: [
+      "summary",
+      "strengths",
+      "needs_improvement",
+      "next_actions",
+      "clo_feedback",
+      "disclaimer",
+    ],
+    properties: {
+      summary: { type: "string" },
+      strengths: { type: "array", items: { type: "string" } },
+      needs_improvement: { type: "array", items: { type: "string" } },
+      next_actions: { type: "array", items: { type: "string" } },
+      clo_feedback: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: [
+            "clo_code",
+            "score",
+            "level",
+            "status",
+            "confidence",
+            "comment",
+            "recommendation",
+          ],
+          properties: {
+            clo_code: { type: "string" },
+            score: { type: "number" },
+            level: { type: "string" },
+            status: { type: "string" },
+            confidence: { type: "string" },
+            comment: { type: "string" },
+            recommendation: { type: "string" },
+          },
+        },
+      },
+      disclaimer: { type: "string" },
+    },
+  };
+}
+
+async function callGeminiModel(options: {
+  model: GeminiModelConfig;
+  apiKey: string;
+  prompt: string;
+}) {
+  const { model, apiKey, prompt } = options;
+  const controller = new AbortController();
+  const startedAt = Date.now();
+  const timer = setTimeout(() => controller.abort(), model.timeoutMs);
+
+  try {
+    console.info(
+      `[analyze-student-clo] Gemini start model=${model.id} timeout=${model.timeoutMs}ms`,
+    );
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model.id}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          generationConfig: {
+            thinkingConfig: { thinkingLevel: model.thinkingLevel },
+            responseMimeType: "application/json",
+            responseJsonSchema: responseSchema(),
+            maxOutputTokens: 5_000,
+          },
+        }),
+      },
+    );
+
+    const rawPayload = await response.text();
+    const payload = rawPayload ? safeJsonParse(rawPayload) : null;
+
+    console.info(
+      `[analyze-student-clo] Gemini end model=${model.id} status=${response.status} elapsed=${Date.now() - startedAt}ms`,
+    );
+
+    if (!response.ok) {
+      throw classifyHttpError(model.id, response.status, payload);
+    }
+
+    if (!payload) {
+      throw new GeminiCallError({
+        message: "Gemini trả về dữ liệu không hợp lệ.",
+        code: "AI_BAD_RESPONSE",
+        model: model.id,
+        retryable: true,
+      });
+    }
+
+    const responseText = (payload?.candidates?.[0]?.content?.parts ?? [])
+      .map((part: { text?: string }) => part.text ?? "")
+      .join("")
+      .trim();
+
+    if (!responseText) {
+      throw new GeminiCallError({
+        message: "Gemini trả về nội dung rỗng.",
+        code: "AI_EMPTY_RESPONSE",
+        model: model.id,
+        retryable: true,
+      });
+    }
+
+    let analysis: any;
+    try {
+      analysis = parseGeminiJson(responseText);
+    } catch {
+      throw new GeminiCallError({
+        message: "Gemini trả về JSON không hợp lệ.",
+        code: "AI_BAD_RESPONSE",
+        model: model.id,
+        retryable: true,
+      });
+    }
+
+    return { model: model.id, analysis };
+  } catch (error) {
+    if (error instanceof GeminiCallError) throw error;
+
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new GeminiCallError({
+        message: `Mô hình ${model.id} phản hồi quá lâu.`,
+        code: "AI_TIMEOUT",
+        model: model.id,
+        retryable: true,
+      });
+    }
+
+    throw new GeminiCallError({
+      message: error instanceof Error ? error.message : "Không thể kết nối Gemini API.",
+      code: "AI_NETWORK_ERROR",
+      model: model.id,
+      retryable: true,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function analyzeWithFallback(apiKey: string, prompt: string) {
+  let lastError: GeminiCallError | null = null;
+
+  for (let i = 0; i < GEMINI_MODELS.length; i++) {
+    const model = GEMINI_MODELS[i];
+
+    try {
+      return await callGeminiModel({ model, apiKey, prompt });
+    } catch (error) {
+      const geminiError =
+        error instanceof GeminiCallError
+          ? error
+          : new GeminiCallError({
+              message: error instanceof Error ? error.message : "Lỗi Gemini không xác định.",
+              code: "AI_UNKNOWN_ERROR",
+              model: model.id,
+              retryable: false,
+            });
+
+      lastError = geminiError;
+      console.warn(
+        `[analyze-student-clo] model=${model.id} failed code=${geminiError.code} status=${geminiError.status ?? "-"}`,
+      );
+
+      const hasNext = i < GEMINI_MODELS.length - 1;
+      if (!geminiError.retryable || !hasNext) throw geminiError;
+
+      // Không sleep theo Retry-After. Chuyển model ngay để tránh WallClockTime.
+      console.info(
+        `[analyze-student-clo] fallback ${model.id} -> ${GEMINI_MODELS[i + 1].id}`,
+      );
+    }
+  }
+
+  throw lastError ?? new Error("Không có mô hình Gemini khả dụng.");
+}
+
+function friendlyAiMessage(error: GeminiCallError) {
+  switch (error.code) {
+    case "AI_QUOTA_EXCEEDED":
+      return "Các mô hình AI hiện đã đạt giới hạn sử dụng. Vui lòng thử lại sau.";
+    case "AI_TIMEOUT":
+      return "Dịch vụ AI phản hồi quá lâu. Vui lòng thử lại sau ít phút.";
+    case "AI_MODEL_UNAVAILABLE":
+    case "AI_TEMPORARILY_UNAVAILABLE":
+    case "AI_NETWORK_ERROR":
+      return "Dịch vụ AI hiện tạm thời chưa sẵn sàng. Vui lòng thử lại sau.";
+    case "AI_BAD_RESPONSE":
+    case "AI_EMPTY_RESPONSE":
+      return "AI chưa tạo được nhận xét hợp lệ. Vui lòng thử lại.";
+    default:
+      return error.message || "Không thể tạo nhận xét CLO.";
+  }
+}
+
+console.info("analyze-student-clo V10.5.2 started");
 
 export default {
   fetch: withSupabase(
@@ -115,15 +355,11 @@ export default {
 
       try {
         const userId = ctx.claims?.sub;
-        if (!userId) {
-          return jsonResponse({ error: "Bạn chưa đăng nhập." }, 401);
-        }
+        if (!userId) return jsonResponse({ error: "Bạn chưa đăng nhập." }, 401);
 
         const body = (await req.json()) as RequestBody;
         const subjectId = body.subject_id?.trim();
-        if (!subjectId) {
-          return jsonResponse({ error: "Thiếu subject_id." }, 400);
-        }
+        if (!subjectId) return jsonResponse({ error: "Thiếu subject_id." }, 400);
 
         const admin = ctx.supabaseAdmin;
 
@@ -154,19 +390,10 @@ export default {
 
         if (membershipError) throw membershipError;
         if (!membership) {
-          return jsonResponse(
-            { error: "Bạn không thuộc học phần này." },
-            403,
-          );
+          return jsonResponse({ error: "Bạn không thuộc học phần này." }, 403);
         }
 
-        const [{ data: subject, error: subjectError }, {
-          data: clos,
-          error: closError,
-        }, {
-          data: exams,
-          error: examsError,
-        }] = await Promise.all([
+        const [subjectResult, closResult, examsResult] = await Promise.all([
           admin
             .from("subjects")
             .select("id, name, semester, academic_year")
@@ -177,28 +404,24 @@ export default {
             .select("id, code, description")
             .eq("subject_id", subjectId)
             .order("code"),
-          admin
-            .from("exams")
-            .select("id")
-            .eq("subject_id", subjectId),
+          admin.from("exams").select("id").eq("subject_id", subjectId),
         ]);
 
-        if (subjectError) throw subjectError;
-        if (closError) throw closError;
-        if (examsError) throw examsError;
+        if (subjectResult.error) throw subjectResult.error;
+        if (closResult.error) throw closResult.error;
+        if (examsResult.error) throw examsResult.error;
+
+        const subject = subjectResult.data;
+        const clos = closResult.data;
+        const exams = examsResult.data;
+
         if (!clos?.length) {
-          return jsonResponse(
-            { error: "Học phần chưa có CLO để phân tích." },
-            409,
-          );
+          return jsonResponse({ error: "Học phần chưa có CLO để phân tích." }, 409);
         }
 
-        const examIds = (exams ?? []).map((exam) => exam.id);
+        const examIds = (exams ?? []).map((exam: any) => exam.id);
         if (!examIds.length) {
-          return jsonResponse(
-            { error: "Học phần chưa có bài thi đã tạo." },
-            409,
-          );
+          return jsonResponse({ error: "Học phần chưa có bài thi đã tạo." }, 409);
         }
 
         const { data: attempts, error: attemptsError } = await admin
@@ -212,23 +435,17 @@ export default {
         if (attemptsError) throw attemptsError;
         if (!attempts?.length) {
           return jsonResponse(
-            {
-              error:
-                "Bạn chưa có bài làm đã nộp trong học phần này để Gemini nhận xét.",
-            },
+            { error: "Bạn chưa có bài làm đã nộp trong học phần này để Gemini nhận xét." },
             409,
           );
         }
 
-        const attemptIds = attempts.map((attempt) => attempt.id);
-        const latestSubmittedAt =
-          attempts[attempts.length - 1].submitted_at as string;
+        const attemptIds = attempts.map((attempt: any) => attempt.id);
+        const latestSubmittedAt = attempts[attempts.length - 1].submitted_at as string;
 
         const { data: cached, error: cachedError } = await admin
           .from("student_clo_ai_feedback")
-          .select(
-            "analysis, source_attempt_count, source_last_submitted_at, generated_at",
-          )
+          .select("analysis, source_attempt_count, source_last_submitted_at, generated_at")
           .eq("student_id", userId)
           .eq("subject_id", subjectId)
           .maybeSingle();
@@ -254,13 +471,12 @@ export default {
 
         if (answersError) throw answersError;
         if (!answers?.length) {
-          return jsonResponse(
-            { error: "Các bài đã nộp chưa có dữ liệu câu trả lời." },
-            409,
-          );
+          return jsonResponse({ error: "Các bài đã nộp chưa có dữ liệu câu trả lời." }, 409);
         }
 
-        const questionIds = [...new Set(answers.map((answer) => answer.question_id))];
+        const questionIds = [
+          ...new Set(answers.map((answer: any) => answer.question_id)),
+        ];
         const { data: questions, error: questionsError } = await admin
           .from("questions")
           .select("id, clo_id, topic_id, chapter_id")
@@ -271,22 +487,19 @@ export default {
         const topicIds = [
           ...new Set(
             (questions ?? [])
-              .map((question) => question.topic_id)
-              .filter((id): id is string => Boolean(id)),
+              .map((question: any) => question.topic_id)
+              .filter((id: any): id is string => Boolean(id)),
           ),
         ];
         const chapterIds = [
           ...new Set(
             (questions ?? [])
-              .map((question) => question.chapter_id)
-              .filter((id): id is string => Boolean(id)),
+              .map((question: any) => question.chapter_id)
+              .filter((id: any): id is string => Boolean(id)),
           ),
         ];
 
-        const [{ data: topics, error: topicsError }, {
-          data: chapters,
-          error: chaptersError,
-        }] = await Promise.all([
+        const [topicsResult, chaptersResult] = await Promise.all([
           topicIds.length
             ? admin.from("topics").select("id, name, chapter_id").in("id", topicIds)
             : Promise.resolve({ data: [], error: null }),
@@ -295,53 +508,48 @@ export default {
             : Promise.resolve({ data: [], error: null }),
         ]);
 
-        if (topicsError) throw topicsError;
-        if (chaptersError) throw chaptersError;
+        if (topicsResult.error) throw topicsResult.error;
+        if (chaptersResult.error) throw chaptersResult.error;
+
+        const topics = topicsResult.data ?? [];
+        const chapters = chaptersResult.data ?? [];
 
         const questionById = new Map(
-          (questions ?? []).map((question) => [question.id, question]),
+          (questions ?? []).map((question: any) => [question.id, question]),
         );
         const topicById = new Map(
-          (topics ?? []).map((topic) => [topic.id, topic]),
+          topics.map((topic: any) => [topic.id, topic]),
         );
         const chapterById = new Map(
-          (chapters ?? []).map((chapter) => [chapter.id, chapter]),
+          chapters.map((chapter: any) => [chapter.id, chapter]),
         );
 
         const cloCounters = new Map<string, { total: number; correct: number }>();
         const topicCounters = new Map<
           string,
-          {
-            total: number;
-            correct: number;
-            topic_name: string;
-            chapter_name: string;
-          }
+          { total: number; correct: number; topic_name: string; chapter_name: string }
         >();
 
-        for (const answer of answers) {
-          const question = questionById.get(answer.question_id);
+        for (const answer of answers as any[]) {
+          const question: any = questionById.get(answer.question_id);
           if (!question) continue;
 
           if (question.clo_id) {
-            const counter = cloCounters.get(question.clo_id) ?? {
-              total: 0,
-              correct: 0,
-            };
+            const counter = cloCounters.get(question.clo_id) ?? { total: 0, correct: 0 };
             counter.total += 1;
             if (answer.is_correct) counter.correct += 1;
             cloCounters.set(question.clo_id, counter);
           }
 
           if (question.topic_id) {
-            const topic = topicById.get(question.topic_id);
+            const topic: any = topicById.get(question.topic_id);
             const chapterId = topic?.chapter_id ?? question.chapter_id;
+            const chapter: any = chapterById.get(chapterId);
             const counter = topicCounters.get(question.topic_id) ?? {
               total: 0,
               correct: 0,
               topic_name: topic?.name ?? "Chủ đề chưa đặt tên",
-              chapter_name:
-                chapterById.get(chapterId)?.name ?? "Chương chưa xác định",
+              chapter_name: chapter?.name ?? "Chương chưa xác định",
             };
             counter.total += 1;
             if (answer.is_correct) counter.correct += 1;
@@ -351,10 +559,9 @@ export default {
 
         const cloMetrics = (clos as CloRecord[]).map((clo) => {
           const counter = cloCounters.get(clo.id) ?? { total: 0, correct: 0 };
-          const score =
-            counter.total > 0
-              ? Number(((counter.correct * 10) / counter.total).toFixed(2))
-              : 0;
+          const score = counter.total > 0
+            ? Number(((counter.correct * 10) / counter.total).toFixed(2))
+            : 0;
           return {
             clo_code: clo.code,
             clo_description: clo.description,
@@ -399,8 +606,7 @@ của một sinh viên dựa DUY NHẤT trên dữ liệu tổng hợp bên dư�
 
 Quy tắc bắt buộc:
 - Không tự tạo thêm điểm số, bài làm, kiến thức hay thông tin cá nhân.
-- Phân biệt rõ "điểm thấp" với "chưa đủ dữ liệu"; CLO có dưới 5 câu chỉ được
-  nhận xét dè dặt.
+- Phân biệt rõ "điểm thấp" với "chưa đủ dữ liệu"; CLO có dưới 5 câu chỉ được nhận xét dè dặt.
 - Điểm từ 4 trở lên được xem là đạt CLO cá nhân.
 - Nhận xét ngắn gọn, cụ thể, tích cực nhưng trung thực.
 - Nêu điểm mạnh, nội dung cần củng cố và 3-5 hành động học tập tiếp theo.
@@ -414,81 +620,25 @@ ${JSON.stringify(evidence)}`;
 
         const apiKey = Deno.env.get("GEMINI_API_KEY");
         if (!apiKey) {
-          return jsonResponse(
-            { error: "Chưa cấu hình secret GEMINI_API_KEY." },
-            500,
-          );
+          return jsonResponse({ error: "Chưa cấu hình secret GEMINI_API_KEY." }, 500);
         }
 
-        const geminiCall = await callGemini(apiKey, {
-              contents: [{ role: "user", parts: [{ text: prompt }] }],
-              generationConfig: {
-                responseMimeType: "application/json",
-                responseJsonSchema: {
-                  type: "object",
-                  required: [
-                    "summary",
-                    "strengths",
-                    "needs_improvement",
-                    "next_actions",
-                    "clo_feedback",
-                    "disclaimer",
-                  ],
-                  properties: {
-                    summary: { type: "string" },
-                    strengths: {
-                      type: "array",
-                      items: { type: "string" },
-                    },
-                    needs_improvement: {
-                      type: "array",
-                      items: { type: "string" },
-                    },
-                    next_actions: {
-                      type: "array",
-                      items: { type: "string" },
-                    },
-                    clo_feedback: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        required: [
-                          "clo_code",
-                          "score",
-                          "level",
-                          "status",
-                          "confidence",
-                          "comment",
-                          "recommendation",
-                        ],
-                        properties: {
-                          clo_code: { type: "string" },
-                          score: { type: "number" },
-                          level: { type: "string" },
-                          status: { type: "string" },
-                          confidence: { type: "string" },
-                          comment: { type: "string" },
-                          recommendation: { type: "string" },
-                        },
-                      },
-                    },
-                    disclaimer: { type: "string" },
-                  },
-                },
-              },
-            });
-        const geminiPayload = geminiCall.data;
-
-        const responseText = (geminiPayload?.candidates?.[0]?.content?.parts ?? [])
-          .map((part: { text?: string }) => part.text ?? "")
-          .join("");
-        if (!responseText) {
-          throw new Error("Gemini trả về nội dung rỗng.");
+        let aiResult: { model: string; analysis: any };
+        try {
+          aiResult = await analyzeWithFallback(apiKey, prompt);
+        } catch (error) {
+          if (error instanceof GeminiCallError) {
+            console.error("analyze-student-clo AI error:", error);
+            return jsonResponse(
+              { error: friendlyAiMessage(error), code: error.code },
+              500,
+            );
+          }
+          throw error;
         }
 
-        const aiAnalysis = parseGeminiJson(responseText);
         const analysis = {
-          ...aiAnalysis,
+          ...aiResult.analysis,
           metrics: {
             attempt_count: attempts.length,
             last_submitted_at: latestSubmittedAt,
@@ -507,7 +657,7 @@ ${JSON.stringify(evidence)}`;
               analysis,
               source_attempt_count: attempts.length,
               source_last_submitted_at: latestSubmittedAt,
-              model: geminiCall.model,
+              model: aiResult.model,
               generated_at: now,
               updated_at: now,
             },
@@ -520,16 +670,14 @@ ${JSON.stringify(evidence)}`;
           success: true,
           cached: false,
           generated_at: now,
+          model: aiResult.model,
           analysis,
         });
       } catch (error) {
         console.error("analyze-student-clo error:", error);
         return jsonResponse(
           {
-            error:
-              error instanceof Error
-                ? error.message
-                : "Không thể tạo nhận xét CLO.",
+            error: error instanceof Error ? error.message : "Không thể tạo nhận xét CLO.",
           },
           500,
         );
