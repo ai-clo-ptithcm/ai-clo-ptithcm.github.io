@@ -1,0 +1,12 @@
+EXAM-CLO V1.5
+
+- Sửa lỗi tự nhận dạng file đáp án khi mã đề 001 trong Excel được lưu nội bộ thành số 1.
+  + Ưu tiên dạng dọc nếu sau mã đề là cột CLO.
+  + Thu thập các phương án parse hợp lệ và ưu tiên cấu trúc có nhiều câu hơn, ít mã đề hơn.
+- Đã kiểm thử với Dap-an-mau - Copy(1).xlsx: đọc đúng Sheet1, dạng dọc, 4 mã đề, 50 câu.
+- Đã kiểm thử với UnT_2B32...xlsx: nhận đủ 41 bài và tính được điểm.
+- Bảng kiểm tra sinh viên hiển thị ảnh số phách nhúng ở cột B của UnT.
+- Bảng kiểm tra có ô chỉnh Mã đề trực tiếp trên từng dòng.
+- SBD và mã đề có thể sửa cùng một nơi; sau khi xác nhận sẽ xây dựng lại thống kê mã đề.
+- Nút sau khi chấm đổi thành “Chỉnh SBD / mã đề”.
+- Giữ nguyên: SBD trống/sai bắt buộc sửa; SBD trùng có thể bỏ qua; câu bỏ trống/chọn nhiều đáp án tính sai bình thường.

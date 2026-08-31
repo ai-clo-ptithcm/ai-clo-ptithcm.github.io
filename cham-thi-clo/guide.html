@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Hướng dẫn sử dụng EXAM-CLO</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body{
+    font-family:Segoe UI, Tahoma, sans-serif;
+    background:#f4f7fb;
+    color:#333;
+    line-height:1.7;
+}
+
+.container{
+    max-width:1100px;
+    margin:40px auto;
+    background:#fff;
+    border-radius:12px;
+    box-shadow:0 5px 18px rgba(0,0,0,.08);
+    overflow:hidden;
+}
+
+header{
+    background:#1565c0;
+    color:#fff;
+    padding:40px;
+}
+
+header h1{
+    font-size:36px;
+    margin-bottom:10px;
+}
+
+.version{
+    font-size:15px;
+    opacity:.9;
+}
+
+.content{
+    padding:40px;
+}
+
+section{
+    margin-bottom:55px;
+}
+
+h2{
+    color:#1565c0;
+    border-bottom:3px solid #1565c0;
+    padding-bottom:8px;
+    margin-bottom:20px;
+}
+
+h3{
+    margin-top:25px;
+    margin-bottom:10px;
+    color:#0d47a1;
+}
+
+p{
+    margin-bottom:15px;
+}
+
+ul,ol{
+    margin-left:28px;
+    margin-bottom:18px;
+}
+
+li{
+    margin-bottom:8px;
+}
+
+.table-of-content{
+    background:#eef5ff;
+    border-left:5px solid #1565c0;
+    padding:25px;
+    border-radius:8px;
+    margin-bottom:40px;
+}
+
+.table-of-content h2{
+    border:none;
+    margin-bottom:15px;
+}
+
+.table-of-content ul{
+    list-style:none;
+    margin-left:0;
+}
+
+.table-of-content li{
+    margin:10px 0;
+}
+
+.table-of-content a{
+    color:#1565c0;
+    text-decoration:none;
+    font-weight:600;
+}
+
+.table-of-content a:hover{
+    text-decoration:underline;
+}
+
+.info-box{
+    background:#e8f5e9;
+    border-left:5px solid #2e7d32;
+    padding:18px;
+    margin:20px 0;
+    border-radius:6px;
+}
+
+.warning-box{
+    background:#fff8e1;
+    border-left:5px solid #f9a825;
+    padding:18px;
+    margin:20px 0;
+    border-radius:6px;
+}
+
+code{
+    background:#f1f1f1;
+    padding:2px 6px;
+    border-radius:4px;
+}
+
+pre{
+    background:#263238;
+    color:#fff;
+    padding:18px;
+    border-radius:8px;
+    overflow:auto;
+    margin:20px 0;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin:20px 0;
+}
+
+th{
+    background:#1565c0;
+    color:white;
+}
+
+th,td{
+    border:1px solid #ddd;
+    padding:12px;
+    text-align:center;
+}
+
+tr:nth-child(even){
+    background:#f8f8f8;
+}
+
+.back-home{
+    display:inline-block;
+    margin-top:15px;
+    background:#1565c0;
+    color:white;
+    text-decoration:none;
+    padding:10px 18px;
+    border-radius:6px;
+    transition:.3s;
+}
+
+.back-home:hover{
+    background:#0d47a1;
+}
+
+@media(max-width:768px){
+
+header{
+    padding:25px;
+}
+
+.content{
+    padding:25px;
+}
+
+header h1{
+    font-size:28px;
+}
+
+table{
+    font-size:14px;
+}
+
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<header  id="top">
+
+<h1>Hướng dẫn sử dụng EXAM-CLO</h1>
+
+<div class="version">
+Phiên bản V1.1
+</div>
+
+<a class="back-home" href="index.html">
+← Quay lại trang chủ
+</a>
+
+</header>
+
+<div class="content">
+
+<div class="table-of-content">
+
+<h2>Mục lục</h2>
+
+<ul>
+<li><a href="#intro">1. Giới thiệu</a></li>
+<li><a href="#prepare">2. Chuẩn bị dữ liệu</a></li>
+<li><a href="#answer">3. Định dạng tệp Đáp án (Answer Workbook)</a></li>
+<li><a href="#noclo">4. Chấm điểm không dùng CLO</a></li>
+<li><a href="#rules">5. Quy tắc dữ liệu</a></li>
+<li><a href="#errors">6. Các lỗi thường gặp</a></li>
+<li><a href="#notes">7. Lưu ý quan trọng</a></li>
+<li><a href="#workflow">8. Quy trình thực hiện</a></li>
+<li><a href="#thanks">9. Lời cảm ơn</a></li>
+<li><a href="#version">10. Thông tin phiên bản</a></li>
+</ul>
+
+</div>
+
+<!-- ===================================================== -->
+
+<section id="intro">
+
+<h2>1. Giới thiệu</h2>
+
+<p>
+<strong>EXAM-CLO</strong> là ứng dụng web hỗ trợ chấm thi trắc nghiệm bằng cách sử dụng các tệp Excel xuất ra từ ứng dụng di động <strong>UnT Mobile Application</strong>.
+</p>
+
+<div class="info-box">
+
+Ứng dụng tự động tính điểm số cho sinh viên, hỗ trợ chuẩn đầu ra học phần (CLO - Course Learning Outcomes), và xuất báo cáo kết quả chấm thi dưới dạng tệp Excel.
+
+</div>
+
+<p>Hệ thống cung cấp các chức năng chính sau:</p>
+
+<ul>
+<li>✔ Tính điểm tổng kết (GPA) theo thang điểm 10.</li>
+<li>✔ Tính điểm từng chuẩn đầu ra (CLO) cho từng sinh viên.</li>
+<li>✔ Xuất bảng điểm tổng hợp (trang <strong>Marks</strong>).</li>
+<li>✔ Xuất bảng điểm chi tiết bài làm (trang <strong>Detail</strong>).</li>
+<li>✔ Hỗ trợ chấm nhiều mã đề thi cùng lúc.</li>
+<li>✔ Tự động nhận diện trường hợp có hoặc không sử dụng CLO.</li>
+</ul>
+
+<div class="warning-box">
+
+Ứng dụng chỉ hỗ trợ các tệp Microsoft Excel định dạng (<strong>.xlsx</strong>).
+
+</div>
+
+</section>
+
+<!-- ===================================================== -->
+
+<section id="prepare">
+
+<h2>2. Chuẩn bị dữ liệu</h2>
+
+<p>
+Trước khi chấm điểm, bạn cần chuẩn bị 2 tệp bảng tính Excel sau:
+</p>
+
+<ol>
+
+<li>
+
+<strong>Tệp Đáp án (Answer Workbook)</strong>
+
+<ul>
+<li>Chứa đáp án chuẩn của các mã đề.</li>
+<li>Chứa danh sách các mã đề thi.</li>
+<li>Chứa thông tin CLO tương ứng với từng câu hỏi (không bắt buộc).</li>
+</ul>
+
+</li>
+
+<li>
+
+<strong>Tệp Kết quả từ UnT (UnT Result Workbook)</strong>
+
+<ul>
+<li>Được xuất trực tiếp từ ứng dụng di động UnT.</li>
+<li>Chứa cột <strong>SBD</strong> (nếu để trống/------, hệ thống sẽ đọc ảnh số phách ở cột B cùng hàng).</li>
+<li>Chứa đủ các cột câu trả lời từ <strong>1 đến N</strong>, trong đó N đúng bằng số câu của tệp đáp án. Các cột Điểm xen kẽ có thể có hoặc đã được xóa.</li>
+<li>Chứa Mã đề thi của từng sinh viên.</li>
+</ul>
+
+</li>
+
+</ol>
+
+<div class="info-box">
+
+Sau khi chọn đủ cả 2 tệp, bạn chỉ cần nhấn <strong>Đọc dữ liệu và chấm bài</strong>. Hệ thống tự nhận diện vùng dữ liệu UnT, kể cả khi các dòng đầu đã bị xóa.
+
+</div>
+
+</section>
+
+<!-- ===================================================== -->
+
+<section id="answer">
+
+<h2>3. Định dạng tệp Đáp án (Answer Workbook)</h2>
+
+<p>
+Tệp Đáp án luôn tuân theo một cấu trúc cố định. Mỗi mã đề thi sẽ chiếm 2 cột liền kề nhau:
+</p>
+
+<ul>
+<li>Cột <strong>Mã đề</strong>: Chứa đáp án đúng (A, B, C hoặc D).</li>
+<li>Cột <strong>CLO</strong>: Chứa số hiệu CLO tương ứng với từng câu hỏi.</li>
+</ul>
+
+<table>
+
+<thead>
+<tr>
+<th>Câu</th>
+<th>101</th>
+<th>CLO</th>
+<th>102</th>
+<th>CLO</th>
+<th>103</th>
+<th>CLO</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>1</td>
+<td>A</td>
+<td>1</td>
+<td>B</td>
+<td>1</td>
+<td>C</td>
+<td>1</td>
+</tr>
+
+<tr>
+<td>2</td>
+<td>D</td>
+<td>2</td>
+<td>A</td>
+<td>2</td>
+<td>B</td>
+<td>2</td>
+</tr>
+
+<tr>
+<td>3</td>
+<td>B</td>
+<td>2</td>
+<td>C</td>
+<td>2</td>
+<td>D</td>
+<td>2</td>
+</tr>
+
+</tbody>
+
+</table>
+
+<h3>Mô tả các cột</h3>
+
+<table>
+
+<thead>
+<tr>
+<th>Tên cột</th>
+<th>Mô tả</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>Câu (Question)</td>
+<td>Thứ tự câu hỏi.</td>
+</tr>
+
+<tr>
+<td>101, 102, ...</td>
+<td>Mã đề thi.</td>
+</tr>
+
+<tr>
+<td>CLO</td>
+<td>Số hiệu CLO tương ứng với cột mã đề nằm ngay bên trái nó.</td>
+</tr>
+
+</tbody>
+
+</table>
+
+<div class="warning-box">
+
+Ứng dụng mặc định hiểu rằng mỗi cột <strong>CLO</strong> sẽ thuộc về cột mã đề nằm ngay sát bên trái nó.
+
+</div>
+
+</section>
+
+<!-- ===================================================== -->
+
+<section id="noclo">
+
+<h2>4. Chấm điểm không dùng CLO</h2>
+
+<p>
+
+Nếu bạn chỉ cần chấm điểm tổng kết (GPA) mà không cần đánh giá CLO, bạn có thể để trống tất cả các ô trong cột CLO.
+
+</p>
+
+<p>
+
+Lưu ý: <strong>KHÔNG</strong> xóa các cột CLO, chỉ để trống nội dung các ô bên trong.
+
+</p>
+
+<table>
+
+<thead>
+<tr>
+<th>Câu</th>
+<th>101</th>
+<th>CLO</th>
+<th>102</th>
+<th>CLO</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>1</td>
+<td>A</td>
+<td></td>
+<td>B</td>
+<td></td>
+</tr>
+
+<tr>
+<td>2</td>
+<td>C</td>
+<td></td>
+<td>D</td>
+<td></td>
+</tr>
+
+<tr>
+<td>3</td>
+<td>B</td>
+<td></td>
+<td>A</td>
+<td></td>
+</tr>
+
+</tbody>
+
+</table>
+
+<div class="info-box">
+
+Khi tất cả các ô CLO đều để trống, EXAM-CLO sẽ tự động chuyển sang <strong>chế độ chỉ tính điểm GPA</strong>.
+
+</div>
+
+Trang bảng điểm (Marks) xuất ra sẽ bao gồm:
+
+<ul>
+
+<li>✔ Điểm các CLO theo thang điểm 10.</li>
+
+<li>✔ Điểm trung bình GPA.</li>
+
+<li>✔ Số câu trả lời đúng.</li>
+
+</ul>
+
+Tệp xuất ra sẽ <strong>không</strong> tính toán các chỉ số:
+
+<ul>
+
+<li>✘ CLO 1: số câu đúng và điểm thực.</li>
+
+<li>✘ CLO 2: số câu đúng và điểm thực.</li>
+
+<li>✘ CLO 3: số câu đúng và điểm thực</li>
+
+<li>✘ Điểm các CLO đã hiệu chỉnh để tổng bằng GPA.</li>
+
+</ul>
+
+</section>
+
+<!-- ===================================================== -->
+
+<section id="rules">
+
+<h2>5. Quy tắc dữ liệu</h2>
+
+<h3>5.1 Đáp án chuẩn</h3>
+
+<p>
+
+Mỗi ô đáp án chỉ được chứa duy nhất 1 ký tự.
+
+</p>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>Hợp lệ</th>
+
+<th>Không hợp lệ</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td>A</td>
+
+<td>AB</td>
+
+</tr>
+
+<tr>
+
+<td>B</td>
+
+<td>E</td>
+
+</tr>
+
+<tr>
+
+<td>C</td>
+
+<td>1</td>
+
+</tr>
+
+<tr>
+
+<td>D</td>
+
+<td>(để trống)</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+<div class="warning-box">
+
+Chỉ chấp nhận 4 ký tự đáp án: <strong>A, B, C và D</strong>.
+
+</div>
+
+<h3>5.2 Dữ liệu CLO</h3>
+
+<p>
+
+Chỉ có 2 trường hợp dữ liệu hợp lệ:
+
+</p>
+
+<h3>Trường hợp 1 — KHÔNG sử dụng CLO</h3>
+
+<ul>
+
+<li>Giữ nguyên tất cả các cột CLO.</li>
+
+<li>Để trống tất cả các ô dữ liệu CLO.</li>
+
+</ul>
+
+<pre>
+(để trống)
+(để trống)
+(để trống)
+(để trống)
+</pre>
+
+<h3>Trường hợp 2 — CÓ sử dụng CLO</h3>
+
+<ul>
+
+<li>Mọi câu hỏi đều phải được gán số hiệu CLO.</li>
+
+<li>Không được để trống bất kỳ câu hỏi nào.</li>
+
+</ul>
+
+<p><strong>Đúng</strong></p>
+
+<pre>
+1
+2
+1
+3
+2
+1
+</pre>
+
+<p><strong>Sai</strong></p>
+
+<pre>
+1
+2
+
+3
+1
+</pre>
+
+<div class="warning-box">
+
+Nếu có ít nhất 1 ô CLO được nhập dữ liệu, hệ thống sẽ mặc định rằng toàn bộ các câu hỏi đều bắt buộc phải có CLO.
+
+</div>
+
+</section>
+
+<!-- ===================================================== -->
+
+<section id="errors">
+
+<h2>6. Các lỗi thường gặp</h2>
+
+<p>
+Mục này mô tả các thông báo lỗi phổ biến nhất trên EXAM-CLO và cách khắc phục chúng.
+</p>
+
+<!-- ================================================= -->
+
+<h3>6.1 Thiếu đáp án (Missing Answer)</h3>
+
+<p>
+Mọi câu hỏi trong tất cả các mã đề thi đều phải có đáp án chuẩn.
+</p>
+
+<p><strong>Thông báo lỗi mẫu</strong></p>
+
+<pre>
+Exam Code: 101
+
+Missing answer at Question 15.
+(Mã đề 101: Thiếu đáp án ở Câu 15)
+</pre>
+
+<div class="warning-box">
+
+Mở tệp Đáp án và kiểm tra lại câu hỏi bị thiếu. Chỉ chấp nhận các đáp án <strong>A</strong>, <strong>B</strong>, <strong>C</strong> hoặc <strong>D</strong>.
+
+</div>
+
+<!-- ================================================= -->
+
+<h3>6.2 Đáp án không hợp lệ (Invalid Answer)</h3>
+
+<p>
+Ứng dụng chỉ chấp nhận duy nhất 1 ký tự đại diện cho đáp án.
+</p>
+
+<table>
+
+<thead>
+<tr>
+<th>Được chấp nhận</th>
+<th>Bị từ chối</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>A</td>
+<td>AB</td>
+</tr>
+
+<tr>
+<td>B</td>
+<td>E</td>
+</tr>
+
+<tr>
+<td>C</td>
+<td>2</td>
+</tr>
+
+<tr>
+<td>D</td>
+<td>ABC</td>
+</tr>
+
+<tr>
+<td></td>
+<td>(để trống)</td>
+</tr>
+
+</tbody>
+
+</table>
+
+<p><strong>Thông báo lỗi mẫu</strong></p>
+
+<pre>
+Invalid answer.
+
+Exam Code: 102
+Question: 28
+Value: E
+(Đáp án không hợp lệ. Mã đề: 102, Câu: 28, Giá trị nhập: E)
+</pre>
+
+<!-- ================================================= -->
+
+<h3>6.3 Thiếu CLO (Missing CLO)</h3>
+
+<p>
+
+Lỗi này chỉ xuất hiện khi tệp bảng tính đang được cài đặt có sử dụng CLO.
+
+</p>
+
+<p><strong>Thông báo lỗi mẫu</strong></p>
+
+<pre>
+Exam Code: 101
+
+Missing CLO at Question:
+
+12, 18
+(Mã đề 101: Thiếu thông tin CLO ở các câu: 12, 18)
+</pre>
+
+<div class="warning-box">
+
+Nếu đã có ít nhất một câu hỏi được gán CLO, tất cả các câu hỏi khác trong đề thi cũng phải có mã CLO.
+
+</div>
+
+<!-- ================================================= -->
+
+<h3>6.4 Số lượng câu hỏi không đồng nhất (Different Number of Questions)</h3>
+
+<p>
+
+Tất cả các mã đề thi trong cùng một kỳ thi phải có tổng số lượng câu hỏi bằng nhau.
+
+</p>
+
+<p><strong>Ví dụ lỗi</strong></p>
+
+<pre>
+101 : 40 Câu
+102 : 39 Câu
+103 : 40 Câu
+</pre>
+
+<div class="warning-box">
+
+Vui lòng kiểm tra lại để đảm bảo tất cả các mã đề đều đã nhập đủ số lượng câu hỏi.
+
+</div>
+
+<!-- ================================================= -->
+
+<h3>6.5 Mã đề không tồn tại (Unknown Exam Code)</h3>
+
+<p>
+
+Mã đề thi của sinh viên trong tệp UnT phải tồn tại trong tệp Đáp án.
+
+</p>
+
+<p><strong>Ví dụ lỗi</strong></p>
+
+<pre>
+Exam Code 205 does not exist.
+(Mã đề 205 không tồn tại trong tệp đáp án)
+</pre>
+
+<div class="warning-box">
+
+Kiểm tra lại xem sinh viên có tô sai mã đề không, hoặc bổ sung đáp án cho mã đề bị thiếu vào tệp Đáp án.
+
+</div>
+
+<!-- ================================================= -->
+
+<h3>6.6 Định dạng tệp không hợp lệ (Invalid Workbook Format)</h3>
+
+<p>
+
+Ứng dụng chỉ hỗ trợ các tệp Microsoft Excel có phần mở rộng là <strong>.xlsx</strong>.
+
+</p>
+
+<p><strong>Các định dạng KHÔNG được hỗ trợ</strong></p>
+
+<ul>
+
+<li>.xls</li>
+
+<li>.csv</li>
+
+<li>.ods</li>
+
+<li>.numbers</li>
+
+</ul>
+
+<div class="warning-box">
+
+Vui lòng lưu lại tệp của bạn dưới định dạng <strong>Excel Workbook (*.xlsx)</strong> trước khi tải lên hệ thống.
+
+</div>
+
+</section>
+
+<!-- ===================================================== -->
+
+<section id="notes">
+
+<h2>7. Lưu ý quan trọng</h2>
+
+<div class="info-box">
+
+Tuân thủ các khuyến nghị sau sẽ giúp bạn tránh được hầu hết các lỗi trong quá trình xử lý dữ liệu.
+
+</div>
+
+<ul>
+
+<li>Chỉ sử dụng định dạng tệp <strong>.xlsx</strong>.</li>
+
+<li>Không đổi tên các sheet (trang tính) trừ khi thực sự cần thiết.</li>
+
+<li>Không thay đổi cấu trúc của dòng tiêu đề (header).</li>
+
+<li>Không xóa bất kỳ cột <strong>CLO</strong> nào.</li>
+
+<li>Không chèn thêm các cột trống giữa các mã đề thi.</li>
+
+<li>Không gộp ô (Merge cells).</li>
+
+<li>Không thay đổi thứ tự sắp xếp của các mã đề.</li>
+
+<li>Không để trống các dòng nằm giữa bảng đáp án.</li>
+
+<li>Nếu không dùng CLO, hãy để trống toàn bộ các ô trong cột CLO.</li>
+
+<li>Nếu có dùng CLO, tất cả các câu hỏi đều phải điền mã CLO.</li>
+
+<li>Xóa toàn bộ các dữ liệu thừa nằm phía sau cột CLO cuối cùng.</li>
+
+<li>Luôn kiểm tra kỹ tệp kết quả xuất từ UnT trước khi đưa vào chấm.</li>
+
+</ul>
+
+<div class="warning-box">
+
+Hầu hết các sự cố khi chấm điểm đều do tệp Đáp án bị chỉnh sửa vô tình chứ không phải do lỗi phần mềm.
+
+</div>
+
+</section>
+
+<!-- ===================================================== -->
+
+<section id="workflow">
+
+<h2>8. Quy trình thực hiện</h2>
+
+<p>
+Quá trình chấm điểm được thực hiện qua các bước đơn giản sau:
+</p>
+
+<table>
+
+<thead>
+<tr>
+<th>Bước</th>
+<th>Thao tác</th>
+</tr>
+</thead>
+
+<tbody>
+
+<tr>
+<td>1</td>
+<td>Chọn <strong>Tệp Đáp án (.xlsx)</strong>.</td>
+</tr>
+
+<tr>
+<td>2</td>
+<td>Chọn <strong>Tệp Kết quả từ UnT (.xlsx)</strong>.</td>
+</tr>
+
+<tr>
+<td>3</td>
+<td>Nhấn nút <strong>Process</strong> (Xử lý).</td>
+</tr>
+
+<tr>
+<td>4</td>
+<td>Xem và kiểm tra kết quả chấm.</td>
+</tr>
+
+<tr>
+<td>5</td>
+<td>Xuất bảng điểm tổng hợp (<strong>Export Marks</strong>).</td>
+</tr>
+
+<tr>
+<td>6</td>
+<td>Xuất bảng điểm chi tiết (<strong>Export Detail</strong>).</td>
+</tr>
+
+</tbody>
+
+</table>
+
+<div class="info-box">
+
+<strong>Sơ đồ quy trình khuyến nghị</strong>
+
+<pre>
+
+   Tệp Đáp án (.xlsx)
+           │
+           ▼
+       EXAM-CLO
+           ▲
+           │
+Tệp Kết quả UnT (.xlsx)
+           │
+           ▼
+     Nhấn Process
+           │
+           ▼
+    Kiểm tra kết quả
+           │
+     ┌─────┴─────┐
+     ▼           ▼
+ Xuất Marks  Xuất Detail
+
+</pre>
+
+</div>
+
+<p>
+
+Quá trình chấm điểm diễn ra hoàn toàn tự động. Bạn không cần kết nối Internet sau khi trang web đã được tải xong.
+
+</p>
+
+</section>
+
+<!-- ===================================================== -->
+
+<section id="thanks">
+
+<h2>9. Lời cảm ơn</h2>
+
+<p>
+
+Tác giả xin gửi lời cảm ơn chân thành đến các nhà phát triển của ứng dụng di động <strong>UnT Mobile Application</strong>.
+
+</p>
+
+<p>
+
+Ứng dụng UnT đã cung cấp một phương thức hiệu quả để thu thập câu trả lời thi trắc nghiệm, giúp cho quá trình chấm thi trở nên nhanh chóng và chính xác hơn rất nhiều.
+
+</p>
+
+<p>
+
+EXAM-CLO được phát triển như một công cụ bổ trợ giúp xử lý các tệp Excel xuất ra từ UnT, tự động tính toán điểm GPA, điểm CLO và tạo các báo cáo kết quả phù hợp cho công tác đánh giá giáo dục cũng như đảm bảo chất lượng.
+
+</p>
+
+<div class="info-box">
+
+Cảm ơn tất cả các thầy cô giáo đã đóng góp những ý kiến và phản hồi quý báu để giúp hoàn thiện EXAM-CLO.
+
+</div>
+
+</section>
+
+<!-- ===================================================== -->
+
+<section id="version">
+
+<h2>10. Thông tin phiên bản</h2>
+
+<table>
+
+<tbody>
+
+<tr>
+<td><strong>Ứng dụng</strong></td>
+<td>EXAM-CLO</td>
+</tr>
+
+<tr>
+<td><strong>Phiên bản hiện tại</strong></td>
+<td>1.1</td>
+</tr>
+
+<tr>
+<td><strong>Thời gian phát hành</strong></td>
+<td>Tháng 07 năm 2026</td>
+</tr>
+
+<tr>
+<td><strong>Giấy phép</strong></td>
+<td>MIT License</td>
+</tr>
+
+<tr>
+<td><strong>Tác giả</strong></td>
+<td>P. H. Nam</td>
+</tr>
+
+<tr>
+<td><strong>Website</strong></td>
+<td>
+<a href="https://apmaths.github.io/tools/exam-clo" target="_blank">
+https://apmaths.github.io/tools/exam-clo
+</a>
+</td>
+</tr>
+
+</tbody>
+
+</table>
+
+</section>
+
+<!-- ===================================================== -->
+
+<hr style="margin:50px 0; border:none; border-top:1px solid #ddd;">
+
+<div style="text-align:center;">
+
+<a class="back-home" href="index.html">
+← Quay lại trang chủ
+</a>
+
+<a class="back-home"
+   href="#top"
+   style="margin-left:10px;">
+↑ Về đầu trang
+</a>
+
+</div>
+
+<footer
+style="
+margin-top:40px;
+padding:30px;
+text-align:center;
+font-size:14px;
+color:#777;
+border-top:1px solid #eee;
+">
+
+<p>
+
+<strong>Hướng dẫn sử dụng EXAM-CLO</strong>
+
+</p>
+
+<p>
+
+© 2026 APMaths. All rights reserved. Phiên bản 1.1.
+
+</p>
+
+<p style="margin-top:10px;">
+
+Phần mềm được phát triển phục vụ chấm thi trắc nghiệm tự động kết hợp đánh giá chuẩn đầu ra (CLO).
+
+</p>
+
+</footer>
+
+</div>
+
+</div>
+
+</body>
+
+</html>

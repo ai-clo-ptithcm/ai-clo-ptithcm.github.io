@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="description" content="EXAM-CLO - Chấm thi nhiều phòng, kiểm tra dữ liệu và tổng hợp CLO.">
+  <title>Chấm thi CLO | EXAM-CLO</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main class="page-shell">
+<section class="app-card">
+  <header class="hero">
+    <div class="brand-badge">EXAM-CLO</div>
+    <h1>Chấm thi theo CLO</h1>
+    <p>Chấm nhiều file UnT, kiểm tra SBD/mã đề, xem lại đáp án và xuất báo cáo tổng hợp.</p>
+  </header>
+
+  <section class="upload-grid upload-grid--three">
+    <label class="upload-card" for="untFile">
+      <div class="upload-card__top"><span class="step-badge">1</span><div><h2>File UnT</h2><p>Chọn một hoặc nhiều file cùng lúc.</p></div></div>
+      <input type="file" id="untFile" accept=".xlsx,.xls" multiple>
+      <span class="file-state" id="untFileState">Chưa chọn file</span>
+    </label>
+
+    <div class="upload-card answer-source-card">
+      <div class="upload-card__top"><span class="step-badge">2</span><div><h2>Đáp án + CLO</h2><p>Tải Excel hoặc nhập/dán trực tiếp.</p></div></div>
+      <div class="answer-source-switch">
+        <label><input type="radio" name="answerSource" id="answerSourceExcel" value="excel" checked> File Excel</label>
+        <label><input type="radio" name="answerSource" id="answerSourceDirect" value="direct"> Nhập trực tiếp</label>
+      </div>
+      <div id="answerExcelPanel">
+        <input type="file" id="answerFile" accept=".xlsx,.xls">
+        <span class="file-state" id="answerFileState">Chưa chọn file</span>
+      </div>
+      <button type="button" id="btnReviewAnswer" class="secondary-action answer-review-button">Xem / xác nhận đáp án</button>
+    </div>
+
+    <label class="upload-card" for="officeFile">
+      <div class="upload-card__top"><span class="step-badge">3</span><div><h2>File khảo thí</h2><p>Tùy chọn; có thể gồm nhiều sheet/phòng.</p></div></div>
+      <input type="file" id="officeFile" accept=".xlsx,.xls">
+      <span class="file-state" id="officeFileState">Không bắt buộc</span>
+    </label>
+  </section>
+
+  <section id="directAnswerPanel" class="direct-answer-panel" hidden>
+    <div class="direct-answer-head">
+      <div>
+        <span class="section-kicker">NHẬP ĐÁP ÁN TRỰC TIẾP</span>
+        <h2>Nhập như một bảng Excel</h2>
+        <p class="direct-answer-intro">Có thể sửa từng ô hoặc copy một vùng từ Excel rồi Ctrl+V vào bảng.</p>
+      </div>
+    </div>
+
+    <div class="direct-grid-toolbar">
+      <div class="direct-toolbar-group">
+        <label for="directQuestionCount">Số câu</label>
+        <input id="directQuestionCount" type="number" min="1" max="200" value="30">
+        <button type="button" id="btnApplyDirectQuestionCount" class="secondary-action">Cập nhật</button>
+      </div>
+      <div class="direct-toolbar-divider"></div>
+      <div class="direct-toolbar-group">
+        <span class="direct-toolbar-label">Kiểu bảng</span>
+        <button type="button" id="btnDirectVertical" class="secondary-action direct-orientation-button is-active">Dọc</button>
+        <button type="button" id="btnDirectHorizontal" class="secondary-action direct-orientation-button">Ngang</button>
+      </div>
+      <div class="direct-toolbar-divider"></div>
+      <button type="button" id="btnValidateDirectAnswer" class="secondary-action">Kiểm tra dữ liệu</button>
+      <button type="button" id="btnClearDirectAnswer" class="secondary-action">Xóa dữ liệu</button>
+      <span id="directAnswerStatus" class="direct-grid-status">30 câu • 4 mã đề • Dọc</span>
+    </div>
+
+    <div id="directAnswerValidation" class="direct-validation is-neutral">
+      <span class="direct-validation-dot"></span>
+      <span data-validation-text>Chưa kiểm tra dữ liệu. Có thể dán trực tiếp từ Excel bằng Ctrl+V.</span>
+      <span class="direct-validation-legend"><i class="legend-missing"></i> Thiếu <i class="legend-invalid"></i> Sai</span>
+    </div>
+
+    <div id="directAnswerGridHost"></div>
+    <p class="direct-grid-note"><b>Tự chuẩn hóa:</b> “ a ” → A; “ clo 1 ” hoặc “1” → CLO1. Đáp án chỉ nhận A/B/C/D; CLO chỉ nhận CLO1/CLO2/CLO3. Mã đề trống hoặc trùng cũng được cảnh báo.</p>
+  </section>
+
+  <section class="quick-guide">
+    <div class="quick-guide__header"><div><span class="section-kicker">QUY TRÌNH</span><h2>Kiểm tra trước khi xuất</h2></div><a class="sample-link" href="Dap-an.xlsx" download>Tải file đáp án mẫu</a></div>
+    <ol class="guide-steps">
+      <li><b>Đáp án:</b> có thể tải Excel hoặc nhập trực tiếp trên khung dạng Excel; luôn có chỗ xem lại và sửa trước khi chấm.</li>
+      <li><b>SBD/mã đề:</b> dòng sai được chỉ rõ; bảng kiểm tra có ảnh số phách cột B, ô sửa SBD và mã đề.</li>
+      <li><b>Khảo thí:</b> không bắt buộc. Nếu có, web ghép phòng theo số phách và giữ dòng trống cho phách không có bài.</li>
+    </ol>
+  </section>
+
+  <div class="primary-action">
+    <button id="btnProcess"><span>Đọc dữ liệu và chấm bài</span></button>
+    <p>Câu bỏ trống hoặc chọn nhiều đáp án được tính sai, không xem là lỗi hệ thống.</p>
+  </div>
+
+  <section class="result-section" aria-live="polite"><div id="result"></div></section>
+
+  <section class="log-panel">
+    <div class="log-head"><div><span class="section-kicker">NHẬT KÝ XỬ LÝ</span><h2>Log hệ thống</h2></div><div><button id="btnCopyLog" class="secondary-action">Sao chép log</button> <button id="btnClearLog" class="secondary-action">Xóa log</button></div></div>
+    <div id="logBox" class="log-box"></div>
+  </section>
+
+  <section class="export-panel">
+    <div><span class="section-kicker">XUẤT KẾT QUẢ</span><h2>3 file Excel</h2><p>Bảng điểm phách • Bảng điểm chi tiết • Báo cáo tổng hợp BM33.</p></div>
+    <div class="export-actions export-actions--three">
+      <button id="btnExportMark" disabled>Xuất bảng điểm phách</button>
+      <button id="btnExportDetail" disabled>Xuất bảng điểm chi tiết</button>
+      <button id="btnExportReport" disabled>Xuất báo cáo</button>
+    </div>
+  </section>
+</section>
+<footer class="footer"><div class="footer-links"><a href="about.html">Giới thiệu</a><span>•</span><a href="guide.html">Hướng dẫn sử dụng</a></div><div><strong>EXAM-CLO</strong> • Phiên bản V1.8</div><div>&copy; 2026 Phát triển bởi Phan Hoàng Nam.</div></footer>
+</main>
+<script src="libs/xlsx.full.min.js"></script>
+<script src="libs/exceljs.min.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

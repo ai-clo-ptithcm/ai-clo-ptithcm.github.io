@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - EXAM-CLO</title>
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        .container {
+            max-width: 900px;
+            margin: 30px auto;
+            padding: 40px 60px;
+            box-sizing: border-box;
+        }
+
+        ul {
+            line-height: 1.8;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table td {
+            padding: 10px 8px;
+        }
+
+        h3 {
+            margin-top: 28px;
+        }
+
+        .highlight-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #0d6efd;
+            padding: 12px 16px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>EXAM-CLO</h1>
+        <h2>Phiên bản V1.1</h2>
+
+        <div class="highlight-box">
+            <strong>Lưu ý:</strong> EXAM-CLO là phần mềm miễn phí, chạy trực tiếp trên trình duyệt web và không yêu cầu cài đặt.
+        </div>
+
+        <hr>
+
+        <h3>Mục đích</h3>
+
+        <p style="text-align:justify; line-height:1.7;">
+            EXAM-CLO là công cụ hỗ trợ chấm bài thi trắc nghiệm từ file Excel, tính điểm tổng (GPA) và điểm các chuẩn đầu ra học phần (CLO) theo thang điểm 10. Phần mềm được phát triển nhằm đáp ứng yêu cầu đánh giá học phần theo chuẩn đầu ra, phục vụ công tác kiểm định chất lượng giáo dục.
+        </p>
+        <h3>Chức năng</h3>
+        <ul>
+            <li>Đọc file đáp án Excel.</li>
+            <li>Đọc file kết quả UnT.</li>
+            <li>Tự động nhận diện nhiều mã đề.</li>
+            <li>Chấm điểm tự động theo từng câu hỏi.</li>
+            <li>Tính điểm GPA theo thang điểm 10.</li>
+            <li>Tính điểm từng CLO theo thang điểm 10.</li>
+            <li>Hỗ trợ cả hai chế độ: sử dụng CLO hoặc không sử dụng CLO.</li>
+            <li>Xuất bảng điểm Marks.</li>
+            <li>Xuất bảng điểm chi tiết Detail.</li>
+        </ul>
+        <h3>Thử nghiệm</h3>
+        <p>
+            Thuật toán tính điểm đã vượt qua hai bộ kiểm thử đầy đủ: đề 40 câu (12–20–8) với 2.457 trường hợp và đề 30 câu (9–15–6) với 1.120 trường hợp. Tổng cộng 3.577 tổ hợp đã được kiểm thử, bao gồm cả các trường hợp có điểm mỗi câu bằng 1/3, vốn rất dễ phát sinh sai số làm tròn.
+        </p>
+        <h3>Thông tin phiên bản</h3>
+        <table>
+            <tr>
+                <td><b>Tên phần mềm</b></td>
+                <td>EXAM-CLO</td>
+            </tr>
+            <tr>
+                <td><b>Phiên bản</b></td>
+                <td>V1.1</td>
+            </tr>
+            <tr>
+                <td><b>Ngôn ngữ</b></td>
+                <td>JavaScript (ES Module)</td>
+            </tr>
+            <tr>
+                <td><b>Nền tảng</b></td>
+                <td>Web Application (GitHub Pages)</td>
+            </tr>
+            <tr>
+                <td><b>Phát triển bởi</b></td>
+                <td>Phan Hoàng Nam</td>
+            </tr>
+        </table>
+
+        
+
+        <h3>Những điểm mới trong phiên bản V1.1</h3>
+
+        <ul>
+            <li>Bổ sung chế độ chấm điểm cho cả hai trường hợp: có CLO và không sử dụng CLO.</li>
+            <li>Hoàn thiện thuật toán làm tròn điểm GPA và điểm CLO đến một chữ số thập phân nhưng vẫn bảo toàn tổng điểm.</li>
+            <li>Bổ sung nhiều bước kiểm tra dữ liệu đầu vào:
+                <ul>
+                    <li>Phát hiện SBD bị bỏ trống hoặc trùng lặp.</li>
+                    <li>Phát hiện mã đề bị bỏ trống.</li>
+                    <li>Kiểm tra mã đề trong file UnT phải tồn tại trong file đáp án.</li>
+                    <li>Kiểm tra tính tương thích về số lượng câu hỏi giữa hai file dữ liệu.</li>
+                </ul>
+            </li>
+            <li>Bổ sung trang Guide hướng dẫn sử dụng chi tiết.</li>
+            <li>Bổ sung file đáp án mẫu giúp người dùng nhanh chóng chuẩn bị dữ liệu đúng chuẩn.</li>
+            <li>Cải thiện giao diện trực quan và thông báo lỗi rõ ràng, giúp dễ dàng xác định nguyên nhân khi nhập sai dữ liệu.</li>
+        </ul>
+
+        
+
+        <h3>Liên hệ</h3>
+
+        <p>
+            Email:
+            <a href="mailto:hoangnam.sp101@gmail.com">
+                hoangnam.sp101@gmail.com
+            </a>
+        </p>
+
+        <br>
+
+        <p style="text-align:center;">
+            <a href="index.html">
+                ← Quay lại trang chủ
+            </a>
+        </p>
+
+        <hr>
+
+        <p style="text-align:center;color:#666;">
+            © 2026 Phan Hoàng Nam — EXAM-CLO Version 1.1
+        </p>
+
+    </div>
+
+</body>
+
+</html>

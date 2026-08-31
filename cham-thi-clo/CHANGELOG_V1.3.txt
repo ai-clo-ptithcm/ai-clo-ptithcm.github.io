@@ -1,0 +1,20 @@
+EXAM-CLO V1.3 - 2026-08-27
+
+1. File đáp án
+- Tự nhận diện đáp án dạng dọc: Câu | 001 | CLO | 002 | CLO | ...
+- Tự nhận diện đáp án dạng ngang: Câu | 1 | 2 | ... | N; mỗi mã đề một hàng, hàng sau là CLO.
+
+2. SBD / số phách
+- Nếu file UnT có ít nhất một SBD trống, OCR chỉ dùng để gợi ý.
+- Sau OCR, hiển thị TOÀN BỘ sinh viên trực tiếp trên trang web.
+- Mỗi dòng có ô nhập để giảng viên kiểm tra/gõ lại SBD.
+- Có nút "Xác nhận tất cả và tiếp tục" và "Hủy xác nhận".
+- Không còn mở hộp thoại xác nhận từng dòng.
+
+3. Mã đề khác nhau
+- Không loại bài làm chỉ vì mã đề UnT khác file đáp án.
+- Hiện thông báo: "Có ... sinh viên làm mã đề khác với file đáp án!"
+- Cho giảng viên xác nhận ánh xạ, ví dụ 001 (UnT) -> 101 (file đáp án), rồi tiếp tục chấm.
+
+4. File xuất
+- SBD/số phách được ghi dưới dạng số, nên 000001 sẽ xuất thành 1.
