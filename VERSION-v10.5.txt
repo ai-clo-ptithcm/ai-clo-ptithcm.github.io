@@ -1,0 +1,10 @@
+AI-CLO PTITHCM v10.5
+- Favicon đỏ AI·CLO bo tròn, bốn góc trong suốt.
+- Ngân hàng câu hỏi có 2 tab con: Luyện tập - kiểm tra và 🔒 Ngân hàng đề thi - bảo mật.
+- Mặc định mở tab Luyện tập - kiểm tra; bỏ bộ lọc “Nhóm sử dụng”.
+- Một câu có thể lưu ở Luyện tập, Đề thi hoặc Cả hai.
+- Câu lưu “Cả hai” xuất hiện ở cả hai tab.
+- Bài kiểm tra trực tuyến chỉ lấy câu thuộc Luyện tập hoặc Cả hai; câu chỉ thuộc Đề thi bị chặn cả ở frontend và Supabase.
+- Sửa lỗi quay lại ngân hàng làm ô tìm kiếm thành “all”; giữ lại bộ lọc, tab và vị trí cuộn.
+- Cân lại bảng câu hỏi: cột Mã câu gọn hơn, Nội dung gọn hơn, Chương · Chủ đề rộng hơn.
+- Giữ nguyên toàn bộ V10.4: autosave, đề cuối kỳ, BM06/BM07/BM08 DOCX, 4 mã đề, đáp án CLO, lịch sử và quyền xóa của người tạo/Admin.

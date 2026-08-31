@@ -1,3 +1,17 @@
+# AI-CLO PTITHCM — V10.5
+
+## Nâng cấp V10.5
+
+V10.5 tách trang **Ngân hàng câu hỏi** thành hai tab con rõ ràng: **Luyện tập - kiểm tra** và **🔒 Ngân hàng đề thi - bảo mật**. Một câu có thể lưu ở một ngân hàng hoặc **Cả hai**. Bài kiểm tra trực tuyến chỉ được lấy câu thuộc Luyện tập/Cả hai; Supabase cũng chặn câu chỉ thuộc ngân hàng đề thi ở tầng database.
+
+Bản này đồng thời thay favicon đỏ AI·CLO, sửa lỗi quay lại màn hình ngân hàng làm từ khóa thành `all`, giữ trạng thái bộ lọc/tab/vị trí cuộn, và cân lại độ rộng các cột Mã câu — Nội dung — Chương/Chủ đề.
+
+Nếu đã triển khai V10.4, chạy `supabase/v10.5-upgrade.sql` rồi cập nhật frontend. **Không cần deploy Edge Function mới.**
+
+Xem `HUONG-DAN-CAP-NHAT-V10.5.md`.
+
+---
+
 # AI-CLO PTITHCM — V10.4
 
 ## Nâng cấp V10.4
