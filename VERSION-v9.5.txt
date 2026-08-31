@@ -1,0 +1,17 @@
+AI-CLO PTITHCM v9.5
+Ngày hoàn thiện: 31/08/2026
+
+Nội dung chính:
+- Tách giao diện sau đăng nhập thành Tổng quan hệ thống và không gian riêng của từng môn học.
+- Thiết kế lại sidebar, thanh đầu trang và bộ chọn môn cho laptop/điện thoại.
+- Thêm nút trở về Tổng quan hệ thống cạnh chuông thông báo.
+- Thêm chế độ Chỉnh sửa cấu trúc cho Chương, Chủ đề và CLO.
+- Làm gọn danh sách ngân hàng: CLO nằm dưới mã câu; Sửa/Xóa chuyển vào Chi tiết.
+- Thêm bộ lọc Người tạo và màn hình thống kê câu hỏi cơ bản.
+- Làm gọn danh sách lớp: GPA, đăng nhập gần nhất và nút Nhắn tin.
+- Thay luồng Quên mật khẩu bằng hướng dẫn liên hệ Admin.
+- Sửa Hero, thanh nav, carousel, video và các lỗi responsive trên mobile/laptop.
+- Ngăn nhiều lượt render đồng thời gây lặp khối thông báo.
+
+Cài đặt bổ sung:
+Chạy supabase/v9.5-addon.sql để bật chức năng giảng viên gửi thông báo riêng cho sinh viên.

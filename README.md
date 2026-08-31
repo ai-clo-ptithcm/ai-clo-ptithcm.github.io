@@ -1,4 +1,14 @@
-# AI-CLO PTITHCM — V9.1
+# AI-CLO PTITHCM — V9.5
+
+## Nâng cấp V9.5
+
+V9.5 tách giao diện thành Tổng quan hệ thống và không gian riêng của từng môn học; đồng thời sửa responsive trên điện thoại/laptop, bổ sung chế độ chỉnh sửa cấu trúc, làm gọn Ngân hàng câu hỏi và Danh sách lớp.
+
+Sau khi đưa mã nguồn lên GitHub Pages, chạy thêm `supabase/v9.5-addon.sql` trong Supabase SQL Editor để bật chức năng giảng viên gửi thông báo riêng cho sinh viên. Các migration V9.1, V9.2 và V9.4 vẫn phải được cài đặt trước.
+
+---
+
+## Nền tảng chức năng V9.1
 
 V9.1 mở rộng V9 theo hướng hoàn thiện quy trình bài kiểm tra, giữ lịch sử câu hỏi/bài làm ổn định và hạn chế mở cửa sổ mới.
 
