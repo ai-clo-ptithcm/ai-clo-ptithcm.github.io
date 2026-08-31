@@ -88,3 +88,6 @@ VERSION-v9.1.txt
 ```
 
 `js/assessment.js` của V9 vẫn được giữ làm nền tương thích; `js/assessment-v91.js` được nạp sau để cung cấp luồng Bài kiểm tra V9.1.
+
+## V10.2 (2026-08-31)
+Xem `HUONG-DAN-CAP-NHAT-V10.2.md`. V10.2 bổ sung Gemini auto-fallback, `clos.short_description`, nhập hàng loạt câu hỏi và quy trình đề cuối kỳ BM06 → duyệt câu → BM07/BM08 + đáp án CLO.

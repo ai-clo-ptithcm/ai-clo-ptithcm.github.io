@@ -1,0 +1,7 @@
+AI-CLO PTITHCM V10.2
+- Gemini auto fallback: 3.7 Flash -> 3.6 Flash -> 3.5 Flash -> 3.5 Flash-Lite.
+- CLO short_description for BM08.
+- Bulk question import from XLSX with validation/preview.
+- Final exam workflow: detailed Chapter/Topic x CLO matrix -> review selected questions -> replace/Gemini one-question generation -> lecturer approval -> shuffled variants.
+- Export BM06 (.doc Word-compatible), BM07 TeX, BM08 (.doc Word-compatible), Dap_an_CLO.xlsx and ZIP.
+- Source bank selection: practice / secure_exam / both; final exam defaults to secure_exam.
