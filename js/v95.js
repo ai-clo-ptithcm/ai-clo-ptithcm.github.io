@@ -36,7 +36,7 @@ function v95NavItems(){
 
 function v95RefreshShell(){
  const nav=$('#nav');if(!nav)return;
- nav.innerHTML=v95NavItems().filter(x=>x[3]).map(([view,icon,label])=>`<button data-view="${view}" class="${state.view===view?'active':''}"><span class="nav-icon">${icon}</span><span>${esc(label)}</span></button>`).join('');
+ nav.innerHTML=v95NavItems().filter(x=>x[3]).map(([view,icon,label])=>`<button data-view="${view}" class="${state.view===view?'active':''}"><span class="nav-icon">${icon}</span><span${view==='users'?' id="usersNavLabel"':''}>${esc(label)}</span></button>`).join('');
  const course=activeSubject(),aside=$('.app>aside');
  aside?.classList.toggle('course-space',state.space==='course');
  let context=$('#courseContext');

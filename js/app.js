@@ -46,7 +46,7 @@ async function boot(user){
    if(!state.subjects.some(s=>s.id===state.subjectId))state.subjectId=state.subjects[0]?.id||'';
    $('#miniUser').innerHTML=`<b>${esc(data.full_name)}</b><br>${esc(data.email)} · ${esc(data.role)}`;
    if(window.logActivity)window.logActivity('login','session',null,'Đăng nhập hệ thống','success',null,{source:'web'});
-   $$('[data-admin]').forEach(x=>x.hidden=role()!=='admin');$$('[data-staff]').forEach(x=>x.hidden=!['admin','teacher','lecturer','giangvien'].includes(role()));$('#usersNavLabel').textContent=role()==='admin'?'Người dùng':'Danh sách lớp';fillSubjectSelect();enterApp();
+   $$('[data-admin]').forEach(x=>x.hidden=role()!=='admin');$$('[data-staff]').forEach(x=>x.hidden=!['admin','teacher','lecturer','giangvien'].includes(role()));let usersNavLabel=$('#usersNavLabel');if(usersNavLabel)usersNavLabel.textContent=role()==='admin'?'Người dùng':'Danh sách lớp';fillSubjectSelect();enterApp();
  }catch(e){err(e)}
 }
 function fillSubjectSelect(){let s=$('#subjectSelect');s.innerHTML=state.subjects.length?state.subjects.map(x=>`<option value="${x.id}" ${x.id===state.subjectId?'selected':''}>${esc(x.name)} · ${esc(x.semester)}</option>`).join(''):'<option value="">Chưa có học phần</option>'}
