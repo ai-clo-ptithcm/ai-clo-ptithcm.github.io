@@ -1,0 +1,7 @@
+AI-CLO PTITHCM v10.4
+- Favicon AI·CLO / PTITHCM mới.
+- Đề cuối kỳ: Mở/Sửa/Xuất, quay lại chỉnh sửa đề, người tạo/Admin được xóa.
+- Lịch sử tạo, sửa, tạo lại mã đề và xuất hồ sơ.
+- BM06/BM07/BM08 xuất DOCX thật bằng OOXML, không dùng Shift+Enter.
+- BM07 tự bố trí phương án 1 dòng / 2 dòng / 4 dòng; nếu 1 phương án có nguy cơ wrap thì tự hạ bố cục.
+- Giữ TeX BM07 và Dap_an_CLO.xlsx.

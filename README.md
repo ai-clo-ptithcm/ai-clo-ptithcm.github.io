@@ -1,3 +1,15 @@
+# AI-CLO PTITHCM — V10.4
+
+## Nâng cấp V10.4
+
+V10.4 tập trung hoàn thiện **hồ sơ đề thi cuối kỳ**: BM06/BM07/BM08 xuất DOCX thật, BM07 tự bố trí 4 phương án theo 1 dòng / 2 dòng / 4 dòng để tránh wrap; hồ sơ đã chốt có **Mở / Sửa / Xuất**, quay lại đúng luồng chỉnh sửa đề, lưu lịch sử tạo/sửa/xuất và cho **người tạo hoặc Admin** xóa hồ sơ. Favicon mới dùng chữ `AI·CLO / PTITHCM`.
+
+Nếu đã triển khai V10.3, chỉ cần chạy thêm `supabase/v10.4-upgrade.sql` rồi cập nhật frontend. **Không cần deploy Edge Function mới.** Các Edge Function Gemini vẫn self-contained.
+
+Xem `HUONG-DAN-CAP-NHAT-V10.4.md`.
+
+---
+
 # AI-CLO PTITHCM — V10.1
 
 ## Nâng cấp V10.1
