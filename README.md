@@ -1,4 +1,14 @@
-# AI-CLO PTITHCM — V9.5
+# AI-CLO PTITHCM — V9.6
+
+## Nâng cấp V9.6
+
+V9.6 bổ sung ngân hàng câu hỏi hai nhóm (luyện tập và đề thi bảo mật), quy trình duyệt/đề nghị chỉnh sửa, phát hiện câu tương tự, kết quả CLO sinh viên theo chương với nhận xét Gemini theo yêu cầu, đồng thời hoàn thiện giao diện Home, Hero và trải nghiệm di động.
+
+Sau khi cập nhật mã nguồn, chạy `supabase/v9.6-question-bank.sql` trong Supabase SQL Editor. Migration này phải chạy sau các migration đến V9.5.
+
+Xem trình tự chi tiết trong `HUONG-DAN-CAP-NHAT-V9.6.md`.
+
+---
 
 ## Nâng cấp V9.5
 

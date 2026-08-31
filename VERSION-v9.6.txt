@@ -1,0 +1,12 @@
+AI-CLO PTITHCM v9.6
+Ngày phát hành: 31/08/2026
+
+Điểm mới:
+- Ngân hàng câu hỏi tách nhóm Luyện tập · Kiểm tra và Đề thi · Bảo mật.
+- Trạng thái duyệt, chuyển nhóm từng câu/hàng loạt và đề nghị đồng nghiệp chỉnh sửa.
+- Cảnh báo câu hỏi tương tự trước khi lưu và quét trùng toàn ngân hàng.
+- Hạn chế quyền đọc/sửa/xóa câu hỏi bảo mật bằng RLS.
+- Tổng hợp CLO sinh viên chi tiết theo chương và nhận xét Gemini theo yêu cầu.
+- Home nổi bật, có chú thích khi rê chuột.
+- Hero desktop được nâng lên 50% so với độ dịch của V9.5.
+- Video ổn định trên điện thoại; trang đăng nhập không tự zoom hoặc trượt ngang khi nhập.
