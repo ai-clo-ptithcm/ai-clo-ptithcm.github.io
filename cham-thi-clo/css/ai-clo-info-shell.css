@@ -1,0 +1,23 @@
+/* Nav + footer for Chấm thi CLO, aligned with gioi-thieu.html. */
+.tool-shell{min-height:100vh;display:flex;flex-direction:column}
+.tool-header{height:72px;padding:0 clamp(20px,6vw,90px);display:flex;align-items:center;background:#fff;border-bottom:1px solid #e5e9ef;position:sticky;top:0;z-index:20}
+.tool-logo{font-size:24px;font-weight:900;text-decoration:none;color:#18212f;white-space:nowrap}
+.tool-logo span{color:#ef9aa5}
+.tool-nav{margin-left:auto;display:flex;gap:20px;align-items:center}
+.tool-nav a{color:#667085;font-weight:700;text-decoration:none}
+.tool-nav a:hover,.tool-nav a.active{color:#a61d2d}
+.tool-nav .tool-system-link{padding:9px 14px;border-radius:8px;background:#a61d2d;color:#fff!important}
+.tool-content{flex:1}
+.tool-footer{min-height:58px;padding:14px clamp(20px,6vw,90px);background:#fff;border-top:1px solid #e5e9ef;display:flex;justify-content:space-between;align-items:center;gap:18px;color:#667085;font-size:12px}
+.tool-footer nav{display:flex;gap:20px;flex-wrap:wrap}
+.tool-footer a{color:#667085;font-weight:700;text-decoration:none}
+.tool-footer a:hover{color:#a61d2d}
+.tool-footer strong{color:#18212f}
+.page-shell{margin-top:28px}
+@media(max-width:760px){
+  .tool-header{height:auto;min-height:68px;padding-block:10px;gap:12px;align-items:flex-start;flex-direction:column}
+  .tool-nav{margin-left:0;gap:10px;flex-wrap:wrap;font-size:13px}
+  .tool-nav .tool-system-link{padding:7px 10px}
+  .tool-footer{align-items:flex-start;flex-direction:column;gap:7px}
+  .page-shell{margin-top:16px}
+}
