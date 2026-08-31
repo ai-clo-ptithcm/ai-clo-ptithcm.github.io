@@ -1,0 +1,10 @@
+V10.2 FIX - Supabase Dashboard deployment
+
+Deploy these 4 Edge Functions individually:
+1. generate-questions
+2. analyze-assessment
+3. analyze-student-clo
+4. generate-one-question
+
+The four index.ts files are now self-contained and DO NOT import ../_shared/gemini.ts.
+The _shared folder may remain in the project, but it is not required for Dashboard deployment.

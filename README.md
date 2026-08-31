@@ -91,3 +91,6 @@ VERSION-v9.1.txt
 
 ## V10.2 (2026-08-31)
 Xem `HUONG-DAN-CAP-NHAT-V10.2.md`. V10.2 bổ sung Gemini auto-fallback, `clos.short_description`, nhập hàng loạt câu hỏi và quy trình đề cuối kỳ BM06 → duyệt câu → BM07/BM08 + đáp án CLO.
+
+## V10.3
+Autosave/resume cho sinh viên làm bài, giảng viên làm thử và tạo đề cuối kỳ. Không cần SQL/Edge Function mới nếu đã triển khai V10.2.
