@@ -1,4 +1,12 @@
-# AI-CLO PTITHCM — V10
+# AI-CLO PTITHCM — V10.1
+
+## Nâng cấp V10.1
+
+V10.1 sửa thanh điều hướng trên điện thoại theo bố cục hai hàng, giữ cố định thứ tự Home → Thông báo → Học phần và không để tiêu đề đẩy tràn màn hình. Luồng tạo câu hỏi Gemini hiển thị nội dung lỗi Edge Function ngay trong trang, bỏ tham số lấy mẫu không tương thích của Gemini 3.6 và cho phép cấu hình model bằng secret `GEMINI_MODEL`.
+
+Phần sinh bài kiểm tra cũng được siết lại: giảng viên chọn rõ nguồn **Luyện tập · Kiểm tra** hoặc **Đề thi · Bảo mật**; hệ thống chỉ đưa câu có đủ bốn lựa chọn A–D và đáp án hợp lệ vào pool, dùng thuật toán trộn đều, đồng thời tự phân bổ mặc định đủ 10 câu theo số CLO thực tế.
+
+V10.1 không có migration cơ sở dữ liệu mới. Cần redeploy Edge Function `generate-questions` trong thư mục `supabase/functions/generate-questions`.
 
 ## Nâng cấp V10
 

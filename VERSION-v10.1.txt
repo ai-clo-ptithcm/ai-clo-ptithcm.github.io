@@ -1,0 +1,14 @@
+AI-CLO PTITHCM V10.1
+Ngày phát hành: 31/08/2026
+
+- Sửa thanh nav mobile không tràn nội dung.
+- Giữ Home, Thông báo và Học phần ở vị trí ổn định.
+- Hiển thị lỗi generate-questions cụ thể ngay trong trang.
+- Bỏ temperature không tương thích với Gemini 3.x.
+- Hỗ trợ secret GEMINI_MODEL, mặc định gemini-3.6-flash.
+- Chỉ dùng câu đủ A–D và đáp án hợp lệ khi sinh bài kiểm tra.
+- Cho chọn nguồn Luyện tập · Kiểm tra hoặc Đề thi · Bảo mật khi sinh đề.
+- Phân bổ mặc định đủ 10 câu theo số CLO thực tế.
+- Trộn câu bằng Fisher–Yates.
+
+Không có migration SQL mới.
