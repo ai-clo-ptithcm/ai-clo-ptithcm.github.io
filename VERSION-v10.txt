@@ -1,0 +1,9 @@
+AI-CLO PTITHCM V10
+Ngày phát hành: 31/08/2026
+
+- Sửa lỗi nút Chi tiết không phản hồi do truy vấn hai quan hệ hồ sơ bị mơ hồ.
+- Chi tiết câu hỏi luôn dựng nội dung và nút Sửa/Xóa trước khi tải dữ liệu phụ.
+- Thêm và sửa câu hỏi trực tiếp trong trang.
+- Thiết lập tạo câu Gemini trực tiếp trong trang.
+- Danh sách phiên AI và duyệt/chỉnh sửa câu Gemini trực tiếp trong trang.
+- Giữ nguyên toàn bộ chức năng và migration của V9.6.

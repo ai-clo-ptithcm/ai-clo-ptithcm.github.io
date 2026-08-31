@@ -1,4 +1,12 @@
-# AI-CLO PTITHCM — V9.6
+# AI-CLO PTITHCM — V10
+
+## Nâng cấp V10
+
+V10 sửa triệt để lỗi nhấn **Chi tiết** nhưng không hiển thị và thống nhất toàn bộ quy trình Ngân hàng câu hỏi trong trang: xem chi tiết, thêm, sửa, tạo bằng Gemini, xem phiên AI và duyệt bản nháp. Nút Sửa/Xóa được dựng trước dữ liệu phụ nên vẫn hoạt động nếu lịch sử hoặc đề nghị chỉnh sửa chưa tải được.
+
+V10 không có migration cơ sở dữ liệu mới. Nếu nâng trực tiếp từ V9.5 trở xuống, vẫn phải chạy `supabase/v9.6-question-bank.sql` trước.
+
+---
 
 ## Nâng cấp V9.6
 
