@@ -1,6 +1,10 @@
 AI-CLO PTITHCM V10
 Ngày phát hành: 31/08/2026
 
+Bản vá Gemini:
+- Bổ sung Edge Function `generate-questions` bị thiếu trong gói cũ.
+- Mặc định dùng `gemini-3.7-flash` và trả lỗi cụ thể thay cho non-2xx chung.
+
 - Sửa lỗi nút Chi tiết không phản hồi do truy vấn hai quan hệ hồ sơ bị mơ hồ.
 - Chi tiết câu hỏi luôn dựng nội dung và nút Sửa/Xóa trước khi tải dữ liệu phụ.
 - Thêm và sửa câu hỏi trực tiếp trong trang.
