@@ -1,3 +1,17 @@
+# AI-CLO PTITHCM — V10.6
+
+**V10.6 là phiên bản chuẩn hiện tại của AI-CLO PTITHCM.**
+
+V10.6 tập trung hoàn thiện trải nghiệm sử dụng và tích hợp quy trình chấm thi CLO. Ngân hàng câu hỏi giữ trạng thái khi thêm/sửa, giữ bộ lọc và vị trí quay lại danh sách, tối ưu bảng hiển thị và hỗ trợ xóa nhiều câu hỏi. Quản lý người dùng được tách rõ với **Danh sách lớp**: Admin chỉ thêm/bớt tài khoản đã tồn tại khỏi học phần, còn thống kê lớp và trang Tổng quan đều được tính riêng theo học phần đang chọn.
+
+Phiên bản này đồng thời tích hợp công cụ **Chấm thi CLO** tại `cham-thi-clo/`, giữ riêng CSS/JS/libs/templates, đồng bộ favicon, màu sắc, nav và footer với AI-CLO PTITHCM. Liên kết **Chấm thi CLO** được bổ sung vào footer của hệ thống; các link điều hướng của trang chấm thi mở ở tab mới.
+
+V10.6 **không yêu cầu migration Supabase mới và không thay đổi model Gemini** cho các chỉnh sửa trên.
+
+Xem chi tiết tại [`VERSION-v10.6.md`](VERSION-v10.6.md).
+
+---
+
 # AI-CLO PTITHCM — V10.5
 
 ## Nâng cấp V10.5
