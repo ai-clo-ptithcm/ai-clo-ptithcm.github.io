@@ -138,7 +138,8 @@ if(window.AICLO_ASSESSMENT?.teacherClassList){
 }
 
 let v95RenderQueue=Promise.resolve();
-async function v95RenderNow(){let c=$('#content');c.innerHTML='<div class="panel">Đang tải dữ liệu…</div>';try{let fn=state.view==='dashboard'?dashboard:state.view==='subjects'?subjects:state.view==='structure'?structure:state.view==='questions'?questions:state.view==='exams'?exams:state.view==='results'?results:state.view==='notifications'?notifications:state.view==='activity'?activity:state.view==='users'?users:dashboard;await fn(c);v95RefreshShell()}catch(ex){c.innerHTML=`<div class="panel"><b>Không thể tải dữ liệu</b><p>${esc(ex.message)}</p></div>`;err(ex)}}
+let v95LastRenderKey='';
+async function v95RenderNow(){let c=$('#content'),key=`${state.user?.id||''}:${state.space||''}:${state.subjectId||''}:${state.view||''}`,sameScreen=key===v95LastRenderKey&&c.children.length>0;if(!sameScreen)c.innerHTML='<div class="panel">Đang tải dữ liệu…</div>';else c.classList.add('refreshing-silently');try{let fn=state.view==='dashboard'?dashboard:state.view==='subjects'?subjects:state.view==='structure'?structure:state.view==='questions'?questions:state.view==='exams'?exams:state.view==='results'?results:state.view==='notifications'?notifications:state.view==='activity'?activity:state.view==='users'?users:dashboard;await fn(c);v95LastRenderKey=key;v95RefreshShell()}catch(ex){if(!sameScreen)c.innerHTML=`<div class="panel"><b>Không thể tải dữ liệu</b><p>${esc(ex.message)}</p></div>`;else toast(ex?.message||'Không thể làm mới dữ liệu',true);err(ex)}finally{c.classList.remove('refreshing-silently')}}
 render=function(){v95RenderQueue=v95RenderQueue.then(v95RenderNow,v95RenderNow);return v95RenderQueue};
 
 document.addEventListener('DOMContentLoaded',()=>{
