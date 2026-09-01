@@ -5,6 +5,7 @@ const V='10.9';
 const teacherRoles=['teacher','lecturer','giangvien'];
 const isTeacher=r=>teacherRoles.includes(r);
 const roleLabel=r=>r==='admin'?'Quản trị viên':isTeacher(r)?'Giảng viên':'Sinh viên';
+Object.assign(titles,{exams:['Đánh giá','Bài kiểm tra trực tuyến và đề thi cuối kỳ'],structure:['Chương · Chủ đề · CLO','Xây dựng nội dung và chuẩn đầu ra học phần']});
 const fmt=v=>v?new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',dateStyle:'short',timeStyle:'short'}).format(new Date(v)):'—';
 const safe=async(fn,fallback=[])=>{try{return await fn()}catch{return fallback}};
 const count=async(table,build=x=>x)=>{try{const {count,error}=await build(db.from(table).select('id',{count:'exact',head:true}));if(error)throw error;return count||0}catch{return 0}};
