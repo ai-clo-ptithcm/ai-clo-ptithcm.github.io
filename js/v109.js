@@ -103,29 +103,29 @@ const previousUsers=window.users;
 const memberTime=value=>{if(!value)return'Chưa từng đăng nhập';const seconds=Math.max(0,(Date.now()-new Date(value).getTime())/1000);if(seconds<90)return'Vừa xong';if(seconds<3600)return`${Math.floor(seconds/60)} phút trước`;if(seconds<86400)return`${Math.floor(seconds/3600)} giờ trước`;if(seconds<172800)return'Hôm qua';if(seconds<2592000)return`${Math.floor(seconds/86400)} ngày trước`;return fmt(value)};
 window.users=async function(c){
  if(state.space!=='course'||!canTeach())return previousUsers(c);
- await previousUsers(c);$('#pageTitle').textContent='Danh sách thành viên';$('#pageSub').textContent='Sinh viên và giảng viên thuộc học phần hiện tại';
- const tabs=document.createElement('div');tabs.className='v109-member-tabs';tabs.innerHTML='<button class="active" data-member-tab="students">Danh sách sinh viên</button><button data-member-tab="teachers">Danh sách giảng viên</button>';
- c.prepend(tabs);
+ c.innerHTML='<div class="v109-member-tabs"><button class="active" data-member-tab="students">Danh sách sinh viên</button><button data-member-tab="teachers">Danh sách giảng viên</button></div><div id="v109MembersBody"><div class="panel">Đang tải danh sách thành viên…</div></div>';
+ const tabs=$('.v109-member-tabs',c),body=$('#v109MembersBody',c);await previousUsers(body);$('#pageTitle').textContent='Danh sách thành viên';$('#pageSub').textContent='Sinh viên và giảng viên thuộc học phần hiện tại';
  const activate=tab=>$$('[data-member-tab]',tabs).forEach(b=>b.classList.toggle('active',b.dataset.memberTab===tab));
  $('[data-member-tab="students"]',tabs).onclick=()=>render();
  $('[data-member-tab="teachers"]',tabs).onclick=async()=>{
-  activate('teachers');const memberships=await safe(()=>q('subject_members','user_id,role',x=>x.eq('subject_id',state.subjectId).in('role',['teacher','lecturer','giangvien','admin'])),[]),ids=[...new Set(memberships.map(m=>m.user_id))],profiles=ids.length?await safe(()=>q('profiles','id,full_name,email,role,last_login_at,is_active',x=>x.in('id',ids).order('full_name')),[]):[];
-  [...c.children].filter(x=>x!==tabs).forEach(x=>x.remove());const panel=document.createElement('section');panel.className='panel v109-teacher-members';panel.innerHTML=`<div class="v109-member-summary"><div><small>Giảng viên trong học phần</small><b>${profiles.length}</b></div><input id="v109TeacherSearch" placeholder="Tìm theo họ tên hoặc email…"></div><div class="table-wrap"><table><thead><tr><th>Họ tên</th><th>Email</th><th>Vai trò</th><th>Đăng nhập gần nhất</th><th>Trạng thái</th></tr></thead><tbody id="v109TeacherRows"></tbody></table></div>`;c.append(panel);
+  activate('teachers');body.innerHTML='<div class="panel">Đang tải danh sách giảng viên…</div>';const memberships=await safe(()=>q('subject_members','user_id,role',x=>x.eq('subject_id',state.subjectId).in('role',['teacher','lecturer','giangvien','admin'])),[]),ids=[...new Set(memberships.map(m=>m.user_id))],profiles=ids.length?await safe(()=>q('profiles','id,full_name,email,role,last_login_at,is_active',x=>x.in('id',ids).order('full_name')),[]):[];
+  body.innerHTML=`<section class="panel v109-teacher-members"><div class="v109-member-summary"><div><small>Giảng viên trong học phần</small><b>${profiles.length}</b></div><input id="v109TeacherSearch" placeholder="Tìm theo họ tên hoặc email…"></div><div class="table-wrap"><table><thead><tr><th>Họ tên</th><th>Email</th><th>Vai trò</th><th>Đăng nhập gần nhất</th><th>Trạng thái</th></tr></thead><tbody id="v109TeacherRows"></tbody></table></div></section>`;
   const draw=list=>{$('#v109TeacherRows').innerHTML=list.map(p=>{const member=memberships.find(m=>m.user_id===p.id);return `<tr><td><b>${esc(p.full_name||'Chưa đặt tên')}</b></td><td>${esc(p.email||'—')}</td><td><span class="badge">${esc(roleLabel(member?.role||p.role))}</span></td><td>${esc(memberTime(p.last_login_at))}</td><td><span class="badge ${p.is_active===false?'red':'green'}">${p.is_active===false?'Đã khóa':'Hoạt động'}</span></td></tr>`}).join('')||'<tr><td colspan="5" class="empty">Chưa có giảng viên trong học phần.</td></tr>'};draw(profiles);$('#v109TeacherSearch').oninput=e=>{const s=e.target.value.trim().toLowerCase();draw(profiles.filter(p=>!s||`${p.full_name||''} ${p.email||''}`.toLowerCase().includes(s)))};
  };
 };
 
 const previousExams=window.exams;
 window.exams=async function(c){
- await previousExams(c);if(!canTeach())return;
- const finalSection=$('.v102-final-list',c);if(!finalSection)return;
+ if(!canTeach())return previousExams(c);
+ const saved=sessionStorage.getItem(`aiclo:v109:assessment:${state.subjectId}`)||'online';c.innerHTML=`<div class="v109-tabs"><button class="${saved==='online'?'active':''}" data-assessment-tab="online">Bài kiểm tra trực tuyến</button><button class="${saved==='final'?'active':''}" data-assessment-tab="final">Đề thi cuối kỳ</button></div><div id="v109AssessmentBody"><div class="panel">Đang tải dữ liệu đánh giá…</div></div>`;
+ const tabs=$('.v109-tabs',c),body=$('#v109AssessmentBody',c);await previousExams(body);
+ const finalSection=$('.v102-final-list',body);if(!finalSection)return;
  const createFinal=$('#createFinalExam',c),head=$('.panel-head',finalSection);if(createFinal&&head)head.append(createFinal);
- const tabs=document.createElement('div');tabs.className='v109-tabs';tabs.innerHTML='<button class="active" data-assessment-tab="online">Bài kiểm tra trực tuyến</button><button data-assessment-tab="final">Đề thi cuối kỳ</button>';
- c.prepend(tabs);const original=[...c.children].filter(x=>x!==tabs&&x!==finalSection);
+ const original=[...body.children].filter(x=>x!==finalSection);
  const show=tab=>{original.forEach(x=>{x.hidden=tab!=='online';x.classList.toggle('hidden',tab!=='online')});finalSection.hidden=tab!=='final';finalSection.classList.toggle('hidden',tab!=='final');$$('[data-assessment-tab]',tabs).forEach(b=>b.classList.toggle('active',b.dataset.assessmentTab===tab));sessionStorage.setItem(`aiclo:v109:assessment:${state.subjectId}`,tab)};
  $$('[data-assessment-tab]',tabs).forEach(b=>b.onclick=()=>show(b.dataset.assessmentTab));show(sessionStorage.getItem(`aiclo:v109:assessment:${state.subjectId}`)||'online');
 
- const add=$('#addExam',c),openOriginal=add?.onclick;
+ const add=$('#addExam',body),openOriginal=add?.onclick;
  if(add&&openOriginal)add.onclick=async e=>{
   e?.preventDefault();sessionStorage.setItem(`aiclo:v109:assessment:${state.subjectId}`,'online');
   const oldModal=window.modal;

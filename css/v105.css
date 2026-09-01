@@ -3,4 +3,7 @@
 @media(max-width:1200px){.v105-question-tools{grid-template-columns:repeat(3,minmax(155px,1fr))!important}.v105-scope-options{grid-template-columns:1fr}.v105-bank-note{align-items:flex-start;flex-direction:column;gap:3px}}
 @media(max-width:700px){.v105-question-tools{grid-template-columns:1fr 1fr!important}.v105-question-tools input{grid-column:1/-1}.v105-bank-tabs{width:100%}.v105-bank-tab{flex:1;justify-content:center}.v105-bank-note{font-size:12px}.v105-classification{grid-template-columns:1fr}}
 @media(max-width:460px){.v105-question-tools{grid-template-columns:1fr!important}.v105-bank-tabs{display:grid}.v105-bank-tab{width:100%}}
+
+/* Đồng bộ tab ngân hàng với tab Đánh giá và Danh sách thành viên. */
+.v105-bank-tabs{justify-content:flex-start;gap:6px;margin-bottom:18px;border-color:var(--line);border-radius:12px;background:#eef1f5}.v105-bank-tab{gap:8px;border:0!important;border-radius:8px!important;padding:10px 16px!important;color:#596273!important;font-weight:800!important}.v105-bank-tab.active,.v105-bank-tab.secure.active{border:0!important;background:#fff!important;color:var(--red)!important;box-shadow:0 2px 8px #1112}.v105-bank-tab.active b,.v105-bank-tab.secure.active b{background:var(--red);color:#fff}
 .assessment-bank-fixed{display:grid;gap:4px;padding:10px 12px;border:1px solid #dce3ec;border-radius:10px;background:#f8fafc}.assessment-bank-fixed>span{font-size:12px;color:var(--muted);font-weight:700}.assessment-bank-fixed>b{color:#24466f}.assessment-bank-fixed>small{color:#667085;line-height:1.35}

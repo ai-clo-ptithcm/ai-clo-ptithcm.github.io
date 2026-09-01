@@ -1,7 +1,7 @@
 /* AI-CLO PTITHCM v10.5 — two question-bank tabs, persistent filters, secure exam-bank separation. */
 let v105QuestionBankTab='practice';
 const v105ScopeLabel=v=>v==='secure_exam'?'Đề thi - bảo mật':v==='both'?'Cả hai ngân hàng':'Luyện tập - kiểm tra';
-const v105BankTitle=v=>v==='secure_exam'?'Ngân hàng đề thi - bảo mật':'Ngân hàng luyện tập - kiểm tra';
+const v105BankTitle=v=>v==='secure_exam'?'Đề thi - bảo mật':'Luyện tập - kiểm tra';
 function v105QuestionInBank(scope,bank){return bank==='both'?['practice','secure_exam','both'].includes(scope):(scope===bank||scope==='both')}
 window.v105QuestionInBank=v105QuestionInBank;
 window.AICLO_V105={version:'10.5',activeBank:()=>v105QuestionBankTab,inBank:v105QuestionInBank};
@@ -41,7 +41,7 @@ questions=async function(c){
  const practiceCount=items.filter(x=>v105QuestionInBank(x.question_scope,'practice')).length,secureCount=items.filter(x=>v105QuestionInBank(x.question_scope,'secure_exam')).length;
  c.innerHTML=`<div class="v105-bank-tabs" role="tablist" aria-label="Loại ngân hàng câu hỏi">
    <button type="button" class="v105-bank-tab ${v105QuestionBankTab==='practice'?'active':''}" data-bank-tab="practice"><span>Luyện tập - kiểm tra</span><b>${practiceCount}</b></button>
-   <button type="button" class="v105-bank-tab secure ${v105QuestionBankTab==='secure_exam'?'active':''}" data-bank-tab="secure_exam"><span>🔒 Ngân hàng đề thi - bảo mật</span><b>${secureCount}</b></button>
+   <button type="button" class="v105-bank-tab secure ${v105QuestionBankTab==='secure_exam'?'active':''}" data-bank-tab="secure_exam"><span>🔒 Đề thi - bảo mật</span><b>${secureCount}</b></button>
   </div>
   <div id="v105BankNote" class="v105-bank-note"></div>
   <div class="question-tools v96-question-tools v105-question-tools"><input id="qsearch" placeholder="Tìm theo mã hoặc nội dung…"><select id="qchapterFilter"><option value="all">Tất cả chương</option>${ch.map(x=>`<option value="${x.id}">${esc(x.order_index)}. ${esc(x.name)}</option>`).join('')}</select><select id="qtopicFilter"><option value="all">Tất cả chủ đề</option></select><select id="qcloFilter"><option value="all">Tất cả CLO</option>${clos.map(x=>`<option value="${x.id}">${esc(x.code)}</option>`).join('')}</select><select id="qapprovalFilter"><option value="all">Mọi trạng thái duyệt</option><option value="draft">Bản nháp</option><option value="pending">Chờ duyệt</option><option value="approved">Đã duyệt</option><option value="archived">Lưu trữ</option></select><select id="qcreatorFilter"><option value="all">Tất cả người tạo</option><option value="mine">Câu hỏi của tôi</option>${creators.filter(x=>x.id!==state.user.id).map(x=>`<option value="${x.id}">${esc(x.full_name||x.email)}</option>`).join('')}</select></div>
