@@ -4,12 +4,14 @@
 
 function setupCarousel(){
  const carousel=document.querySelector('.campus-carousel');if(!carousel)return;
- const track=carousel.querySelector('.campus-track'),slides=[...carousel.querySelectorAll('.campus-slide')],dots=carousel.querySelector('.carousel-dots');let current=0,timer;
+ const track=carousel.querySelector('.campus-track'),slides=[...carousel.querySelectorAll('.campus-slide')],dots=carousel.querySelector('.carousel-dots');let current=0,timer,visible=false;
  dots.innerHTML=slides.map((_,i)=>`<button type="button" aria-label="Xem ảnh ${i+1}" data-slide="${i}"></button>`).join('');
  const show=i=>{current=(i+slides.length)%slides.length;track.style.transform=`translateX(-${current*100}%)`;[...dots.children].forEach((d,n)=>d.classList.toggle('active',n===current))};
- const start=()=>{clearInterval(timer);if(slides.length>1)timer=setInterval(()=>show(current+1),5000)};
+ const stop=()=>{clearInterval(timer);timer=null};
+ const start=()=>{stop();if(visible&&!document.hidden&&slides.length>1)timer=setInterval(()=>show(current+1),5000)};
  carousel.querySelector('.prev').onclick=()=>{show(current-1);start()};carousel.querySelector('.next').onclick=()=>{show(current+1);start()};dots.onclick=e=>{let b=e.target.closest('[data-slide]');if(b){show(+b.dataset.slide);start()}};
- carousel.addEventListener('mouseenter',()=>clearInterval(timer));carousel.addEventListener('mouseleave',start);document.addEventListener('visibilitychange',()=>document.hidden?clearInterval(timer):start());show(0);start();
+ carousel.addEventListener('mouseenter',stop);carousel.addEventListener('mouseleave',start);document.addEventListener('visibilitychange',()=>document.hidden?stop():start());show(0);
+ if('IntersectionObserver'in window){const observer=new IntersectionObserver(entries=>{visible=entries.some(entry=>entry.isIntersecting);visible?start():stop()},{rootMargin:'180px 0px',threshold:.01});observer.observe(carousel)}else{visible=true;start()}
 }
 
 function setupCounters(){
