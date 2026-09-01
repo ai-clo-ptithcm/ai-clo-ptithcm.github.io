@@ -1,7 +1,9 @@
 (() => {
   const CHAT_URL = "https://rraooqedkpyhokattwdz.supabase.co/functions/v1/ai_clo_chat";
+  const MAX_HISTORY_MESSAGES = 8; // 4 lượt gần nhất (user + model)
   const history = [];
   let sending = false;
+  let activeController = null;
 
   const $ = (s, root = document) => root.querySelector(s);
   const $$ = (s, root = document) => [...root.querySelectorAll(s)];
@@ -30,7 +32,7 @@
             <button type="button" class="ai-chat-hint">Cách sử dụng Chấm thi CLO?</button>
           </div>
           <form class="ai-chat-form">
-            <textarea class="ai-chat-input" rows="1" maxlength="800" placeholder="Nhập câu hỏi..." aria-label="Nhập câu hỏi cho AI-CLO"></textarea>
+            <textarea class="ai-chat-input" rows="1" maxlength="600" placeholder="Nhập câu hỏi..." aria-label="Nhập câu hỏi cho AI-CLO"></textarea>
             <button class="ai-chat-send" type="submit">Gửi</button>
           </form>
           <p class="ai-chat-note">AI chỉ trả lời về AI-CLO và hướng dẫn sử dụng. Không nhập thông tin cá nhân hoặc dữ liệu nhạy cảm.</p>
@@ -68,6 +70,9 @@
   }
 
   function closePanel() {
+    if (activeController) activeController.abort();
+    activeController = null;
+    setSending(false);
     const panel = $("#aiChatBackdrop");
     if (panel) panel.hidden = true;
     document.documentElement.style.overflow = "";
@@ -92,39 +97,80 @@
     if (input) input.disabled = value;
   }
 
+  function recentHistory() {
+    return history.slice(-MAX_HISTORY_MESSAGES);
+  }
+
+  async function readStream(response, target) {
+    if (!response.body) throw new Error("Trình duyệt không nhận được luồng phản hồi.");
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = "";
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      if (!chunk) continue;
+      fullText += chunk;
+      if (target) {
+        target.classList.remove("pending");
+        target.textContent = fullText;
+        const host = $(".ai-chat-messages");
+        if (host) host.scrollTop = host.scrollHeight;
+      }
+    }
+
+    fullText += decoder.decode();
+    return fullText.trim();
+  }
+
   async function ask(text) {
     if (sending || !text) return;
+
+    // Chỉ gửi lịch sử trước câu hỏi hiện tại; tối đa 4 lượt gần nhất.
+    const context = recentHistory();
     addMessage("user", text);
-    history.push({ role: "user", text });
     const pending = addMessage("ai", "AI-CLO đang trả lời…", "pending");
     setSending(true);
+    activeController = new AbortController();
 
     try {
       const response = await fetch(CHAT_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: text,
-          history: history.slice(-8, -1),
-        }),
+        body: JSON.stringify({ message: text, history: context }),
         cache: "no-store",
+        signal: activeController.signal,
       });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || !data.ok || !data.reply) {
-        throw new Error(data.detail || data.error || `Không thể kết nối AI-CLO (${response.status}).`);
+
+      const contentType = response.headers.get("content-type") || "";
+      if (!response.ok || contentType.includes("application/json")) {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.ok === false) {
+          throw new Error(data.detail || data.error || `Không thể kết nối AI-CLO (${response.status}).`);
+        }
+        const reply = String(data.reply || "").trim();
+        if (!reply) throw new Error("AI-CLO chưa trả về nội dung.");
+        if (pending) { pending.classList.remove("pending"); pending.textContent = reply; }
+        history.push({ role: "user", text }, { role: "model", text: reply });
+      } else {
+        const reply = await readStream(response, pending);
+        if (!reply) throw new Error("AI-CLO chưa trả về nội dung.");
+        history.push({ role: "user", text }, { role: "model", text: reply });
       }
-      if (pending) {
-        pending.classList.remove("pending");
-        pending.textContent = data.reply;
+
+      if (history.length > MAX_HISTORY_MESSAGES) {
+        history.splice(0, history.length - MAX_HISTORY_MESSAGES);
       }
-      history.push({ role: "model", text: data.reply });
-      if (history.length > 10) history.splice(0, history.length - 10);
     } catch (error) {
+      if (error?.name === "AbortError") return;
       if (pending) {
         pending.classList.remove("pending");
         pending.textContent = error?.message || "Không thể nhận phản hồi từ AI-CLO. Vui lòng thử lại.";
       }
     } finally {
+      activeController = null;
       setSending(false);
       $(".ai-chat-input")?.focus();
     }
