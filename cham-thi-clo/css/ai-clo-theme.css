@@ -26,15 +26,6 @@ a{color:var(--primary)}
   border-color:#f2cfd5;
 }
 .hero h1{color:#151b24}
-.hero h1::after{
-  content:"AI-CLO PTITHCM";
-  display:block;
-  margin-top:8px;
-  color:var(--primary);
-  font-size:12px;
-  font-weight:800;
-  letter-spacing:.14em;
-}
 .step-badge{background:var(--primary)}
 .upload-card:hover,.upload-card:focus-within{
   border-color:#cf8d98;
