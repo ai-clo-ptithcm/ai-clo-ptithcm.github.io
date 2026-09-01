@@ -11,10 +11,11 @@ const safe=async(fn,fallback=[])=>{try{return await fn()}catch{return fallback}}
 const count=async(table,build=x=>x)=>{try{const {count,error}=await build(db.from(table).select('id',{count:'exact',head:true}));if(error)throw error;return count||0}catch{return 0}};
 
 function navItems(){
- if(state.space==='system')return [
+ if(state.space==='system'){const r=role();return [
   ['dashboard','⌂','Tổng quan',true],['subjects','▣',role()==='admin'?'Quản lý học phần':isTeacher(role())?'Học phần phụ trách':'Học phần đang học',true],
+  ['notifications','🔔','Thông báo',r!=='admin'],
   ['activity','≡','Nhật ký hoạt động',role()==='admin'],['users','♙','Quản lý người dùng',role()==='admin']
- ];
+ ]}
  return [
   ['dashboard','⌂','Tổng quan học phần',true],['structure','⌘','Chương · Chủ đề · CLO',true],
   ['questions','?','Ngân hàng câu hỏi',canTeach()],['exams','✎',canTeach()?'Đánh giá':'Bài kiểm tra trực tuyến',true],
@@ -60,6 +61,11 @@ async function systemDashboard(c){
  c.innerHTML=`<div class="v109-dashboard"><section class="v109-hero"><div><small>TỔNG QUAN HỆ THỐNG</small><h3>Xin chào, ${esc(state.profile?.full_name||'bạn')}</h3><p>${esc(intro)}</p></div><span>${esc(roleLabel(r))}</span></section><div class="v109-stats">${cards.map(x=>stat(...x)).join('')}</div><section class="panel"><div class="panel-head"><h3>${esc(action)}</h3><button id="v109AllCourses" class="secondary">${esc(action)}</button></div><div class="v109-courses">${courseCards(visible.slice(0,6))}</div></section></div>`;
  $('#pageTitle').textContent='Tổng quan hệ thống';$('#pageSub').textContent=r==='admin'?'Học phần, người dùng và tình trạng hệ thống':isTeacher(r)?'Các học phần phụ trách và công việc cần xử lý':'Học phần, bài kiểm tra và kết quả của bạn';
  $('#v109AllCourses').onclick=()=>navigate('subjects');bindCourseCards(c);
+ if(r!=='admin'){
+  const notices=await safe(()=>q('notifications','id,title,message,category,created_at,read_at,subject_id,target_view',x=>x.eq('user_id',state.user.id).order('created_at',{ascending:false}).limit(5)),[]);
+  const panel=document.createElement('section');panel.className='panel v109-notices';panel.innerHTML=`<div class="panel-head"><div><h3>Thông báo gần đây</h3><p class="hint">Những nội dung mới từ hệ thống và các học phần.</p></div><button id="v109AllNotices" class="secondary">Xem tất cả thông báo</button></div><div class="v109-notice-list">${notices.map(n=>`<button type="button" class="v109-notice ${n.read_at?'':'unread'}" data-v109-notice="${n.id}"><span>🔔</span><div><b>${esc(n.title||'Thông báo')}</b><p>${esc(n.message||'')}</p><small>${fmt(n.created_at)}${n.read_at?'':' · Chưa đọc'}</small></div></button>`).join('')||'<div class="empty"><b>Chưa có thông báo</b><span>Thông báo mới sẽ xuất hiện tại đây.</span></div>'}</div>`;
+  $('.v109-dashboard',c).append(panel);$('#v109AllNotices').onclick=()=>navigate('notifications');$$('[data-v109-notice]',panel).forEach(b=>b.onclick=()=>window.AICLO_V108?.openNoticeDetail?.(notices.find(n=>n.id===b.dataset.v109Notice)));
+ }
 }
 
 async function courseDashboard(c){
