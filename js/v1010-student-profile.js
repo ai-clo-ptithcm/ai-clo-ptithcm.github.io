@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V10.10 — hồ sơ học tập trong trang và đồ thị tiến bộ. */
+/* AI-CLO PTITHCM V11 — hồ sơ học tập, đồ thị tiến bộ và AI feedback theo đúng học phần. */
 (() => {
 'use strict';
 const api=window.AICLO_ASSESSMENT;if(!api)return;
@@ -6,9 +6,12 @@ const n=v=>Number(v||0),score=(a,b)=>b?a*10/b:0;
 const date=v=>v?new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',dateStyle:'short',timeStyle:'short'}).format(new Date(v)):'—';
 const mapBy=(rows,key)=>new Map(rows.map(x=>[x[key],x]));
 const profileCache=new Map();
+const PROFILE_TTL=45000;
+const profileKey=studentId=>`${state.subjectId}:${studentId}`;
 
-async function loadProfileData(student){
- const cacheKey=`${state.subjectId}:${student.id}`;
+async function loadProfileData(student,{force=false}={}){
+ const cacheKey=profileKey(student.id),cached=profileCache.get(cacheKey);
+ if(!force&&cached&&Date.now()-cached.loadedAt<PROFILE_TTL)return cached.data;
  const exams=await q('exams','id,title,allow_ai_feedback',x=>x.eq('subject_id',state.subjectId)),examIds=exams.map(x=>x.id);
  const attempts=examIds.length?await q('exam_attempts','id,exam_id,student_id,attempt_number,score,started_at,submitted_at',x=>x.eq('student_id',student.id).in('exam_id',examIds).not('submitted_at','is',null).order('submitted_at')):[];
  const attemptIds=attempts.map(x=>x.id),[snapshots,answers,chapters,clos]=await Promise.all([
@@ -17,8 +20,13 @@ async function loadProfileData(student){
   q('chapters','id,name,order_index',x=>x.eq('subject_id',state.subjectId).order('order_index')),
   q('clos','id,code',x=>x.eq('subject_id',state.subjectId).order('code'))
  ]);
- let feedback=[];try{feedback=await q('assessment_ai_feedback','analysis,generated_at',x=>x.eq('scope','student').eq('student_id',student.id).order('generated_at',{ascending:false}).limit(1))}catch{}
- const data={student,exams,attempts,snapshots,answers,chapters,clos,feedback:feedback[0]};profileCache.set(cacheKey,data);return data;
+ let feedback=[];
+ try{
+  feedback=await q('assessment_ai_feedback','analysis,generated_at,subject_id',x=>x.eq('subject_id',state.subjectId).eq('scope','student').eq('student_id',student.id).order('generated_at',{ascending:false}).limit(1));
+ }catch{}
+ const data={student,exams,attempts,snapshots,answers,chapters,clos,feedback:feedback[0]};
+ profileCache.set(cacheKey,{loadedAt:Date.now(),data});
+ return data;
 }
 
 function aggregate(data,attemptIds,key){
@@ -39,7 +47,7 @@ function bars(items,kind){
  return `<div class="profile-bars">${items.map(([label,x])=>{const value=score(x.correct,x.total);return `<div class="profile-bar-row"><span title="${esc(label)}">${esc(label)}</span><div><i style="width:${value*10}%"></i></div><b>${value.toFixed(2)}</b><small>${x.correct}/${x.total}</small></div>`}).join('')}</div><p class="profile-chart-note">${kind==='clo'?'Điểm quy đổi theo từng chuẩn đầu ra':'Kết quả tổng hợp theo chương'} · thang 10</p>`;
 }
 function aiHtml(value){
- const a=value?.analysis;if(!a)return '<p class="hint">Chưa có nhận xét AI tổng hợp cho sinh viên này.</p>';
+ const a=value?.analysis;if(!a)return '<p class="hint">Chưa có nhận xét AI tổng hợp cho sinh viên này trong học phần hiện tại.</p>';
  if(typeof a==='string')return `<p>${esc(a)}</p>`;
  const list=(title,items)=>items?.length?`<div><b>${title}</b><ul>${items.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:'';
  return `<p>${esc(a.summary||a.overview||'Đã có nhận xét AI.')}</p>${list('Điểm mạnh',a.strengths)}${list('Cần cải thiện',a.needs_improvement||a.weaknesses)}${list('Gợi ý tiếp theo',a.next_actions||a.recommendations)}<small>Cập nhật ${date(value.generated_at)}</small>`;
@@ -52,7 +60,7 @@ async function renderProfile(student,{back=true,teacher=false}={}){
   c.innerHTML=`<div class="academic-profile-page">${back?'<button id="academicProfileBack" class="secondary academic-profile-back">← Danh sách thành viên</button>':''}<section class="academic-profile-hero"><div class="avatar">${esc((student.full_name||'?')[0].toUpperCase())}</div><div><small>HỒ SƠ HỌC TẬP</small><h3>${esc(student.full_name||'Sinh viên')}</h3><p>${esc(student.mssv||'')}${student.email?` · ${esc(student.email)}`:''}</p></div>${teacher?`<button id="academicProfileAi" class="ai-btn" ${data.attempts.length?'':'disabled'}>✦ AI nhận xét sinh viên</button>`:''}</section><div class="assessment-summary academic-profile-summary"><div><small>Lượt đã nộp</small><b>${data.attempts.length}</b></div><div><small>Điểm trung bình</small><b>${avg==null?'—':avg.toFixed(2)}</b></div><div><small>Bài đã làm</small><b>${new Set(data.attempts.map(x=>x.exam_id)).size}</b></div><div><small>CLO đang theo dõi</small><b>${clo.size}</b></div></div><section class="panel academic-chart wide-chart"><div class="panel-head"><div><h3>Tiến bộ qua các lượt làm</h3><p class="hint">Đường điểm tổng và điểm từng CLO theo thời gian.</p></div></div>${svgLine(data)}</section><div class="academic-chart-grid"><section class="panel academic-chart"><h3>Mức đạt theo CLO</h3>${bars([...clo.entries()],'clo')}</section><section class="panel academic-chart"><h3>Kết quả theo chương</h3>${bars([...chapter.entries()],'chapter')}</section></div><section class="panel"><div class="panel-head"><h3>Nhận xét AI gần nhất</h3></div><div id="academicAiBox" class="academic-ai-box">${aiHtml(data.feedback)}</div></section><section class="panel table-wrap"><div class="panel-head"><h3>Lịch sử bài kiểm tra</h3></div><table><thead><tr><th>Thời điểm</th><th>Bài</th><th>Lần</th><th>Điểm</th>${data.clos.map(x=>`<th>${esc(x.code)}</th>`).join('')}<th></th></tr></thead><tbody>${data.attempts.map(a=>{const ac=attemptClo(data,a.id);return `<tr><td>${date(a.submitted_at)}</td><td>${esc(exams.get(a.exam_id)?.title||'Bài kiểm tra')}</td><td>${a.attempt_number}</td><td><b>${n(a.score).toFixed(2)}</b></td>${data.clos.map(x=>{const v=ac.get(x.code);return `<td>${v?score(v.correct,v.total).toFixed(2):'—'}</td>`}).join('')}<td><button class="secondary" data-academic-attempt="${a.id}">Xem bài</button></td></tr>`}).join('')||`<tr><td class="empty" colspan="${data.clos.length+5}">Chưa có bài đã nộp.</td></tr>`}</tbody></table></section></div>`;
   $('#academicProfileBack')?.addEventListener('click',()=>render());
   $$('[data-academic-attempt]',c).forEach(b=>b.onclick=()=>api.openStudentAttemptResult(b.dataset.academicAttempt));
-  $('#academicProfileAi')?.addEventListener('click',async()=>{const b=$('#academicProfileAi');b.disabled=true;b.textContent='✦ Đang phân tích…';try{const {data:r,error}=await db.functions.invoke('analyze-assessment',{body:{subject_id:state.subjectId,scope:'student',student_id:student.id}});if(error)throw error;profileCache.delete(`${state.subjectId}:${student.id}`);$('#academicAiBox').innerHTML=aiHtml({analysis:r.analysis,generated_at:new Date().toISOString()});b.textContent=r.cached?'✓ Nhận xét đã lưu':'✓ Đã nhận xét';toast(r.cached?'Đang dùng nhận xét AI đã lưu':'Gemini đã hoàn tất nhận xét')}catch(ex){b.disabled=false;b.textContent='✦ Thử lại AI';err(ex)}});
+  $('#academicProfileAi')?.addEventListener('click',async()=>{const b=$('#academicProfileAi');b.disabled=true;b.textContent='✦ Đang phân tích…';try{const {data:r,error}=await db.functions.invoke('analyze-assessment',{body:{subject_id:state.subjectId,scope:'student',student_id:student.id}});if(error)throw error;profileCache.delete(profileKey(student.id));$('#academicAiBox').innerHTML=aiHtml({analysis:r.analysis,generated_at:r.generated_at||new Date().toISOString()});b.textContent=r.cached?'✓ Nhận xét đã lưu':'✓ Đã nhận xét';toast(r.cached?'Đang dùng nhận xét AI đã lưu':'Gemini đã hoàn tất nhận xét')}catch(ex){b.disabled=false;b.textContent='✦ Thử lại AI';err(ex)}});
   window.scrollTo({top:0,behavior:'smooth'});
  }catch(ex){c.innerHTML='<div class="panel"><b>Không thể mở hồ sơ học tập</b></div>';err(ex)}
 }
