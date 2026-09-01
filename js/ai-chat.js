@@ -22,20 +22,21 @@
           <button class="ai-chat-close" type="button" aria-label="Đóng">×</button>
         </header>
         <div class="ai-chat-body">
-          <p class="ai-chat-intro">Hỏi về AI-CLO PTITHCM, chức năng của hệ thống hoặc cách sử dụng.</p>
+          <p class="ai-chat-intro">Hỏi về AI-CLO PTITHCM, cách sử dụng, kiến trúc hệ thống hoặc nhóm phát triển.</p>
           <div class="ai-chat-messages" aria-live="polite">
-            <div class="ai-chat-message ai">Xin chào! Tôi là trợ lý AI-CLO. Bạn muốn tìm hiểu điều gì về hệ thống?</div>
+            <div class="ai-chat-message ai">Xin chào! Tôi là trợ lý AI-CLO. Bạn có thể hỏi tôi về hệ thống, cách giảng viên và sinh viên sử dụng, Chấm thi CLO, kiến trúc hoặc nhóm phát triển.</div>
           </div>
           <div class="ai-chat-hints">
-            <button type="button" class="ai-chat-hint">Giới thiệu hệ thống</button>
-            <button type="button" class="ai-chat-hint">AI hỗ trợ những gì?</button>
-            <button type="button" class="ai-chat-hint">Cách sử dụng Chấm thi CLO?</button>
+            <button type="button" class="ai-chat-hint">Hệ thống hoạt động như thế nào?</button>
+            <button type="button" class="ai-chat-hint">Giảng viên thêm câu hỏi ra sao?</button>
+            <button type="button" class="ai-chat-hint">Sinh viên xem nhận xét AI thế nào?</button>
+            <button type="button" class="ai-chat-hint">Nhóm phát triển gồm những ai?</button>
           </div>
           <form class="ai-chat-form">
             <textarea class="ai-chat-input" rows="1" maxlength="600" placeholder="Nhập câu hỏi..." aria-label="Nhập câu hỏi cho AI-CLO"></textarea>
             <button class="ai-chat-send" type="submit">Gửi</button>
           </form>
-          <p class="ai-chat-note">AI chỉ trả lời về AI-CLO và hướng dẫn sử dụng. Không nhập thông tin cá nhân hoặc dữ liệu nhạy cảm.</p>
+          <p class="ai-chat-note">AI chỉ dùng thông tin công khai về AI-CLO. Không nhập thông tin cá nhân hoặc dữ liệu nhạy cảm.</p>
         </div>
       </section>`;
     document.body.appendChild(node);
@@ -128,7 +129,6 @@
   async function ask(text) {
     if (sending || !text) return;
 
-    // Chỉ gửi lịch sử trước câu hỏi hiện tại; tối đa 4 lượt gần nhất.
     const context = recentHistory();
     addMessage("user", text);
     const pending = addMessage("ai", "AI-CLO đang trả lời…", "pending");
