@@ -124,15 +124,21 @@
     },
     {
       "id": "development_team",
-      "title": "Nhóm phát triển",
-      "keywords": ["nhóm phát triển", "ai làm hệ thống", "tác giả", "developer", "dev1", "dev2", "nam", "hòa", "tiến", "đội ngũ"],
-      "content": "Dự án AI-CLO PTITHCM được phát triển theo mô hình nhóm. Nam phụ trách vai trò Lead/Admin và điều phối tích hợp chung. Hòa phụ trách nhóm chức năng xác thực, người dùng, học phần, CLO, chương và chủ đề. Tiến phụ trách ngân hàng câu hỏi, giao diện tạo câu hỏi bằng AI, tạo đề và xuất đáp án. Các phần được tích hợp trên cùng hệ thống AI-CLO PTITHCM."
+      "title": "Đội phát triển hệ thống",
+      "keywords": ["đội phát triển", "nhóm phát triển", "ai làm hệ thống", "tác giả", "developer", "phan hoàng nam", "đỗ ngọc yến", "nguyễn đăng quang", "nguyễn văn tiến", "cao phục long hòa", "nam", "yến", "quang", "tiến", "hòa", "chủ nhiệm đề tài", "kỹ thuật viên chính"],
+      "content": "Đội phát triển AI-CLO PTITHCM gồm: Phan Hoàng Nam phụ trách Admin và là kỹ thuật viên chính của hệ thống; Đỗ Ngọc Yến là Chủ nhiệm đề tài. Đỗ Ngọc Yến, Nguyễn Đăng Quang, Nguyễn Văn Tiến và Cao Phục Long Hòa là các giảng viên tham gia kiểm nghiệm, đánh giá, phản hồi hệ thống và phụ trách nội dung học phần. Cao Phục Long Hòa phụ trách môn Vật lý; Đỗ Ngọc Yến, Nguyễn Đăng Quang và Nguyễn Văn Tiến phụ trách môn Toán."
+    },
+    {
+      "id": "development_validation",
+      "title": "Vai trò kiểm nghiệm và phản hồi của giảng viên",
+      "keywords": ["kiểm nghiệm", "đánh giá hệ thống", "phản hồi hệ thống", "thử nghiệm", "giảng viên phát triển", "phụ trách môn", "môn toán", "môn lý", "vật lý"],
+      "content": "Các giảng viên trong đội phát triển tham gia sử dụng thử hệ thống theo môn phụ trách, kiểm nghiệm quy trình thực tế, đánh giá kết quả và phản hồi để hoàn thiện chức năng. Nhóm Toán gồm Đỗ Ngọc Yến, Nguyễn Đăng Quang và Nguyễn Văn Tiến. Cao Phục Long Hòa phụ trách Vật lý. Vai trò này giúp việc phát triển không chỉ dựa trên kỹ thuật mà còn được kiểm tra trong bối cảnh giảng dạy và đánh giá học phần."
     },
     {
       "id": "development_context",
       "title": "Bối cảnh phát triển",
       "keywords": ["cuộc thi", "sản phẩm dự thi", "ptit hcm", "khoa cơ bản 2", "bộ môn toán", "bộ môn vật lý", "mục đích phát triển"],
-      "content": "AI-CLO PTITHCM được xây dựng như một sản phẩm ứng dụng AI trong hoạt động giảng dạy và đánh giá sinh viên tại PTIT Thành phố Hồ Chí Minh. Nội dung giới thiệu sản phẩm nêu sự tham gia của Khoa Cơ bản 2, Bộ môn Toán và Bộ môn Vật lý trong quá trình thực hiện. Hệ thống hướng tới hỗ trợ đánh giá theo chuẩn đầu ra học phần và tạo dữ liệu cho cải tiến dạy học."
+      "content": "AI-CLO PTITHCM được xây dựng như một sản phẩm ứng dụng AI trong hoạt động giảng dạy và đánh giá sinh viên tại PTIT Thành phố Hồ Chí Minh. Sản phẩm có sự tham gia của các giảng viên thuộc lĩnh vực Toán và Vật lý trong quá trình kiểm nghiệm, đánh giá và phản hồi. Hệ thống hướng tới hỗ trợ đánh giá theo chuẩn đầu ra học phần và tạo dữ liệu cho cải tiến dạy học."
     },
     {
       "id": "public_pages",
