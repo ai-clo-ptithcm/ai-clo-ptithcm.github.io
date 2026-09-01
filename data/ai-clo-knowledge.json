@@ -1,0 +1,150 @@
+{
+  "version": "10.7.2",
+  "language": "vi",
+  "updated": "2026-09-01",
+  "rules": {
+    "scope": "Chỉ dùng để trả lời về AI-CLO PTITHCM, cách sử dụng hệ thống, đánh giá theo CLO, Chấm thi CLO, nhóm phát triển và kiến trúc hệ thống.",
+    "dynamic_data": "Không tự bịa số người dùng, số học phần, số bài thi, điểm CLO, trạng thái hiện tại hoặc dữ liệu cá nhân. Nếu câu hỏi cần dữ liệu động mà không có nguồn trực tiếp, hãy nói rõ chưa có dữ liệu để xác nhận.",
+    "style": "Trả lời ngắn gọn, rõ ràng, ưu tiên 2-6 câu; nếu là hướng dẫn thao tác có thể dùng các bước ngắn."
+  },
+  "topics": [
+    {
+      "id": "overview",
+      "title": "Giới thiệu hệ thống",
+      "keywords": ["ai-clo", "giới thiệu", "hệ thống", "mục tiêu", "làm gì", "chức năng", "sản phẩm"],
+      "content": "AI-CLO PTITHCM là hệ thống ứng dụng trí tuệ nhân tạo hỗ trợ đánh giá sinh viên theo chuẩn đầu ra học phần. Hệ thống hỗ trợ quản lý học phần, chương, chủ đề, CLO, ngân hàng câu hỏi, bài kiểm tra, bài làm, kết quả CLO và phản hồi học tập. Mục tiêu là giảm thao tác thủ công, tăng khả năng phản hồi và tạo dữ liệu phục vụ cải tiến chất lượng dạy học."
+    },
+    {
+      "id": "roles",
+      "title": "Vai trò người dùng",
+      "keywords": ["quản trị viên", "giảng viên", "sinh viên", "vai trò", "phân quyền", "admin", "teacher", "student"],
+      "content": "Hệ thống có ba nhóm vai trò chính. Quản trị viên quản lý tài khoản, phân quyền và thành viên học phần. Giảng viên xây dựng cấu trúc học phần, CLO, ngân hàng câu hỏi, bài kiểm tra và xem kết quả. Sinh viên làm bài kiểm tra, xem kết quả CLO và nhận phản hồi học tập. Chức năng hiển thị phụ thuộc vào quyền của từng tài khoản."
+    },
+    {
+      "id": "teacher_course_setup",
+      "title": "Giảng viên thiết lập học phần",
+      "keywords": ["chương", "chủ đề", "clo", "cấu trúc học phần", "thêm chương", "sửa chương", "chuẩn đầu ra"],
+      "content": "Sau khi đăng nhập, giảng viên chọn học phần hiện tại rồi mở khu vực Chương · CLO để xây dựng cấu trúc. Giảng viên có thể khai báo hoặc điều chỉnh chương, chủ đề và các CLO của học phần. Nên hoàn thiện cấu trúc này trước khi tạo câu hỏi để việc phân loại và sinh đề chính xác hơn."
+    },
+    {
+      "id": "teacher_question_add",
+      "title": "Giảng viên thêm và quản lý câu hỏi",
+      "keywords": ["thêm câu hỏi", "tạo câu hỏi", "ngân hàng câu hỏi", "gemini sinh câu hỏi", "sửa câu hỏi", "lọc câu hỏi", "duyệt câu hỏi", "đáp án", "lời giải"],
+      "content": "Giảng viên mở Ngân hàng câu hỏi, chọn đúng học phần, chương, chủ đề và CLO. Có thể thêm câu hỏi thủ công hoặc dùng Gemini hỗ trợ sinh câu hỏi. Sau khi AI tạo nội dung, giảng viên phải kiểm tra câu hỏi, phương án, đáp án đúng, lời giải và CLO trước khi xác nhận sử dụng. Danh sách câu hỏi có thể lọc theo chương, chủ đề, CLO và các tiêu chí liên quan; câu hỏi có thể mở để xem chi tiết hoặc chỉnh sửa ngay trong giao diện."
+    },
+    {
+      "id": "teacher_question_security",
+      "title": "Hai ngân hàng câu hỏi",
+      "keywords": ["ngân hàng luyện tập", "ngân hàng đề thi", "bảo mật", "câu hỏi đề thi", "luyện tập", "kiểm tra"],
+      "content": "Ngân hàng câu hỏi được tách theo mục đích sử dụng. Ngân hàng luyện tập - kiểm tra phục vụ quá trình học và các bài kiểm tra thông thường. Ngân hàng đề thi - bảo mật dành cho nội dung đề thi cần kiểm soát chặt hơn; câu hỏi ở khu vực này không được tự động dùng cho các hoạt động luyện tập của sinh viên."
+    },
+    {
+      "id": "teacher_exam",
+      "title": "Giảng viên tạo bài kiểm tra và đề",
+      "keywords": ["tạo đề", "bài kiểm tra", "đề thi", "sinh đề", "tỉ lệ clo", "làm thử", "ma trận", "số câu"],
+      "content": "Giảng viên có thể tạo bài kiểm tra từ ngân hàng câu hỏi bằng cách chọn số câu và các điều kiện như chương, chủ đề hoặc tỉ lệ CLO. Sau khi hệ thống chọn câu, giảng viên nên xem lại nội dung và có thể dùng chức năng làm thử trước khi cho sinh viên làm. Việc lựa chọn và duyệt cuối cùng vẫn thuộc trách nhiệm của giảng viên."
+    },
+    {
+      "id": "teacher_results",
+      "title": "Giảng viên xem và phân tích kết quả CLO",
+      "keywords": ["kết quả clo", "phân tích clo", "nhận xét gemini", "clo yếu", "điểm clo", "cải tiến dạy học", "kết quả lớp"],
+      "content": "Sau khi sinh viên nộp bài, hệ thống tổng hợp kết quả và tách theo từng CLO. Giảng viên có thể xem mức độ đạt CLO của lớp hoặc từng sinh viên, nhận diện nội dung còn yếu và dùng Gemini hỗ trợ tạo nhận xét. Nhận xét AI là thông tin hỗ trợ; giảng viên vẫn là người đánh giá và quyết định cách sử dụng kết quả trong dạy học."
+    },
+    {
+      "id": "student_test",
+      "title": "Sinh viên làm bài kiểm tra",
+      "keywords": ["sinh viên làm bài", "làm kiểm tra", "nộp bài", "đề thi sinh viên", "trả lời câu hỏi"],
+      "content": "Sinh viên đăng nhập, chọn học phần rồi mở mục Bài kiểm tra hoặc Đề thi theo quyền được cấp. Sinh viên chọn bài được phép làm, trả lời các câu hỏi và nộp bài. Sau khi nộp, kết quả được lưu để phục vụ tính điểm và phân tích CLO."
+    },
+    {
+      "id": "student_results_ai",
+      "title": "Sinh viên xem kết quả và nhận xét AI",
+      "keywords": ["sinh viên xem kết quả", "nhận xét ai", "nhận xét gemini", "xem clo", "kết quả của tôi", "phản hồi học tập"],
+      "content": "Sinh viên mở mục Kết quả CLO để xem các bài đã nộp và mức độ đạt từng CLO. Khi có chức năng Nhận xét của Gemini, sinh viên có thể yêu cầu AI phân tích điểm mạnh, phần cần củng cố và gợi ý hành động học tập. Nếu không có dữ liệu bài làm mới, hệ thống có thể sử dụng lại nhận xét đã lưu thay vì gọi AI lại không cần thiết."
+    },
+    {
+      "id": "clo_threshold",
+      "title": "Ngưỡng và mức độ đạt CLO",
+      "keywords": ["ngưỡng đạt", "4 điểm", "m0", "m1", "m2", "m3", "m4", "đạt clo", "không đạt clo"],
+      "content": "Trong cấu hình hiện tại, ngưỡng đạt CLO cá nhân là 4 điểm trên thang 10. Kết quả có thể được biểu diễn theo các mức M0 đến M4 và kèm thông tin về mức độ tin cậy dựa trên số câu đã làm. Khi giải thích kết quả, cần dựa trên dữ liệu thực tế của bài làm chứ không suy đoán."
+    },
+    {
+      "id": "grading_overview",
+      "title": "Giới thiệu Chấm thi CLO",
+      "keywords": ["chấm thi clo", "chấm điểm", "unt", "file đáp án", "file khảo thí", "số phách", "mã đề", "gpa"],
+      "content": "Chấm thi CLO là công cụ hỗ trợ xử lý kết quả trắc nghiệm từ các file Excel. Người dùng chọn một hoặc nhiều file UnT, cung cấp đáp án + CLO bằng file Excel hoặc nhập trực tiếp, và có thể thêm file khảo thí nếu cần. Hệ thống kiểm tra SBD, mã đề, đáp án, tính điểm GPA và điểm theo CLO trước khi cho xuất kết quả."
+    },
+    {
+      "id": "grading_steps",
+      "title": "Thao tác Chấm thi CLO",
+      "keywords": ["cách chấm", "hướng dẫn chấm", "đọc dữ liệu và chấm bài", "xem xác nhận đáp án", "kiểm tra sbd", "xuất bảng điểm", "bảng điểm phách", "bảng điểm chi tiết", "bm33"],
+      "content": "Quy trình Chấm thi CLO gồm: 1) chọn một hoặc nhiều file UnT; 2) tải file Đáp án + CLO hoặc nhập trực tiếp; 3) nếu có thì chọn file khảo thí; 4) xem hoặc xác nhận đáp án; 5) nhấn Đọc dữ liệu và chấm bài; 6) kiểm tra SBD, mã đề và các cảnh báo; 7) xác nhận dữ liệu; 8) xuất Bảng điểm phách, Bảng điểm chi tiết và Báo cáo tổng hợp. Câu bỏ trống hoặc chọn nhiều phương án được tính sai chứ không xem là lỗi hệ thống."
+    },
+    {
+      "id": "grading_answer",
+      "title": "Đáp án và CLO trong công cụ chấm thi",
+      "keywords": ["đáp án clo", "nhập đáp án trực tiếp", "dọc", "ngang", "file đáp án", "clo trống", "không dùng clo"],
+      "content": "Đáp án có thể lấy từ file Excel hoặc nhập trực tiếp trên khung dạng bảng. Hệ thống hỗ trợ bố cục dọc hoặc ngang tùy phiên bản dữ liệu. Đáp án hợp lệ là A, B, C hoặc D. CLO có thể để trống nếu bài thi chỉ cần tính GPA; khi dùng CLO, cần kiểm tra mapping giữa từng câu và CLO tương ứng trước khi chấm."
+    },
+    {
+      "id": "grading_sbd_examcode",
+      "title": "Kiểm tra SBD, số phách và mã đề",
+      "keywords": ["sbd", "số báo danh", "số phách", "ảnh số phách", "mã đề sai", "mã đề khác", "map mã đề", "xác nhận sbd"],
+      "content": "Trước khi xuất điểm, người dùng cần kiểm tra bảng xác nhận SBD và mã đề. Những dòng thiếu, sai hoặc không khớp được đánh dấu để sửa. Hệ thống hỗ trợ chuẩn hóa SBD và có cơ chế đối chiếu hoặc ánh xạ mã đề khi mã trong file UnT khác mã trong file đáp án. Nếu dữ liệu không chắc chắn, nên sửa và xác nhận trước khi xuất."
+    },
+    {
+      "id": "grading_office",
+      "title": "File khảo thí",
+      "keywords": ["file khảo thí", "khảo thí", "phòng thi", "ghi chú", "bảng điểm theo phách", "dòng đầu"],
+      "content": "File khảo thí là tùy chọn, không bắt buộc để chấm điểm. Nếu có, hệ thống dùng nó để ghép dữ liệu theo số phách hoặc cấu trúc phòng thi, giữ các phần thông tin đầu biểu mẫu và cột Ghi chú khi xuất bảng điểm phù hợp. Nếu không có file khảo thí, người dùng vẫn có thể chấm từ file UnT và đáp án."
+    },
+    {
+      "id": "architecture",
+      "title": "Kiến trúc hệ thống",
+      "keywords": ["kiến trúc", "hoạt động ra sao", "github", "supabase", "database", "backend", "frontend", "edge function", "gemini", "rls"],
+      "content": "Giao diện AI-CLO được triển khai trên GitHub Pages. Supabase đảm nhiệm xác thực người dùng, cơ sở dữ liệu PostgreSQL, lưu trữ và các Edge Function cho nghiệp vụ cần chạy phía máy chủ. Các bảng chính quản lý học phần, chương, chủ đề, CLO, câu hỏi, đề, bài làm và người dùng. Row Level Security được dùng để giới hạn truy cập dữ liệu theo quyền. Các tác vụ Gemini được gọi qua Edge Function để API key không xuất hiện trong mã frontend."
+    },
+    {
+      "id": "system_flow",
+      "title": "Luồng hoạt động tổng thể",
+      "keywords": ["quy trình tổng thể", "luồng dữ liệu", "hệ thống vận hành", "từ dữ liệu đến phản hồi", "workflow"],
+      "content": "Luồng tổng thể của hệ thống là: dữ liệu học phần → xây dựng chương, chủ đề và CLO → ngân hàng câu hỏi → tạo bài kiểm tra hoặc đề → sinh viên làm bài → lưu bài làm → tính kết quả → tách điểm theo CLO → phân tích CLO → phản hồi và báo cáo. Với dữ liệu thi trắc nghiệm từ bên ngoài, công cụ Chấm thi CLO tiếp nhận file kết quả, đáp án và dữ liệu khảo thí để tạo bảng điểm và báo cáo."
+    },
+    {
+      "id": "ai_usage",
+      "title": "AI được dùng ở đâu",
+      "keywords": ["ai dùng ở đâu", "gemini", "trí tuệ nhân tạo", "sinh câu hỏi", "nhận xét ai", "hỏi ai-clo", "assistant"],
+      "content": "AI Gemini được dùng để hỗ trợ sinh câu hỏi, hỗ trợ nhận xét kết quả CLO và cung cấp trợ lý Hỏi AI-CLO trên các trang công khai. AI không tự quyết định nội dung cuối cùng của ngân hàng câu hỏi hay đánh giá học tập; giảng viên vẫn kiểm tra và duyệt. Hỏi AI-CLO dùng Gemini 3.5 Flash Lite, phản hồi dạng streaming, chỉ gửi một số lượt trò chuyện gần nhất và giới hạn độ dài để giảm chi phí."
+    },
+    {
+      "id": "security",
+      "title": "Bảo mật và API",
+      "keywords": ["bảo mật", "api key", "secret", "supabase secret", "an toàn", "dữ liệu", "jwt"],
+      "content": "API key Gemini không được đặt trực tiếp trong JavaScript chạy trên trình duyệt. Các chức năng AI đi qua Supabase Edge Function và đọc khóa từ Supabase Secrets. Dữ liệu ứng dụng được kiểm soát bằng phân quyền và RLS. Trợ lý công khai chỉ nên trả lời thông tin giới thiệu và hướng dẫn, không được suy đoán hoặc tiết lộ dữ liệu tài khoản, điểm số cá nhân hay cấu hình bí mật."
+    },
+    {
+      "id": "development_team",
+      "title": "Nhóm phát triển",
+      "keywords": ["nhóm phát triển", "ai làm hệ thống", "tác giả", "developer", "dev1", "dev2", "nam", "hòa", "tiến", "đội ngũ"],
+      "content": "Dự án AI-CLO PTITHCM được phát triển theo mô hình nhóm. Nam phụ trách vai trò Lead/Admin và điều phối tích hợp chung. Hòa phụ trách nhóm chức năng xác thực, người dùng, học phần, CLO, chương và chủ đề. Tiến phụ trách ngân hàng câu hỏi, giao diện tạo câu hỏi bằng AI, tạo đề và xuất đáp án. Các phần được tích hợp trên cùng hệ thống AI-CLO PTITHCM."
+    },
+    {
+      "id": "development_context",
+      "title": "Bối cảnh phát triển",
+      "keywords": ["cuộc thi", "sản phẩm dự thi", "ptit hcm", "khoa cơ bản 2", "bộ môn toán", "bộ môn vật lý", "mục đích phát triển"],
+      "content": "AI-CLO PTITHCM được xây dựng như một sản phẩm ứng dụng AI trong hoạt động giảng dạy và đánh giá sinh viên tại PTIT Thành phố Hồ Chí Minh. Nội dung giới thiệu sản phẩm nêu sự tham gia của Khoa Cơ bản 2, Bộ môn Toán và Bộ môn Vật lý trong quá trình thực hiện. Hệ thống hướng tới hỗ trợ đánh giá theo chuẩn đầu ra học phần và tạo dữ liệu cho cải tiến dạy học."
+    },
+    {
+      "id": "public_pages",
+      "title": "Các trang công khai",
+      "keywords": ["trang chính", "giới thiệu", "hướng dẫn", "chấm thi clo", "vào hệ thống", "website"],
+      "content": "Trang công khai gồm Trang chính, Giới thiệu, Hướng dẫn sử dụng, Chấm thi CLO và nút Vào hệ thống. Trên thanh điều hướng có Hỏi AI-CLO để giám khảo hoặc người dùng đặt câu hỏi về sản phẩm mà không cần đăng nhập. Hướng dẫn AI-CLO và Hướng dẫn Chấm thi CLO là hai nội dung riêng."
+    },
+    {
+      "id": "limitations",
+      "title": "Giới hạn và nguyên tắc sử dụng",
+      "keywords": ["hạn chế", "giới hạn", "ai có thể sai", "độ chính xác", "trách nhiệm giảng viên", "không bịa"],
+      "content": "AI là công cụ hỗ trợ, không thay thế trách nhiệm chuyên môn của giảng viên. Nội dung câu hỏi do AI sinh cần được kiểm tra trước khi sử dụng. Nhận xét AI về CLO nên được xem là gợi ý dựa trên dữ liệu đã có. Trợ lý công khai không có quyền truy cập tự động vào dữ liệu cá nhân hoặc số liệu động nếu Edge Function không cung cấp nguồn đó."
+    }
+  ]
+}
