@@ -8,6 +8,7 @@
   let inputContext = null;
   let inputSource = null;
   let processor = null;
+  let silentGain = null;
   let outputContext = null;
   let nextPlayTime = 0;
   let activeSources = new Set();
@@ -39,7 +40,7 @@
             <button class="ai-live-stop" type="button" hidden>Kết thúc</button>
           </div>
           <ul class="ai-live-hints"><li>“Giới thiệu hệ thống AI-CLO.”</li><li>“Giảng viên dùng hệ thống như thế nào?”</li><li>“Chấm thi CLO dùng để làm gì?”</li></ul>
-          <p class="ai-live-privacy">Phiên thoại dùng Gemini Live. Không đọc API key từ trình duyệt; phiên được cấp token tạm thời qua Supabase.</p>
+          <p class="ai-live-privacy">Phiên thoại dùng Gemini Live. API key thật được giữ trên Supabase; trình duyệt chỉ nhận token tạm thời cho phiên hiện tại.</p>
         </div>
       </section>`;
     document.body.appendChild(node);
@@ -67,6 +68,13 @@
     if (!box) return;
     box.dataset.state = state;
     $("[data-status]", box).textContent = text;
+  }
+
+  function resetButtons() {
+    const main = $(".ai-live-main");
+    const stop = $(".ai-live-stop");
+    if (main) { main.disabled = false; main.textContent = "🎙️ Bắt đầu trò chuyện"; }
+    if (stop) stop.hidden = true;
   }
 
   function addLine(role, text, append = false) {
@@ -106,7 +114,10 @@
   function downsampleToPcm16(input, inputRate, outputRate = 16000) {
     if (outputRate >= inputRate) {
       const out = new Int16Array(input.length);
-      for (let i = 0; i < input.length; i++) out[i] = Math.max(-1, Math.min(1, input[i])) * 0x7fff;
+      for (let i = 0; i < input.length; i++) {
+        const sample = Math.max(-1, Math.min(1, input[i]));
+        out[i] = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+      }
       return out;
     }
     const ratio = inputRate / outputRate;
@@ -126,6 +137,14 @@
     return result;
   }
 
+  function prepareOutputAudio() {
+    if (!outputContext) {
+      outputContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+      nextPlayTime = outputContext.currentTime;
+    }
+    if (outputContext.state === "suspended") outputContext.resume().catch(() => {});
+  }
+
   async function startMic() {
     mediaStream = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 },
@@ -135,6 +154,8 @@
     await inputContext.resume();
     inputSource = inputContext.createMediaStreamSource(mediaStream);
     processor = inputContext.createScriptProcessor(4096, 1, 1);
+    silentGain = inputContext.createGain();
+    silentGain.gain.value = 0;
     processor.onaudioprocess = (event) => {
       if (!connected || !ws || ws.readyState !== WebSocket.OPEN) return;
       const samples = event.inputBuffer.getChannelData(0);
@@ -143,12 +164,13 @@
       ws.send(JSON.stringify({ realtimeInput: { audio: { data: base64FromBytes(bytes), mimeType: "audio/pcm;rate=16000" } } }));
     };
     inputSource.connect(processor);
-    processor.connect(inputContext.destination);
+    processor.connect(silentGain);
+    silentGain.connect(inputContext.destination);
   }
 
   async function playPcm(base64) {
     if (!base64) return;
-    if (!outputContext) outputContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+    prepareOutputAudio();
     await outputContext.resume();
     const bytes = bytesFromBase64(base64);
     const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -175,9 +197,16 @@
   }
 
   async function getToken() {
-    const response = await fetch(TOKEN_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}", cache: "no-store" });
+    const response = await fetch(TOKEN_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+      cache: "no-store",
+    });
     const data = await response.json().catch(() => ({}));
-    if (!response.ok || !data.ok || !data.token) throw new Error(data.detail || data.error || `Không lấy được Live token (${response.status}).`);
+    if (!response.ok || !data.ok || !data.token) {
+      throw new Error(data.detail || data.error || `Không lấy được Live token (${response.status}).`);
+    }
     return data.token;
   }
 
@@ -188,28 +217,42 @@
     const stop = $(".ai-live-stop");
     if (main) main.disabled = true;
     setStatus("Đang xin phiên trò chuyện an toàn…", "connecting");
+
     try {
       if (!navigator.mediaDevices?.getUserMedia) throw new Error("Trình duyệt này chưa hỗ trợ microphone trên trang web.");
+
+      // Khởi tạo audio output ngay từ thao tác bấm của người dùng để Safari/iOS cho phép phát tiếng.
+      prepareOutputAudio();
+
       const token = await getToken();
       await startMic();
       const url = `${WS_URL}?access_token=${encodeURIComponent(token)}`;
-      ws = new WebSocket(url);
-      ws.onopen = () => {
+      const socket = new WebSocket(url);
+      ws = socket;
+
+      socket.onopen = () => {
         const knowledge = window.AICLO_LIVE_KNOWLEDGE || "Bạn là trợ lý AI-CLO PTITHCM. Hãy nói tiếng Việt và chỉ giới thiệu hệ thống.";
-        ws.send(JSON.stringify({
+        socket.send(JSON.stringify({
           setup: {
             model: MODEL,
             generationConfig: { responseModalities: ["AUDIO"] },
             systemInstruction: { parts: [{ text: knowledge }] },
             inputAudioTranscription: {},
             outputAudioTranscription: {},
-            realtimeInputConfig: { automaticActivityDetection: { prefixPaddingMs: 120, silenceDurationMs: 700 } }
-          }
+            realtimeInputConfig: {
+              automaticActivityDetection: {
+                prefixPaddingMs: 120,
+                silenceDurationMs: 700,
+              },
+            },
+          },
         }));
       };
-      ws.onmessage = async (event) => {
+
+      socket.onmessage = async (event) => {
         let message;
         try { message = JSON.parse(event.data); } catch { return; }
+
         if (message.setupComplete) {
           connected = true;
           starting = false;
@@ -218,9 +261,17 @@
           setStatus("Đang nghe — bạn hãy nói bằng tiếng Việt", "listening");
           return;
         }
+
+        if (message.goAway?.timeLeft) {
+          setStatus("Phiên Live sắp kết thúc, bạn có thể hoàn tất câu hỏi hiện tại", "connecting");
+        }
+
         const content = message.serverContent;
         if (!content) return;
-        if (content.interrupted) { clearPlayback(); setStatus("Đang nghe — bạn có thể nói tiếp", "listening"); }
+        if (content.interrupted) {
+          clearPlayback();
+          setStatus("Đang nghe — bạn có thể nói tiếp", "listening");
+        }
         if (content.inputTranscription?.text) addLine("user", content.inputTranscription.text, true);
         if (content.outputTranscription?.text) addLine("ai", content.outputTranscription.text, true);
         for (const part of content.modelTurn?.parts || []) {
@@ -228,11 +279,19 @@
         }
         if (content.turnComplete) setStatus("Đang nghe — bạn có thể hỏi tiếp", "listening");
       };
-      ws.onerror = () => setStatus("Lỗi kết nối Gemini Live", "error");
-      ws.onclose = (event) => {
+
+      socket.onerror = () => setStatus("Lỗi kết nối Gemini Live", "error");
+      socket.onclose = (event) => {
+        if (ws === socket) ws = null;
         connected = false;
         starting = false;
-        if (!$("#aiLiveBackdrop")?.hidden) setStatus(event.reason || "Phiên trò chuyện đã kết thúc", "idle");
+        clearPlayback();
+        void releaseMic();
+        resetButtons();
+        if (!$("#aiLiveBackdrop")?.hidden) {
+          const detail = event.reason ? `: ${event.reason}` : "";
+          setStatus(`Phiên trò chuyện đã kết thúc${detail}`, event.code === 1000 ? "idle" : "error");
+        }
       };
     } catch (error) {
       starting = false;
@@ -244,31 +303,36 @@
 
   async function releaseMic() {
     if (processor) { processor.onaudioprocess = null; try { processor.disconnect(); } catch {} processor = null; }
+    if (silentGain) { try { silentGain.disconnect(); } catch {} silentGain = null; }
     if (inputSource) { try { inputSource.disconnect(); } catch {} inputSource = null; }
-    if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+    if (mediaStream) { mediaStream.getTracks().forEach((t) => t.stop()); mediaStream = null; }
     if (inputContext) { try { await inputContext.close(); } catch {} inputContext = null; }
   }
 
   async function stopLive() {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      try { ws.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } })); } catch {}
-      try { ws.close(1000, "User ended session"); } catch {}
-    }
+    const currentSocket = ws;
     ws = null;
+    if (currentSocket) {
+      currentSocket.onclose = null;
+      currentSocket.onerror = null;
+      if (currentSocket.readyState === WebSocket.OPEN) {
+        try { currentSocket.send(JSON.stringify({ realtimeInput: { audioStreamEnd: true } })); } catch {}
+        try { currentSocket.close(1000, "User ended session"); } catch {}
+      } else {
+        try { currentSocket.close(); } catch {}
+      }
+    }
     connected = false;
     starting = false;
     clearPlayback();
     await releaseMic();
     if (outputContext) { try { await outputContext.close(); } catch {} outputContext = null; }
-    const main = $(".ai-live-main");
-    const stop = $(".ai-live-stop");
-    if (main) { main.disabled = false; main.textContent = "🎙️ Bắt đầu trò chuyện"; }
-    if (stop) stop.hidden = true;
+    resetButtons();
     setStatus("Chưa kết nối", "idle");
   }
 
   document.addEventListener("DOMContentLoaded", () => {
     ensurePanel();
-    $$(".public-ai-button").forEach(btn => btn.addEventListener("click", openPanel));
+    $$(".public-ai-button").forEach((btn) => btn.addEventListener("click", openPanel));
   });
 })();
