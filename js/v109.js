@@ -5,7 +5,6 @@ const V='10.9';
 const teacherRoles=['teacher','lecturer','giangvien'];
 const isTeacher=r=>teacherRoles.includes(r);
 const roleLabel=r=>r==='admin'?'Quản trị viên':isTeacher(r)?'Giảng viên':'Sinh viên';
-Object.assign(titles,{exams:['Đánh giá','Bài kiểm tra trực tuyến và đề thi cuối kỳ'],structure:['Chương · Chủ đề · CLO','Xây dựng nội dung và chuẩn đầu ra học phần']});
 const fmt=v=>v?new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',dateStyle:'short',timeStyle:'short'}).format(new Date(v)):'—';
 const safe=async(fn,fallback=[])=>{try{return await fn()}catch{return fallback}};
 const count=async(table,build=x=>x)=>{try{const {count,error}=await build(db.from(table).select('id',{count:'exact',head:true}));if(error)throw error;return count||0}catch{return 0}};
@@ -100,8 +99,21 @@ window.exams=async function(c){
  const createFinal=$('#createFinalExam',c),head=$('.panel-head',finalSection);if(createFinal&&head)head.append(createFinal);
  const tabs=document.createElement('div');tabs.className='v109-tabs';tabs.innerHTML='<button class="active" data-assessment-tab="online">Bài kiểm tra trực tuyến</button><button data-assessment-tab="final">Đề thi cuối kỳ</button>';
  c.prepend(tabs);const original=[...c.children].filter(x=>x!==tabs&&x!==finalSection);
- const show=tab=>{original.forEach(x=>x.hidden=tab!=='online');finalSection.hidden=tab!=='final';$$('[data-assessment-tab]',tabs).forEach(b=>b.classList.toggle('active',b.dataset.assessmentTab===tab));sessionStorage.setItem(`aiclo:v109:assessment:${state.subjectId}`,tab)};
+ const show=tab=>{original.forEach(x=>{x.hidden=tab!=='online';x.classList.toggle('hidden',tab!=='online')});finalSection.hidden=tab!=='final';finalSection.classList.toggle('hidden',tab!=='final');$$('[data-assessment-tab]',tabs).forEach(b=>b.classList.toggle('active',b.dataset.assessmentTab===tab));sessionStorage.setItem(`aiclo:v109:assessment:${state.subjectId}`,tab)};
  $$('[data-assessment-tab]',tabs).forEach(b=>b.onclick=()=>show(b.dataset.assessmentTab));show(sessionStorage.getItem(`aiclo:v109:assessment:${state.subjectId}`)||'online');
+
+ const add=$('#addExam',c),openOriginal=add?.onclick;
+ if(add&&openOriginal)add.onclick=async e=>{
+  e?.preventDefault();sessionStorage.setItem(`aiclo:v109:assessment:${state.subjectId}`,'online');
+  const oldModal=window.modal;
+  window.modal=(title,html)=>{
+   if(title!=='Tạo bài kiểm tra')return oldModal(title,html);
+   const body=String(html).replace('onclick="document.querySelector(\'#modal\').close()"','id="v109CancelAssessment"');
+   c.innerHTML=`<section class="v109-workspace-head"><button id="v109BackAssessments" class="secondary" type="button">← Quay lại</button><div><small>BÀI KIỂM TRA TRỰC TUYẾN</small><h3>${esc(title)}</h3><p>Tạo và kiểm tra cấu trúc ngay trong trang. Dữ liệu chỉ được lưu khi bạn nhấn “Tạo và rút câu”.</p></div></section><section class="panel v109-assessment-workspace">${body}</section>`;
+   const back=()=>render();$('#v109BackAssessments').onclick=back;$('#v109CancelAssessment')?.addEventListener('click',back);window.scrollTo({top:0,behavior:'smooth'});
+  };
+  try{await openOriginal.call(add,e)}finally{window.modal=oldModal}
+ };
 };
 
 async function ownProfile(){
