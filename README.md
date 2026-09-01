@@ -1,3 +1,13 @@
+# AI-CLO PTITHCM — V10.9
+
+V10.9 tổ chức rõ hai không gian **Tổng quan hệ thống** và **Tổng quan học phần** theo từng vai trò Admin, Giảng viên và Sinh viên. Menu học phần dùng thống nhất **Chương · Chủ đề · CLO**; mục **Đánh giá** của giảng viên tách thành hai tab **Bài kiểm tra trực tuyến** và **Đề thi cuối kỳ**.
+
+Hồ sơ được phân biệt theo ngữ cảnh: **Hồ sơ của tôi**, **Quản lý tài khoản** dành cho Admin và **Hồ sơ học tập** trong học phần hiện tại dành cho giảng viên. Trang công khai đồng thời xác nhận **Chấm thi CLO** là công cụ công khai cho mọi người, không yêu cầu đăng nhập.
+
+V10.9 không yêu cầu migration Supabase hoặc deploy Edge Function mới.
+
+---
+
 # AI-CLO PTITHCM — V10.6
 
 **V10.6 là phiên bản chuẩn hiện tại của AI-CLO PTITHCM.**
