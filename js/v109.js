@@ -19,7 +19,7 @@ function navItems(){
  return [
   ['dashboard','⌂','Tổng quan học phần',true],['structure','⌘','Chương · Chủ đề · CLO',true],
   ['questions','?','Ngân hàng câu hỏi',canTeach()],['exams','✎',canTeach()?'Đánh giá':'Bài kiểm tra trực tuyến',true],
-  ['results','◫','Kết quả CLO',true],['users','♙','Danh sách lớp',canTeach()]
+  ['results','◫','Kết quả CLO',true],['users','♙','Danh sách thành viên',canTeach()]
  ];
 }
 
@@ -98,6 +98,22 @@ async function courseDashboard(c){
 
 const previousDashboard=window.dashboard;
 window.dashboard=async function(c){return state.space==='system'?systemDashboard(c):courseDashboard(c)};
+
+const previousUsers=window.users;
+const memberTime=value=>{if(!value)return'Chưa từng đăng nhập';const seconds=Math.max(0,(Date.now()-new Date(value).getTime())/1000);if(seconds<90)return'Vừa xong';if(seconds<3600)return`${Math.floor(seconds/60)} phút trước`;if(seconds<86400)return`${Math.floor(seconds/3600)} giờ trước`;if(seconds<172800)return'Hôm qua';if(seconds<2592000)return`${Math.floor(seconds/86400)} ngày trước`;return fmt(value)};
+window.users=async function(c){
+ if(state.space!=='course'||!canTeach())return previousUsers(c);
+ await previousUsers(c);$('#pageTitle').textContent='Danh sách thành viên';$('#pageSub').textContent='Sinh viên và giảng viên thuộc học phần hiện tại';
+ const tabs=document.createElement('div');tabs.className='v109-member-tabs';tabs.innerHTML='<button class="active" data-member-tab="students">Danh sách sinh viên</button><button data-member-tab="teachers">Danh sách giảng viên</button>';
+ c.prepend(tabs);
+ const activate=tab=>$$('[data-member-tab]',tabs).forEach(b=>b.classList.toggle('active',b.dataset.memberTab===tab));
+ $('[data-member-tab="students"]',tabs).onclick=()=>render();
+ $('[data-member-tab="teachers"]',tabs).onclick=async()=>{
+  activate('teachers');const memberships=await safe(()=>q('subject_members','user_id,role',x=>x.eq('subject_id',state.subjectId).in('role',['teacher','lecturer','giangvien','admin'])),[]),ids=[...new Set(memberships.map(m=>m.user_id))],profiles=ids.length?await safe(()=>q('profiles','id,full_name,email,role,last_login_at,is_active',x=>x.in('id',ids).order('full_name')),[]):[];
+  [...c.children].filter(x=>x!==tabs).forEach(x=>x.remove());const panel=document.createElement('section');panel.className='panel v109-teacher-members';panel.innerHTML=`<div class="v109-member-summary"><div><small>Giảng viên trong học phần</small><b>${profiles.length}</b></div><input id="v109TeacherSearch" placeholder="Tìm theo họ tên hoặc email…"></div><div class="table-wrap"><table><thead><tr><th>Họ tên</th><th>Email</th><th>Vai trò</th><th>Đăng nhập gần nhất</th><th>Trạng thái</th></tr></thead><tbody id="v109TeacherRows"></tbody></table></div>`;c.append(panel);
+  const draw=list=>{$('#v109TeacherRows').innerHTML=list.map(p=>{const member=memberships.find(m=>m.user_id===p.id);return `<tr><td><b>${esc(p.full_name||'Chưa đặt tên')}</b></td><td>${esc(p.email||'—')}</td><td><span class="badge">${esc(roleLabel(member?.role||p.role))}</span></td><td>${esc(memberTime(p.last_login_at))}</td><td><span class="badge ${p.is_active===false?'red':'green'}">${p.is_active===false?'Đã khóa':'Hoạt động'}</span></td></tr>`}).join('')||'<tr><td colspan="5" class="empty">Chưa có giảng viên trong học phần.</td></tr>'};draw(profiles);$('#v109TeacherSearch').oninput=e=>{const s=e.target.value.trim().toLowerCase();draw(profiles.filter(p=>!s||`${p.full_name||''} ${p.email||''}`.toLowerCase().includes(s)))};
+ };
+};
 
 const previousExams=window.exams;
 window.exams=async function(c){
