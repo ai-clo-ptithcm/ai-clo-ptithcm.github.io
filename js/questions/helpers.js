@@ -31,4 +31,6 @@ window.v96Date=date;
 window.v96Similarity=similarity;
 window.v96ScanDuplicates=scanDuplicates;
 window.AICLO_QUESTION_HELPERS=Object.freeze({scopeLabel,approvalLabel,canManage,date,similarity,scanDuplicates});
+
+document.addEventListener('DOMContentLoaded',()=>{$('#systemHomeBtn')?.setAttribute('data-tooltip','Về trang Tổng quan hệ thống')});
 })();
