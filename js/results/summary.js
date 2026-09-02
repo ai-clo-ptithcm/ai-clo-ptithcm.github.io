@@ -130,14 +130,16 @@ async function fastTeacherResults(c){
  $$('[data-ai-student]',c).forEach(b=>b.onclick=e=>requestAi('student',b.dataset.aiStudent,e.currentTarget));
  const detailsPromise=loadTeacherDetails(base);
  $('#exportClass',c).onclick=async e=>{const b=e.currentTarget,old=b.textContent;b.disabled=true;b.textContent='Đang chuẩn bị…';try{await exportClass(base,await detailsPromise,stats)}finally{b.disabled=false;b.textContent=old}};
- try{
-  const details=await detailsPromise;
-  if(state.view!=='results'||state.subjectId!==sid||!c.isConnected)return;
-  $('#fastClassClo',c).innerHTML=bars(details.classClo,'clo');$('#fastClassChapter',c).innerHTML=bars(details.classChapter,'chapter');
-  const stateBox=$('#resultsDetailState',c);if(stateBox)stateBox.textContent=`Đã tổng hợp ${base.attempts.length} lượt đã nộp`;
-  for(const p of base.profiles){const m=details.studentClo.get(p.id)||new Map();for(const clo of base.clos){const cell=$(`[data-result-clo="${CSS.escape(p.id+'|'+clo.code)}"]`,c),x=m.get(clo.code);if(cell)cell.textContent=x?score(x.correct,x.total).toFixed(2):'—'}}
-  window.AICLO_VIEW_TRANSITION?.invalidate?.('results',sid,'course');
- }catch(ex){const box=$('#resultsDetailState',c);if(box)box.textContent='Không tải được thống kê chi tiết';console.warn('AI-CLO result detail load failed',ex)}
+ void (async()=>{
+  try{
+   const details=await detailsPromise;
+   if(state.view!=='results'||state.subjectId!==sid||!c.isConnected)return;
+   $('#fastClassClo',c).innerHTML=bars(details.classClo,'clo');$('#fastClassChapter',c).innerHTML=bars(details.classChapter,'chapter');
+   const stateBox=$('#resultsDetailState',c);if(stateBox)stateBox.textContent=`Đã tổng hợp ${base.attempts.length} lượt đã nộp`;
+   for(const p of base.profiles){const m=details.studentClo.get(p.id)||new Map();for(const clo of base.clos){const cell=$(`[data-result-clo="${CSS.escape(p.id+'|'+clo.code)}"]`,c),x=m.get(clo.code);if(cell)cell.textContent=x?score(x.correct,x.total).toFixed(2):'—'}}
+   window.AICLO_VIEW_TRANSITION?.invalidate?.('results',sid,'course');
+  }catch(ex){const box=$('#resultsDetailState',c);if(box)box.textContent='Không tải được thống kê chi tiết';console.warn('AI-CLO result detail load failed',ex)}
+ })();
 }
 
 api.results=async function(c){
