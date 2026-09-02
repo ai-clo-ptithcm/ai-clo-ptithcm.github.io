@@ -52,6 +52,7 @@ function setup(){
  if(!app.dataset.mobileShellBound){
   app.dataset.mobileShellBound='1';
   $('#nav')?.addEventListener('click',e=>{if(e.target.closest('[data-view]'))close()});
+  aside.addEventListener('click',e=>{if(e.target.closest('#miniUser'))close()},true);
   document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
   window.addEventListener('resize',()=>{if(!matchMedia('(max-width:760px)').matches)close()});
  }
