@@ -1,0 +1,10 @@
+/* AI-CLO PTITHCM V11 — app shell styles retained from legacy V10.8. */
+:root{--v108-red:#b51f32;--v108-soft:#fff4f6;--v108-border:#e4e8ef;--v108-text:#172033;--v108-muted:#667085}
+.app-ai-button{appearance:none;border:1px solid #edc6cd;background:#fff7f8;color:var(--v108-red);font-weight:800;border-radius:999px;padding:9px 14px;white-space:nowrap;cursor:pointer}.app-ai-button:hover{background:#ffecef}
+.app-context-badge{display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border-radius:999px;background:#f3f5f8;color:#586174;font-size:12px;font-weight:800;margin-top:4px}.app-context-badge.course{background:#fff1f3;color:var(--v108-red)}
+.mobile-sidebar-close{display:none}.app-sidebar-backdrop{position:fixed;inset:0;background:rgba(10,18,31,.46);z-index:1490;opacity:0;pointer-events:none;transition:.2s}.app-sidebar-backdrop.show{opacity:1;pointer-events:auto}
+@media(max-width:760px){
+ .app>aside{z-index:1500!important;width:min(82vw,320px)!important;max-width:320px!important;transition:transform .22s ease!important}.app>aside:not(.open){transform:translateX(-105%)!important}.app>aside.open{transform:translateX(0)!important}.mobile-sidebar-close{display:grid;position:absolute;top:13px;right:13px;width:36px;height:36px;place-items:center;border:1px solid rgba(255,255,255,.18);border-radius:9px;background:rgba(255,255,255,.08);color:#fff;font-size:22px;z-index:2}.app.sidebar-open{overflow:hidden}.app.sidebar-open main{overflow:hidden}
+ .app main>header{gap:8px!important}.app-ai-button{width:38px;height:38px;padding:0;display:grid;place-items:center;font-size:0}.app-ai-button::before{content:'💬';font-size:17px}.notification-bell{flex:none}.page-heading{min-width:0}.page-heading h2{font-size:18px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.page-heading p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:58vw}.app-context-badge{font-size:10px;padding:4px 7px}.subject-pick{display:none!important}
+}
+@media(max-width:430px){.page-heading p{max-width:50vw}}
