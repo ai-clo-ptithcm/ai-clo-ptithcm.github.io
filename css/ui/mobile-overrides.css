@@ -1,0 +1,128 @@
+/* AI-CLO PTITHCM v10.1 */
+
+/* Keep the course header inside the viewport on phones. */
+@media (max-width: 700px) {
+  .app > main > header {
+    box-sizing: border-box;
+    width: 100%;
+    height: auto;
+    min-height: 108px;
+    padding: 8px 12px;
+    display: grid;
+    grid-template-columns: 40px 40px minmax(0, 1fr);
+    grid-template-rows: 42px 46px;
+    grid-template-areas:
+      "menu title title"
+      "home bell subject";
+    align-items: center;
+    gap: 6px 8px;
+    overflow: visible;
+  }
+
+  #menuBtn {
+    grid-area: menu;
+    width: 40px;
+    min-width: 40px;
+    margin: 0;
+  }
+
+  .page-heading {
+    grid-area: title;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    padding: 0 2px;
+  }
+
+  .page-heading h2 {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .page-heading p { display: none; }
+
+  .system-home {
+    grid-area: home;
+    margin: 0;
+  }
+
+  .notification-bell {
+    grid-area: bell;
+    margin: 0;
+  }
+
+  .system-home,
+  .notification-bell {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    font-size: 18px;
+    border-radius: 11px;
+  }
+
+  .subject-pick {
+    grid-area: subject;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    height: 44px;
+    margin: 0;
+  }
+
+  .subject-value {
+    min-width: 0;
+    padding: 6px 32px 6px 10px;
+  }
+
+  .subject-value b {
+    font-size: 12px;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  .subject-value small { display: none; }
+
+  /* System overview does not have a course selector/home shortcut. */
+  .app > main > header:has(.subject-pick.hidden) {
+    min-height: 60px;
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    grid-template-rows: 44px;
+    grid-template-areas: "menu title bell";
+  }
+
+  .app > main > header:has(.subject-pick.hidden) .notification-bell {
+    justify-self: end;
+  }
+
+  .content,
+  .panel,
+  .table-wrap { min-width: 0; }
+
+  .v10-ai-page .form-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .v101-function-error {
+    margin: 0;
+    padding: 12px;
+    border: 1px solid #efb3bb;
+    border-radius: 10px;
+    background: #fff4f5;
+    color: #991b2b;
+    line-height: 1.45;
+  }
+}
+
+@media (max-width: 370px) {
+  .app > main > header {
+    padding-inline: 8px;
+    gap: 5px 6px;
+  }
+
+  .page-heading h2 { font-size: 15px; }
+}
