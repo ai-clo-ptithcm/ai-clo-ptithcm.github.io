@@ -9,10 +9,10 @@ const states=new WeakMap();
 let searchTimer=null;
 
 const bank=()=>window.AICLO_V105?.activeBank?.()||'practice';
-const pageKey=()=>`aiclo:qbank-page:${state.user?.id||'user'}:${state.subjectId||'subject'}:${bank()}`;
+const pageKey=(bankName=bank())=>`aiclo:qbank-page:${state.user?.id||'user'}:${state.subjectId||'subject'}:${bankName}`;
 const readPage=()=>{const n=Number(sessionStorage.getItem(pageKey())||0);return Number.isFinite(n)&&n>=0?Math.floor(n):0};
-const savePage=n=>{try{sessionStorage.setItem(pageKey(),String(Math.max(0,n||0)))}catch{}};
-const resetPage=()=>savePage(0);
+const savePage=(n,bankName=bank())=>{try{sessionStorage.setItem(pageKey(bankName),String(Math.max(0,n||0)))}catch{}};
+const resetPage=(bankName=bank())=>savePage(0,bankName);
 
 function isQuestionRows(container){return container?.id==='qrows'&&container.tagName==='TBODY'}
 function pageCount(total){return Math.max(1,Math.ceil(total/PAGE_SIZE))}
@@ -63,6 +63,7 @@ function showPage(tbody,s,page,typeset=true){
  s.page=Math.max(0,Math.min(page,pages-1));
  savePage(s.page);
  const start=s.page*PAGE_SIZE,end=Math.min(s.rows.length,start+PAGE_SIZE);
+ window.MathJax?.typesetClear?.([tbody]);
  tbody.innerHTML=s.rows.slice(start,end).join('')||'<tr><td colspan="6" class="empty">Không có câu hỏi phù hợp.</td></tr>';
  updateCount(s);updatePager(tbody,s);
  if(typeset&&typeof originalRenderMath==='function')originalRenderMath(tbody);
@@ -105,7 +106,7 @@ document.addEventListener('change',e=>{
 },true);
 document.addEventListener('click',e=>{
  if(!e.isTrusted)return;
- if(e.target?.closest?.('[data-bank-tab]'))resetPage();
+ const tab=e.target?.closest?.('[data-bank-tab]');if(tab?.dataset.bankTab)resetPage(tab.dataset.bankTab);
 },true);
 
 window.AICLO_QUESTION_LIST_PERF=Object.freeze({pageSize:PAGE_SIZE,searchDelay:SEARCH_DELAY,resetPage});
