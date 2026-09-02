@@ -1,0 +1,2 @@
+/* AI-CLO PTITHCM V11 — notification detail styles retained from legacy V10.8. */
+.notice-detail-v108{display:grid;gap:16px}.notice-detail-v108 .notice-detail-icon{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff0f2;color:var(--v108-red);font-size:20px}.notice-detail-v108 h3{margin:0}.notice-detail-v108 p{white-space:pre-wrap;color:#344054}.notice-detail-actions{display:flex;gap:10px;flex-wrap:wrap}
