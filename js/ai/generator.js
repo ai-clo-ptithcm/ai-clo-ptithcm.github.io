@@ -38,7 +38,7 @@
       'Tạo câu hỏi bằng Gemini',
       'Thiết lập yêu cầu và tạo bản nháp trực tiếp trong trang.',
       `<form id="aiForm" class="form-grid v10-ai-page">
-        <div class="ai-note wide"><b>Gemini chỉ tạo bản nháp.</b><span>Câu hỏi chỉ vào ngân hàng sau khi giảng viên xác nhận.</span></div>
+        <div class="ai-note wide"><b>Gemini chỉ tạo bản nháp.</b><span>AI đối chiếu các câu cùng phạm vi để tránh lặp; hệ thống kiểm tra độ tương đồng lần cuối khi giảng viên xác nhận.</span></div>
         <label class="field">Chương<select name="chapter_id" id="aiChapter" required>${sets.ch.map(v => `<option value="${v.id}">${esc(v.order_index)}. ${esc(v.name)}</option>`).join('')}</select></label>
         <label class="field">Chủ đề<select name="topic_id" id="aiTopic"></select></label>
         <label class="field">CLO<select name="clo_id" id="aiClo" required>${sets.clos.map(v => `<option value="${v.id}">${esc(v.code)}</option>`).join('')}</select></label>
