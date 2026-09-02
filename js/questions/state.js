@@ -60,29 +60,20 @@ window.backToQuestionList=async function(){
 const fullQuestionSets=window.v96QuestionSets;
 async function lightQuestionSets(){
  const sid=state.subjectId;
- const loader=async()=>{
-  const [items,ch,clos]=await Promise.all([
-   q('questions','id,subject_id,chapter_id,topic_id,clo_id,content,created_by,status,question_scope,approval_status,created_at,updated_at',x=>x.eq('subject_id',sid).order('created_at',{ascending:false})),
-   q('chapters','*',x=>x.eq('subject_id',sid).order('order_index')),
-   q('clos','*',x=>x.eq('subject_id',sid).order('code'))
-  ]);
-  const chapterIds=ch.map(x=>x.id).filter(Boolean);
-  const topics=chapterIds.length?await q('topics','*',x=>x.in('chapter_id',chapterIds).order('order_index')):[];
-  return {items,ch,topics,clos};
- };
- const key=`questions:list:${state.user?.id||'user'}:${sid}`;
- return window.AICLO_PERF?.memo?window.AICLO_PERF.memo(key,30000,loader):loader();
+ const [items,ch,clos]=await Promise.all([
+  q('questions','id,subject_id,chapter_id,topic_id,clo_id,content,created_by,status,question_scope,approval_status,created_at,updated_at',x=>x.eq('subject_id',sid).order('created_at',{ascending:false})),
+  q('chapters','*',x=>x.eq('subject_id',sid).order('order_index')),
+  q('clos','*',x=>x.eq('subject_id',sid).order('code'))
+ ]);
+ const chapterIds=ch.map(x=>x.id).filter(Boolean);
+ const topics=chapterIds.length?await q('topics','*',x=>x.in('chapter_id',chapterIds).order('order_index')):[];
+ return {items,ch,topics,clos};
 }
 async function hydrateQuestion(x){
  if(!x?.id||Array.isArray(x.question_options))return x;
- const key=`questions:detail:${x.id}`;
- const loader=async()=>{
-  const {data,error}=await db.from('questions').select('*, question_options(*)').eq('id',x.id).single();
-  if(error)throw error;
-  return data;
- };
- const full=window.AICLO_PERF?.memo?await window.AICLO_PERF.memo(key,30000,loader):await loader();
- return {...x,...full};
+ const {data,error}=await db.from('questions').select('*, question_options(*)').eq('id',x.id).single();
+ if(error)throw error;
+ return {...x,...data};
 }
 function invalidateQuestionData(id=null){
  window.AICLO_PERF?.invalidate?.(`questions:list:${state.user?.id||'user'}:${state.subjectId}`);
@@ -152,11 +143,9 @@ window.v96QuestionForm=async function(x={},sets){
  const originalSubmit=form.onsubmit;
  form.onsubmit=async e=>{
   jsonWrite(draftKey(id),readFormDraft(form));
+  invalidateQuestionData(id==='new'?null:id);
   await originalSubmit(e);
-  if(!document.body.contains(form)){
-   jsonDrop(draftKey(id));
-   invalidateQuestionData(id==='new'?null:id);
-  }
+  if(!document.body.contains(form))jsonDrop(draftKey(id));
  };
  const cancel=$('#cancelQuestionEdit');
  if(cancel){const old=cancel.onclick;cancel.onclick=async()=>{jsonDrop(draftKey(id));return old?.()}}
