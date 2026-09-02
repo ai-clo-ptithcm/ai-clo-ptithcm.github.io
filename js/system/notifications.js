@@ -45,7 +45,9 @@
   }
 
   async function notifications(c){
-    await refreshNotificationData(true);
+    /* Do not force the expensive refresh RPC every time the user opens this view.
+       refreshNotificationData already refreshes server-side data at most every 5 minutes. */
+    await refreshNotificationData(false);
     let items=await q('notifications','*',x=>x.eq('user_id',state.user.id).order('created_at',{ascending:false}).limit(200));
     c.innerHTML=`<div class="toolbar"><select id="noticeFilter"><option value="all">Tất cả</option><option value="unread">Chưa đọc</option><option value="exam">Bài kiểm tra</option><option value="clo">CLO</option><option value="activity">Hoạt động</option><option value="ai">AI</option></select><button id="readAll" class="secondary">Đánh dấu tất cả đã đọc</button></div><section class="panel notice-list" id="noticeList"></section>`;
     const draw=()=>{
@@ -96,7 +98,6 @@
   window.openNotification=openNotification;
   window.refreshNotificationData=refreshNotificationData;
 
-  const previousRender=window.render;
   window.render=async function(){
     let c=$('#content');
     c.innerHTML='<div class="panel">Đang tải dữ liệu…</div>';
