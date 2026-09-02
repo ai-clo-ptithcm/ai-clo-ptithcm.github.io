@@ -4,6 +4,7 @@
 
   titles.activity=['Nhật ký hoạt động','Hoạt động người dùng trong 6 tháng gần nhất'];
 
+  const ACTIVITY_LIMIT=300;
   const viTime=v=>v?new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',dateStyle:'short',timeStyle:'short'}).format(new Date(v)):'—';
   const activityLabels={login:'Đăng nhập',logout:'Đăng xuất',create:'Tạo mới',update:'Cập nhật',delete:'Xóa',export:'Xuất dữ liệu',read_notification:'Đọc thông báo'};
 
@@ -28,8 +29,8 @@
       c.innerHTML='<div class="panel">Bạn không có quyền xem nhật ký hoạt động.</div>';
       return;
     }
-    let rows=await q('activity_logs','*, profiles:user_id(full_name,email,role), subjects:subject_id(name)',x=>x.gte('created_at',new Date(Date.now()-183*86400000).toISOString()).order('created_at',{ascending:false}).limit(5000));
-    c.innerHTML=`<div class="toolbar activity-filter"><input id="logSearch" placeholder="Tìm người dùng hoặc hoạt động…"><select id="logAction"><option value="">Mọi hoạt động</option>${[...new Set(rows.map(x=>x.action))].map(x=>`<option value="${esc(x)}">${esc(activityLabels[x]||x)}</option>`).join('')}</select><input id="logFrom" type="date"><input id="logTo" type="date"><button id="exportLogs" class="primary">Xuất nhật ký Excel</button></div><div class="panel table-wrap"><p class="hint">Nhật ký chỉ được lưu 6 tháng.</p><table><thead><tr><th>Thời gian</th><th>Người dùng</th><th>Vai trò</th><th>Học phần</th><th>Hoạt động</th><th>Nội dung</th></tr></thead><tbody id="logRows"></tbody></table></div>`;
+    let rows=await q('activity_logs','*, profiles:user_id(full_name,email,role), subjects:subject_id(name)',x=>x.gte('created_at',new Date(Date.now()-183*86400000).toISOString()).order('created_at',{ascending:false}).limit(ACTIVITY_LIMIT));
+    c.innerHTML=`<div class="toolbar activity-filter"><input id="logSearch" placeholder="Tìm trong ${rows.length} hoạt động gần nhất…"><select id="logAction"><option value="">Mọi hoạt động</option>${[...new Set(rows.map(x=>x.action))].map(x=>`<option value="${esc(x)}">${esc(activityLabels[x]||x)}</option>`).join('')}</select><input id="logFrom" type="date"><input id="logTo" type="date"><button id="exportLogs" class="primary">Xuất nhật ký Excel</button></div><div class="panel table-wrap"><p class="hint">Hiển thị tối đa ${ACTIVITY_LIMIT} hoạt động gần nhất trong thời gian lưu 6 tháng để trang tải nhanh hơn.</p><table><thead><tr><th>Thời gian</th><th>Người dùng</th><th>Vai trò</th><th>Học phần</th><th>Hoạt động</th><th>Nội dung</th></tr></thead><tbody id="logRows"></tbody></table></div>`;
     let current=[];
     const draw=()=>{
       let s=$('#logSearch').value.toLowerCase(),a=$('#logAction').value,from=$('#logFrom').value?new Date($('#logFrom').value):null,to=$('#logTo').value?new Date($('#logTo').value+'T23:59:59'):null;
@@ -38,15 +39,19 @@
     };
     draw();
     $$('#logSearch,#logAction,#logFrom,#logTo').forEach(x=>x.oninput=draw);
-    $('#exportLogs').onclick=()=>{
-      let data=current.map((x,i)=>({'STT':i+1,'Thời gian':viTime(x.created_at),'Họ tên':x.profiles?.full_name||'','Email':x.profiles?.email||'','Vai trò':x.profiles?.role||'','Học phần':x.subjects?.name||'','Hoạt động':activityLabels[x.action]||x.action,'Nội dung':x.summary||''})),wb=XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data),'Nhật ký hoạt động');
-      XLSX.writeFile(wb,`Nhat-ky-hoat-dong_${new Date().toISOString().slice(0,10)}.xlsx`);
-      logActivity('export','activity_logs',null,`Xuất ${current.length} dòng nhật ký`);
+    $('#exportLogs').onclick=async()=>{
+      try{
+        const XLSX=window.XLSX||(window.AICLO_OFFICE_LIBS?.xlsx?await window.AICLO_OFFICE_LIBS.xlsx():null);
+        if(!XLSX)throw new Error('Không tải được thư viện Excel.');
+        let data=current.map((x,i)=>({'STT':i+1,'Thời gian':viTime(x.created_at),'Họ tên':x.profiles?.full_name||'','Email':x.profiles?.email||'','Vai trò':x.profiles?.role||'','Học phần':x.subjects?.name||'','Hoạt động':activityLabels[x.action]||x.action,'Nội dung':x.summary||''})),wb=XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data),'Nhật ký hoạt động');
+        XLSX.writeFile(wb,`Nhat-ky-hoat-dong_${new Date().toISOString().slice(0,10)}.xlsx`);
+        logActivity('export','activity_logs',null,`Xuất ${current.length} dòng nhật ký`);
+      }catch(ex){err(ex)}
     };
   }
 
   window.logActivity=logActivity;
   window.activity=activity;
-  window.AICLO_ACTIVITY=Object.freeze({log:logActivity});
+  window.AICLO_ACTIVITY=Object.freeze({log:logActivity,limit:ACTIVITY_LIMIT});
 })();
