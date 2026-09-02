@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM — read-through cache for stable course data queries. */
+/* AI-CLO PTITHCM — read-through cache for stable app/course data queries. */
 (() => {
 'use strict';
 
@@ -11,7 +11,8 @@ const TTL=Object.freeze({
  clos:5*60*1000,
  questions:3*60*1000,
  subject_members:3*60*1000,
- profiles:3*60*1000
+ profiles:2*60*1000,
+ activity_logs:60*1000
 });
 const WRITE_INVALIDATION=new Set([...Object.keys(TTL),'question_options']);
 const originalFrom=db.from.bind(db);
@@ -37,6 +38,7 @@ function invalidateTable(table){
   window.AICLO_VIEW_TRANSITION?.invalidate?.('users',sid,'course');
   window.AICLO_VIEW_TRANSITION?.invalidate?.('results',sid,'course');
  }
+ if(table==='activity_logs')window.AICLO_VIEW_TRANSITION?.invalidate?.('activity',null,'system');
 }
 function invalidateCourse(){
  for(const table of Object.keys(TTL))PERF.invalidate(tablePrefix(table));
@@ -86,7 +88,7 @@ try{
  };
  Object.defineProperty(db,'__aicloCourseQueryCache',{value:true,configurable:false});
 }catch(error){
- console.warn('Không cài được cache dữ liệu học phần',error);
+ console.warn('Không cài được cache dữ liệu ứng dụng',error);
  return;
 }
 
@@ -95,6 +97,6 @@ window.AICLO_COURSE_QUERY_CACHE=Object.freeze({
  invalidateTable,
  invalidateCourse,
  ttl:TTL,
- version:'1'
+ version:'1.1'
 });
 })();
