@@ -43,13 +43,13 @@
         .public-nav-unified .public-nav-actions .public-ai-button:hover{background:#ede2f8!important;border-color:#8f6bb5!important}
         .public-nav-unified .public-nav-actions .public-system-link{border:1px solid #a61d2d!important;background:#a61d2d!important;color:#fff!important}
         @media(max-width:760px){
-          body.v107-public{padding-top:128px!important}
-          .public-nav.public-nav-unified{height:128px!important;min-height:128px!important;padding:9px 14px!important;grid-template-columns:1fr!important;grid-template-rows:42px 52px!important;grid-template-areas:'links' 'actions'!important;gap:8px!important}
-          .public-nav-unified .public-nav-links{width:100%!important;display:grid!important;grid-template-columns:.85fr 1.45fr 1.1fr!important;gap:6px!important;align-items:center!important}
-          .public-nav-unified .public-nav-links a{min-width:0!important;text-align:center!important;font-size:12.5px!important;padding:6px 2px!important;white-space:nowrap!important}
+          body.v107-public{padding-top:96px!important}
+          .public-nav.public-nav-unified{height:96px!important;min-height:96px!important;padding:5px 14px!important;grid-template-columns:1fr!important;grid-template-rows:34px 42px!important;grid-template-areas:'links' 'actions'!important;gap:4px!important}
+          .public-nav-unified .public-nav-links{width:100%!important;display:grid!important;grid-template-columns:.85fr 1.45fr 1.1fr!important;gap:5px!important;align-items:center!important}
+          .public-nav-unified .public-nav-links a{min-width:0!important;text-align:center!important;font-size:12.5px!important;padding:3px 2px!important;white-space:nowrap!important}
           .public-nav-unified .public-home-link{justify-content:center!important}
           .public-nav-unified .public-nav-actions{width:100%;grid-template-columns:1fr 1fr;gap:9px}
-          .public-nav-unified .public-nav-actions .public-ai-button,.public-nav-unified .public-nav-actions .public-system-link{width:100%!important;min-height:46px!important;padding:0 10px!important;font-size:14px!important}
+          .public-nav-unified .public-nav-actions .public-ai-button,.public-nav-unified .public-nav-actions .public-system-link{width:100%!important;min-height:40px!important;padding:0 10px!important;font-size:14px!important}
         }
       `;
       document.head.append(style);
