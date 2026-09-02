@@ -3,6 +3,11 @@
 'use strict';
 const onlineExams = exams;
 let finalCtx = null;
+const finalWorkspaceKey=()=>`ai-clo:v11:final-workspace:${state.user?.id||'user'}:${state.subjectId||'subject'}`;
+const markFinalWorkspace=stage=>{try{sessionStorage.setItem(finalWorkspaceKey(),JSON.stringify({stage,updated_at:Date.now()}))}catch{}};
+const readFinalWorkspace=()=>{try{return JSON.parse(sessionStorage.getItem(finalWorkspaceKey())||'null')}catch{return null}};
+const clearFinalWorkspace=()=>{try{sessionStorage.removeItem(finalWorkspaceKey())}catch{}};
+let restoringFinalWorkspace=false;
 const norm=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'D').trim().toLowerCase().replace(/\s+/g,' ');
 const shuf=a=>{let x=[...a];for(let i=x.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[x[i],x[j]]=[x[j],x[i]]}return x};
 const opts=q=>Object.fromEntries((q.question_options||[]).map(o=>[o.option_key,o.content]));
@@ -83,6 +88,7 @@ function docText(s){let t=plainText(s);const greek={alpha:'α',beta:'β',gamma:'
 function matrixSignature(matrix){return [...(matrix||[])].sort((a,b)=>`${a.topic_id}:${a.clo_id}`.localeCompare(`${b.topic_id}:${b.clo_id}`)).map(x=>`${x.topic_id}:${x.clo_id}:${x.count}`).join('|')}
 function finalMetaComparable(m){let x={...(m||{})};delete x.draft_stage;delete x.needs_regenerate;return x}
 async function finalExamWizard(){
+ markFinalWorkspace('matrix');
  let sets=await finalSets(),local=readLocalFinalDraft(),server=await findServerFinalDraft(),draft=server||local;
  if(draft&&!finalCtx){
   let stage=draft.metadata?.draft_stage||draft.stage||'matrix',hasWork=(draft.selected_questions?.length||draft.selected?.length||draft.matrix?.length||Object.keys(draft.metadata||{}).length);
@@ -117,12 +123,12 @@ async function finalExamWizard(){
  </div></section>
  <section class="panel"><div class="panel-head"><h3>2. Ma trận BM06 chi tiết theo Chương · Mục · CLO</h3><span class="hint">Nhập số câu vào từng ô. BM06 xuất ra sẽ cộng theo Chương.</span></div>${matrixHtml(sets)}<div id="matrixAvailability" class="bank-check"></div></section>
  <div class="form-actions"><button type="button" id="cancelFinal" class="secondary">Hủy</button><button class="primary">${finalCtx.selected?.length?'Lưu và chuyển sang duyệt câu':'Rút câu và chuyển sang duyệt'}</button></div></form>`);
- setFinalWorkspaceBack('← Quay lại Bài kiểm tra',()=>{finalCtx=null;render()});
+ setFinalWorkspaceBack('← Quay lại Bài kiểm tra',()=>{clearFinalWorkspace();finalCtx=null;render()});
  $('#finalExamForm [name=source_scope]').value=m.source_scope||finalCtx.source||'secure_exam';
  for(let r of finalCtx.matrix||[]){let el=$(`.matrix-count[data-topic="${r.topic_id}"][data-clo="${r.clo_id}"]`);if(el)el.value=r.count||0}
  $$('.matrix-count').forEach(i=>i.oninput=()=>{updateMatrixTotals();checkAvailability();captureMatrixDraft()});
  $('#finalExamForm [name=source_scope]').onchange=()=>{checkAvailability();captureMatrixDraft()};
- $('#cancelFinal').onclick=()=>{finalCtx=null;render()};
+ $('#cancelFinal').onclick=()=>{clearFinalWorkspace();finalCtx=null;render()};
  function captureMatrixDraft(){let f=$('#finalExamForm');if(!f)return;finalCtx.metadata=metadataFromForm(f);finalCtx.source=finalCtx.metadata.source_scope;finalCtx.matrix=readMatrix();localFinalDraft({metadata:finalCtx.metadata,matrix:finalCtx.matrix,source:finalCtx.source,selected:finalCtx.selected||[],variants:finalCtx.variants||[],stage:'matrix',package_id:finalCtx.package?.id||null});queueFinalDraft('matrix')}
  $('#finalExamForm').addEventListener('input',e=>{if(!e.target.classList.contains('matrix-count'))captureMatrixDraft()});
  function checkAvailability(){let source=$('#finalExamForm [name=source_scope]').value,req=readMatrix(),rows=req.map(r=>{let pool=sets.items.filter(q=>q.topic_id===r.topic_id&&q.clo_id===r.clo_id&&v105QuestionInBank(q.question_scope,source));return {...r,available:pool.length}}),ok=rows.every(x=>x.available>=x.count)&&rows.reduce((s,x)=>s+x.count,0)>0;$('#matrixAvailability').innerHTML=`<div class="bank-check-head ${ok?'ok':'warn'}"><b>${ok?'✓ Ngân hàng đủ câu':'! Có ô ma trận chưa đủ câu'}</b><span>${rows.reduce((s,x)=>s+x.count,0)} câu</span></div><div class="bank-check-items">${rows.map(x=>{let t=sets.topics.find(z=>z.id===x.topic_id),c=sets.clos.find(z=>z.id===x.clo_id);return `<span class="${x.available<x.count?'bad':''}">${esc(t?.name)} · ${esc(c?.code)}: cần ${x.count} / có ${x.available}</span>`}).join('')}</div>`;return ok}
@@ -140,6 +146,7 @@ async function finalExamWizard(){
 }
 function qCard(q,i,sets){let o=opts(q),ch=sets.ch.find(x=>x.id===q.chapter_id),t=sets.topics.find(x=>x.id===q.topic_id),c=sets.clos.find(x=>x.id===q.clo_id);return `<article class="v102-review-card" data-review-index="${i}"><div class="review-card-head"><div><b>Câu ${i+1}</b><span class="badge red">${esc(c?.code||'')}</span><span class="badge">${esc(ch?.name||'')}</span><span class="badge">${esc(t?.name||'')}</span>${String(q.id).startsWith('ai:')?'<span class="badge ai-badge">Gemini mới</span>':''}</div><div><button class="secondary" data-replace="${i}">Đổi câu</button><button class="ai-btn" data-gemini="${i}">✦ Gemini sinh câu này</button></div></div><div class="detail-question">${esc(q.content)}</div><div class="detail-options">${['A','B','C','D'].map(k=>`<div class="${q.correct_answer===k?'correct':''}"><b>${k}</b><span>${esc(o[k]||'')}</span></div>`).join('')}</div></article>`}
 function reviewFinalQuestions(){
+ markFinalWorkspace('reviewing');
  let {sets,selected}=finalCtx,summary=sets.clos.map(c=>[c.code,selected.filter(q=>q.clo_id===c.id).length]),hasVariants=!!finalCtx.variants?.length;
  questionWorkspace('Duyệt đề gốc trước khi tạo 4 mã đề',`${selected.length} câu · giảng viên quyết định cuối cùng.`,`<div class="v102-review-summary"><b>Đề gốc: ${selected.length} câu</b>${summary.map(([c,n])=>`<span class="badge">${esc(c)}: ${n}</span>`).join('')}<span class="hint">Đổi câu luôn giữ đúng Mục + CLO + nguồn của ô ma trận.</span></div>${hasVariants?`<div class="final-edit-warning">${finalCtx.dirty?'Đề đã thay đổi. Cần tạo lại các mã đề để BM07, BM08 và đáp án CLO đồng bộ.':'Bộ đề đã có mã đề. Bạn có thể xem/đổi câu; chỉ khi có thay đổi mới cần tạo lại mã đề.'}</div>`:''}<div id="finalReviewList">${selected.map((q,i)=>qCard(q,i,sets)).join('')}</div><div class="sticky-final-actions"><button id="backMatrix" class="secondary">Sửa thông tin & ma trận</button>${hasVariants&&!finalCtx.dirty?'<button id="backPackage" class="secondary">Quay lại hồ sơ</button>':''}<button id="approveFinalBase" class="primary" ${hasVariants&&!finalCtx.dirty?'disabled':''}>${hasVariants?'✓ Tạo lại các mã đề':'✓ Duyệt đề gốc và tạo các mã đề'}</button></div>`);
  renderMath($('#finalReviewList'));
@@ -196,6 +203,7 @@ exams=async function(c){
  let ids=[...new Set((data||[]).map(x=>x.created_by))],names={};if(ids.length){let {data:ps}=await db.from('profiles').select('id,full_name,email').in('id',ids);for(let p of ps||[])names[p.id]=p.full_name||p.email||'Người dùng'}
  $('#finalPackageRows').innerHTML=(data||[]).map(x=>{let canDelete=role()==='admin'||x.created_by===state.user.id,status=x.status==='reviewing'?'Đang chỉnh sửa':x.status==='draft'?'Bản nháp':x.status==='generated'?`Đã tạo ${(x.metadata?.variant_codes||[]).length||4} mã đề`:x.status;return `<div class="final-package-row"><div><b>${esc(x.title)}</b><small>${new Date(x.created_at).toLocaleString('vi-VN')} · ${esc(names[x.created_by]||'Người tạo')} · Mã đề ${(x.metadata?.variant_codes||[]).join(', ')}</small>${x.updated_at&&x.updated_at!==x.created_at?`<small>Cập nhật: ${new Date(x.updated_at).toLocaleString('vi-VN')}</small>`:''}</div><span class="badge ${x.status==='generated'?'green':''}">${esc(status)}</span><div class="final-package-actions"><button class="secondary" data-open-final="${x.id}">${x.status==='generated'?'Mở / Sửa / Xuất':'Tiếp tục'}</button>${canDelete?`<button class="secondary danger-button" data-delete-final="${x.id}" data-title="${esc(x.title)}">Xóa</button>`:''}</div></div>`}).join('')||'<p class="hint">Chưa có bộ đề cuối kỳ.</p>';
  $$('[data-open-final]').forEach(b=>b.onclick=()=>reopenPackage(b.dataset.openFinal));$$('[data-delete-final]').forEach(b=>b.onclick=()=>deleteFinalPackage(b.dataset.deleteFinal,b.dataset.title));
+ let active=readFinalWorkspace();if(active&&finalCtx&&!restoringFinalWorkspace){restoringFinalWorkspace=true;try{if(active.stage==='reviewing')await reviewFinalQuestions();else await finalExamWizard();toast('Đã khôi phục nội dung đề thi đang soạn')}finally{restoringFinalWorkspace=false}}
 };
 
 // Hiển thị model thực tế trong lịch sử AI nếu giao diện cũ đã tải dữ liệu model.

@@ -164,3 +164,92 @@ if(typeof oldQuestionAnalysis==='function')window.v95QuestionAnalysis=async func
 
 window.AICLO_QUESTION_STATE=Object.freeze({persistFilters,savedFilters,lightQuestionSets,hydrateQuestion,invalidate:invalidateQuestionData});
 })();
+
+/* V11 — keep the active Gemini review and show its nearest text matches. */
+(() => {
+'use strict';
+
+const baseKey=()=>`ai-clo:v11:${state.user?.id||'user'}:${state.subjectId||'subject'}`;
+const reviewKey=()=>`${baseKey()}:ai-review`;
+const read=()=>{try{return JSON.parse(sessionStorage.getItem(reviewKey())||'null')}catch{return null}};
+const write=value=>{try{sessionStorage.setItem(reviewKey(),JSON.stringify(value))}catch{}};
+const clear=()=>{try{sessionStorage.removeItem(reviewKey())}catch{}};
+let restoring=false,similarityRun=0,saveTimer=null;
+
+function formValues(){
+ if(!$('#draftContent'))return null;
+ return {content:$('#draftContent').value,explanation:$('#draftExplanation')?.value||'',correct_answer:$('#draftCorrect')?.value||'A',options:Object.fromEntries(['A','B','C','D'].map(k=>[k,$('#draft'+k)?.value||'']))};
+}
+function remember(batch,d,pos){
+ const old=read();
+ write({batchId:batch.id,draftId:d.id,pos,subjectId:batch.subject_id,values:old?.draftId===d.id?(formValues()||old.values||null):null,updatedAt:Date.now()});
+}
+function saveVisibleReview(){
+ const active=read(),values=formValues();
+ if(active&&values)write({...active,values,updatedAt:Date.now()});
+}
+function restoreValues(active,d){
+ if(!active?.values||active.draftId!==d.id)return;
+ $('#draftContent').value=active.values.content??d.content??'';
+ $('#draftExplanation').value=active.values.explanation??d.explanation??'';
+ $('#draftCorrect').value=active.values.correct_answer||d.correct_answer||'A';
+ ['A','B','C','D'].forEach(k=>{if($('#draft'+k))$('#draft'+k).value=active.values.options?.[k]??d.options?.[k]??''});
+}
+function scoreClass(score){return score>=.9?'danger':score>=.75?'warning':'neutral'}
+function scopeLabel(scope){return window.AICLO_V105? (scope==='secure_exam'?'Đề thi - bảo mật':scope==='both'?'Cả hai ngân hàng':'Luyện tập - kiểm tra') : scope}
+async function loadSimilar(content){
+ const box=$('#aiSimilarQuestions');if(!box)return;
+ const run=++similarityRun;
+ box.innerHTML='<p class="hint">Đang đối chiếu ngân hàng câu hỏi…</p>';
+ const {data,error}=await db.rpc('find_similar_questions',{p_subject_id:state.subjectId,p_content:String(content||'').trim(),p_exclude_id:null,p_limit:3});
+ if(run!==similarityRun||!$('#aiSimilarQuestions'))return;
+ if(error){box.innerHTML='<p class="hint">Chưa thể tải các câu tương tự.</p>';return}
+ if(!data?.length){box.innerHTML='<p class="ai-similar-empty">Không phát hiện câu có độ giống văn bản từ 55% trở lên.</p>';return}
+ box.innerHTML=data.map(item=>{const score=Number(item.similarity_score||0);return `<article class="ai-similar-item ${scoreClass(score)}"><div><button type="button" class="question-code" data-similar-code="${item.id}">${esc(item.code)}</button><span class="ai-similar-score">${Math.round(score*100)}%</span><span class="badge">${esc(scopeLabel(item.question_scope))}</span></div><p>${esc(item.content)}</p></article>`}).join('');
+ renderMath(box);
+}
+
+const oldShowDraft=window.showDraft;
+window.showDraft=function(batch,drafts,d,pos){
+ saveVisibleReview();
+ const previous=read();
+ oldShowDraft(batch,drafts,d,pos);
+ write({batchId:batch.id,draftId:d.id,pos,subjectId:batch.subject_id,values:previous?.draftId===d.id?previous.values:null,updatedAt:Date.now()});
+ restoreValues(read(),d);
+ const note=$('.review-wrap .ai-note');
+ if(note){
+  const section=document.createElement('section');section.className='ai-similar-panel';section.innerHTML='<div class="ai-similar-head"><div><h4>3 câu gần giống nhất</h4><p>So sánh nội dung câu hỏi trong cùng học phần bằng pg_trgm; chưa đánh giá độ giống về phương pháp giải.</p></div><span class="ai-similar-legend"><i></i> ≥90% · <i></i> 75–89% · <i></i> 55–74%</span></div><div id="aiSimilarQuestions"></div>';
+  note.insertAdjacentElement('afterend',section);
+ }
+ loadSimilar($('#draftContent')?.value||d.content);
+ const queue=()=>{clearTimeout(saveTimer);saveTimer=setTimeout(()=>{saveVisibleReview();loadSimilar($('#draftContent')?.value||'')},350)};
+ $('#draftContent')?.addEventListener('input',queue);
+ ['#draftExplanation','#draftCorrect','#draftA','#draftB','#draftC','#draftD'].forEach(sel=>$(sel)?.addEventListener('input',()=>{clearTimeout(saveTimer);saveTimer=setTimeout(saveVisibleReview,120)}));
+ const back=$('#questionBack');if(back){const fn=back.onclick;back.onclick=async()=>{clear();return fn?.()}}
+};
+
+const oldAdvanceReview=window.advanceReview;
+window.advanceReview=async function(batch,drafts,pos){
+ const hasPending=drafts.some(x=>x.review_status==='pending');
+ if(!hasPending)clear();
+ return oldAdvanceReview(batch,drafts,pos);
+};
+
+const oldNavigate=window.navigate;
+window.navigate=function(v){saveVisibleReview();return oldNavigate(v)};
+
+const oldQuestions=window.questions;
+window.questions=async function(c){
+ await oldQuestions(c);
+ if(restoring)return;
+ const active=read();if(!active||active.subjectId!==state.subjectId)return;
+ restoring=true;
+ try{
+  const [batches,drafts]=await Promise.all([q('ai_generation_batches','*, chapters(name), clos(code,description)',x=>x.eq('id',active.batchId)),q('ai_question_drafts','*',x=>x.eq('batch_id',active.batchId).order('order_index'))]);
+  const batch=batches[0],draft=drafts.find(x=>x.id===active.draftId)||drafts.find(x=>x.review_status==='pending');
+  if(!batch||!draft){clear();return}
+  window.showDraft(batch,drafts,draft,drafts.findIndex(x=>x.id===draft.id));
+  toast('Đã khôi phục phiên duyệt câu Gemini');
+ }catch(ex){console.warn('Restore Gemini review',ex)}finally{restoring=false}
+};
+})();
