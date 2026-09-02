@@ -12,6 +12,8 @@ const TTL=Object.freeze({
  questions:3*60*1000,
  subject_members:3*60*1000,
  profiles:2*60*1000,
+ exams:30*1000,
+ exam_attempts:15*1000,
  activity_logs:60*1000
 });
 const WRITE_INVALIDATION=new Set([...Object.keys(TTL),'question_options']);
@@ -36,6 +38,21 @@ function invalidateTable(table){
   PERF.invalidate('runtime:course-dashboard:');
   PERF.invalidate('results:base:');
   window.AICLO_VIEW_TRANSITION?.invalidate?.('users',sid,'course');
+  window.AICLO_VIEW_TRANSITION?.invalidate?.('results',sid,'course');
+ }
+ if(table==='exams'){
+  PERF.invalidate('runtime:assessment-list:');
+  PERF.invalidate('runtime:course-dashboard:');
+  PERF.invalidate('results:base:');
+  window.AICLO_VIEW_TRANSITION?.invalidate?.('exams',sid,'course');
+  window.AICLO_VIEW_TRANSITION?.invalidate?.('results',sid,'course');
+ }
+ if(table==='exam_attempts'){
+  PERF.invalidate('runtime:assessment-list:');
+  PERF.invalidate('runtime:course-dashboard:');
+  PERF.invalidate('results:base:');
+  PERF.invalidate('results:detail:');
+  window.AICLO_VIEW_TRANSITION?.invalidate?.('exams',sid,'course');
   window.AICLO_VIEW_TRANSITION?.invalidate?.('results',sid,'course');
  }
  if(table==='activity_logs')window.AICLO_VIEW_TRANSITION?.invalidate?.('activity',null,'system');
@@ -79,7 +96,9 @@ try{
     if(typeof query[method]!=='function')continue;
     const original=query[method].bind(query);
     query[method]=function(...args){
-     invalidateTable(table);
+     /* Activity is append-only in normal use. Keep the 60 s list cache warm after
+        inserting a new log instead of forcing a 300-row reload on the next visit. */
+     if(!(table==='activity_logs'&&method==='insert'))invalidateTable(table);
      return original(...args);
     };
    }
@@ -97,6 +116,6 @@ window.AICLO_COURSE_QUERY_CACHE=Object.freeze({
  invalidateTable,
  invalidateCourse,
  ttl:TTL,
- version:'1.1'
+ version:'1.2'
 });
 })();
