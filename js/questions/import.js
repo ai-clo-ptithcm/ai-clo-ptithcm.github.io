@@ -41,12 +41,6 @@ function bankLabel(scope) {
   return 'Luyện tập - kiểm tra';
 }
 
-function approvalLabel(status) {
-  if (status === 'approved') return 'Đã duyệt';
-  if (status === 'pending') return 'Chờ duyệt';
-  return 'Bản nháp';
-}
-
 function readField(row, ...names) {
   for (const name of names) {
     if (row?.[name] != null) return String(row[name]).trim();
@@ -193,10 +187,10 @@ function previewHtml(parsed) {
   const bad = parsed.filter(item => item.errors.length);
   const goodCount = parsed.length - bad.length;
   return `<div class="import-summary"><b>Đã đọc ${parsed.length} câu</b><span class="badge green">Hợp lệ ${goodCount}</span><span class="badge ${bad.length ? 'red' : 'green'}">Có lỗi ${bad.length}</span></div>
-    <div class="table-wrap"><table><thead><tr><th>Dòng</th><th>Chương · Chủ đề</th><th>CLO</th><th>Nội dung</th><th>Ngân hàng</th><th>Kiểm tra</th></tr></thead><tbody>
+    <div class="question-import-preview-table table-wrap"><table><thead><tr><th>Dòng</th><th>Chương · Chủ đề</th><th>CLO</th><th>Nội dung</th><th>Ngân hàng</th><th>Kiểm tra</th></tr></thead><tbody>
       ${parsed.map(item => `<tr class="${item.errors.length ? 'import-bad' : ''}"><td>${item.rowNo}</td><td>${esc(item.chapter?.name || '—')}<br><small>${esc(item.topic?.name || '—')}</small></td><td>${esc(item.clo?.code || '—')}</td><td>${esc(item.content.slice(0, 120))}</td><td>${esc(bankLabel(item.question_scope))}</td><td>${item.errors.length ? esc(item.errors.join('; ')) : '✓ Hợp lệ'}</td></tr>`).join('')}
     </tbody></table></div>
-    <div class="form-actions"><button id="confirmQuestionImport" class="primary" ${goodCount ? '' : 'disabled'}>Nhập ${goodCount} câu hợp lệ</button></div>`;
+    <div class="question-import-confirm"><button id="confirmQuestionImport" class="primary" ${goodCount ? '' : 'disabled'}>Nhập ${goodCount} câu hợp lệ</button></div>`;
 }
 
 async function insertOne(item, subjectId) {
@@ -230,6 +224,12 @@ async function insertOne(item, subjectId) {
   throw new Error(`Không lưu được A–D: ${optionsError.message || 'lỗi không xác định'}`);
 }
 
+async function returnToBank() {
+  if (typeof window.backToQuestionList === 'function') return window.backToQuestionList();
+  state.view = 'questions';
+  return render();
+}
+
 async function importRows(parsed, subjectId, button, preview) {
   const good = parsed.filter(item => !item.errors.length);
   if (!good.length) return;
@@ -254,14 +254,13 @@ async function importRows(parsed, subjectId, button, preview) {
   window.logActivity?.('bulk_import', 'question', null, `Nhập hàng loạt ${success}/${good.length} câu hỏi`, success === good.length ? 'success' : 'warning', null, {subject_id: subjectId});
 
   if (!failures.length) {
-    closeModal();
     toast(`Đã nhập ${success} câu hỏi`);
-    await render();
+    await returnToBank();
     return;
   }
 
-  preview.innerHTML = `<div class="panel"><h4>Kết quả nhập</h4><p><b>Thành công:</b> ${success}/${good.length} câu.</p><p class="hint">Các câu lỗi không được giữ lại nếu chưa lưu đủ 4 phương án A–D.</p>${failures.length ? `<div class="table-wrap"><table><thead><tr><th>Dòng</th><th>Lỗi</th></tr></thead><tbody>${failures.map(item => `<tr><td>${item.rowNo}</td><td>${esc(item.message)}</td></tr>`).join('')}</tbody></table></div>` : ''}<div class="form-actions"><button id="closeQuestionImport" class="primary">Đóng và làm mới</button></div></div>`;
-  $('#closeQuestionImport').onclick = async () => { closeModal(); await render(); };
+  preview.innerHTML = `<section class="panel question-import-result"><h4>Kết quả nhập</h4><p><b>Thành công:</b> ${success}/${good.length} câu.</p><p class="hint">Các câu lỗi không được giữ lại nếu chưa lưu đủ 4 phương án A–D.</p>${failures.length ? `<div class="table-wrap"><table><thead><tr><th>Dòng</th><th>Lỗi</th></tr></thead><tbody>${failures.map(item => `<tr><td>${item.rowNo}</td><td>${esc(item.message)}</td></tr>`).join('')}</tbody></table></div>` : ''}<div class="question-import-confirm"><button id="closeQuestionImport" class="primary">Về ngân hàng câu hỏi</button></div></section>`;
+  $('#closeQuestionImport').onclick = returnToBank;
 }
 
 async function readWorkbook(file, sets, subjectId, preview) {
@@ -284,9 +283,31 @@ async function readWorkbook(file, sets, subjectId, preview) {
 
 function open(sets) {
   if (!sets || !state.subjectId) return toast('Hãy chọn học phần trước khi nhập câu hỏi.', true);
+  captureQuestionFilters?.();
   const subjectId = state.subjectId;
-  modal('Nhập hàng loạt câu hỏi', `<div class="question-import"><p>Nhập bằng file <b>.xlsx</b> hoặc <b>.xls</b>. Mỗi dòng gồm Chương, Chủ đề, CLO, nội dung, A–D và đáp án.</p><div class="toolbar"><button id="downloadQuestionImportTemplate" class="secondary" type="button">↓ Tải Excel mẫu</button><label class="file-button">Chọn file Excel<input id="questionImportFile" type="file" accept=".xlsx,.xls" hidden></label></div><div id="questionImportPreview"><p class="hint">File chỉ được kiểm tra và xem trước. Hệ thống chưa lưu gì cho đến khi bạn nhấn “Nhập câu hỏi”.</p></div></div>`);
+  const content = $('#content');
+  if (!content) return;
 
+  $('#pageTitle').textContent = 'Nhập hàng loạt câu hỏi';
+  $('#pageSub').textContent = `${activeSubject()?.name || 'Học phần hiện tại'} · Kiểm tra trước khi lưu vào ngân hàng`;
+  content.innerHTML = `<div class="question-import-workspace">
+    <div class="question-import-workspace-head">
+      <button id="questionImportBack" class="secondary" type="button">← Ngân hàng câu hỏi</button>
+      <div><small>NGÂN HÀNG CÂU HỎI</small><h3>Nhập hàng loạt từ Excel</h3><p>Chuẩn bị nhiều câu hỏi trong một file, kiểm tra toàn bộ trước khi lưu.</p></div>
+    </div>
+    <section class="panel question-import-start">
+      <div class="question-import-step"><span>1</span><div><h4>Tải file mẫu</h4><p>Mẫu đã có sẵn Chương, Chủ đề và CLO của học phần hiện tại.</p></div></div>
+      <button id="downloadQuestionImportTemplate" class="secondary" type="button">↓ Tải Excel mẫu</button>
+      <div class="question-import-step"><span>2</span><div><h4>Chọn file đã điền</h4><p>Mỗi dòng gồm Chương, Chủ đề, CLO, nội dung, A–D, đáp án; Lời giải, Ngân hàng và Trạng thái có thể điền thêm.</p></div></div>
+      <label class="file-button question-import-file">Chọn file Excel<input id="questionImportFile" type="file" accept=".xlsx,.xls" hidden></label>
+    </section>
+    <section class="panel question-import-preview-section">
+      <div class="panel-head"><div><h3>Xem trước và kiểm tra</h3><p class="hint">Chưa có dữ liệu nào được lưu cho đến khi bạn xác nhận nhập.</p></div></div>
+      <div id="questionImportPreview" class="question-import-preview-empty"><b>Chưa chọn file Excel</b><span>Sau khi chọn file, các dòng hợp lệ và dòng lỗi sẽ hiển thị tại đây.</span></div>
+    </section>
+  </div>`;
+
+  $('#questionImportBack').onclick = returnToBank;
   $('#downloadQuestionImportTemplate').onclick = async () => {
     try { await downloadTemplate(sets); }
     catch (error) { err(error); }
@@ -295,15 +316,13 @@ function open(sets) {
     const file = event.target.files?.[0];
     if (!file) return;
     const preview = $('#questionImportPreview');
-    preview.innerHTML = '<div class="panel">Đang kiểm tra file Excel…</div>';
+    preview.innerHTML = '<div class="question-import-loading">Đang kiểm tra file Excel…</div>';
     try { await readWorkbook(file, sets, subjectId, preview); }
-    catch (error) { preview.innerHTML = `<div class="panel"><b>Không đọc được file</b><p>${esc(error?.message || 'File Excel không hợp lệ.')}</p></div>`; err(error); }
+    catch (error) { preview.innerHTML = `<div class="question-import-error"><b>Không đọc được file</b><p>${esc(error?.message || 'File Excel không hợp lệ.')}</p></div>`; err(error); }
   };
 }
 
 const api = Object.freeze({open, downloadTemplate, parseRow});
 window.AICLO_QUESTION_IMPORT = api;
-
-// Compatibility bridge for the current question-bank button. The implementation now lives here.
 window.v102BulkImportQuestions = open;
 })();
