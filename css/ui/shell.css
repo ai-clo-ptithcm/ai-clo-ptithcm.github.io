@@ -24,3 +24,15 @@
  #app.app main>header:has(.subject-pick.hidden)>.app-ai-button,#app.app main>header:has(.subject-pick.hidden)>.system-home{display:none!important}
 }
 @media(max-width:430px){.page-heading p{max-width:50vw}#app.app main>header{grid-template-columns:38px 36px 40px minmax(0,1fr)!important;gap:5px 6px!important;padding-inline:8px!important}#app.app main>header>.system-home{width:38px!important;min-width:38px!important}#app.app main>header>.app-ai-button{width:36px!important;min-width:36px!important}#app.app main>header>.notification-bell{width:40px!important;min-width:40px!important}#app.app main>header>.subject-pick .subject-value b{font-size:11px!important}}
+
+/* Laptop hẹp / tablet ngang: giữ trọn hàng điều khiển thứ hai bên trong header. */
+@media(min-width:761px) and (max-width:900px){
+ #app.app main>header:has(.subject-pick:not(.hidden)){display:grid!important;grid-template-columns:44px minmax(150px,auto) minmax(0,1fr) 48px 230px!important;grid-template-rows:52px 54px!important;grid-template-areas:"menu home title title title" "ai ai . bell subject"!important;align-items:center!important;gap:6px 10px!important;height:auto!important;min-height:126px!important;padding:7px 14px!important;overflow:visible!important;background:#fff!important}
+ #app.app main>header:has(.subject-pick:not(.hidden))>#menuBtn{grid-area:menu!important;margin:0!important}
+ #app.app main>header:has(.subject-pick:not(.hidden))>.system-home{grid-area:home!important;margin:0!important;justify-self:start!important}
+ #app.app main>header:has(.subject-pick:not(.hidden))>.page-heading{grid-area:title!important;min-width:0!important;width:100%!important}
+ #app.app main>header:has(.subject-pick:not(.hidden))>.app-ai-button{grid-area:ai!important;margin:0!important;justify-self:start!important}
+ #app.app main>header:has(.subject-pick:not(.hidden))>.notification-bell{grid-area:bell!important;margin:0!important}
+ #app.app main>header:has(.subject-pick:not(.hidden))>.subject-pick{grid-area:subject!important;display:block!important;width:230px!important;max-width:100%!important;height:48px!important;margin:0!important}
+ #app.app main>header:has(.subject-pick.hidden){display:flex!important;height:68px!important;min-height:68px!important;padding:0 14px!important}
+}
