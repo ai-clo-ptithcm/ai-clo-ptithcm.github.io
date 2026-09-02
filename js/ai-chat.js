@@ -8,6 +8,7 @@
 
   const $ = (s, root = document) => root.querySelector(s);
   const $$ = (s, root = document) => [...root.querySelectorAll(s)];
+  const ROLE_LABELS = { admin: "Quản trị viên", teacher: "Giảng viên", lecturer: "Giảng viên", giangvien: "Giảng viên", student: "Sinh viên" };
 
   function ensurePanel() {
     if ($("#aiChatBackdrop")) return;
@@ -18,27 +19,25 @@
     node.innerHTML = `
       <section class="ai-chat-panel" role="dialog" aria-modal="true" aria-labelledby="aiChatTitle">
         <header class="ai-chat-head">
-          <div class="ai-chat-icon" aria-hidden="true">💬</div>
-          <div class="ai-chat-title"><small>AI-CLO ASSISTANT</small><h2 id="aiChatTitle">Hỏi AI-CLO</h2></div>
+          <div class="ai-chat-icon" aria-hidden="true">✦</div>
+          <div class="ai-chat-title"><small>AI-CLO</small><h2 id="aiChatTitle">Hỏi AI-CLO</h2></div>
           <button class="ai-chat-close" type="button" aria-label="Đóng">×</button>
         </header>
         <div class="ai-chat-body">
-          <p class="ai-chat-intro">Hỏi về AI-CLO PTITHCM, cách sử dụng, kiến trúc hệ thống hoặc nhóm phát triển.</p>
+          <p class="ai-chat-intro">Hỏi nhanh về hệ thống, học phần, CLO và cách sử dụng.</p>
           <div class="ai-chat-context" id="aiChatContext" hidden></div>
           <div class="ai-chat-messages" aria-live="polite">
-            <div class="ai-chat-message ai">Xin chào! Tôi là trợ lý AI-CLO. Bạn có thể hỏi tôi về hệ thống, cách giảng viên và sinh viên sử dụng, Chấm thi CLO, kiến trúc hoặc nhóm phát triển.</div>
+            <div class="ai-chat-message ai">Xin chào! Bạn muốn hỏi gì về AI-CLO?</div>
           </div>
-          <div class="ai-chat-hints">
-            <button type="button" class="ai-chat-hint">Hệ thống hoạt động như thế nào?</button>
-            <button type="button" class="ai-chat-hint">Giảng viên thêm câu hỏi ra sao?</button>
-            <button type="button" class="ai-chat-hint">Sinh viên xem nhận xét AI thế nào?</button>
-            <button type="button" class="ai-chat-hint">Nhóm phát triển gồm những ai?</button>
+          <div class="ai-chat-hints" aria-label="Gợi ý câu hỏi">
+            <button type="button" class="ai-chat-hint">Hệ thống hoạt động thế nào?</button>
+            <button type="button" class="ai-chat-hint">Cách thêm câu hỏi?</button>
+            <button type="button" class="ai-chat-hint">Cách xem kết quả CLO?</button>
           </div>
           <form class="ai-chat-form">
             <textarea class="ai-chat-input" rows="1" maxlength="600" placeholder="Nhập câu hỏi..." aria-label="Nhập câu hỏi cho AI-CLO"></textarea>
             <button class="ai-chat-send" type="submit">Gửi</button>
           </form>
-          <p class="ai-chat-note">AI chỉ dùng thông tin công khai về AI-CLO. Không nhập thông tin cá nhân hoặc dữ liệu nhạy cảm.</p>
         </div>
       </section>`;
     document.body.appendChild(node);
@@ -70,10 +69,9 @@
     if (!box) return;
     if (!appContext) { box.hidden = true; box.textContent = ""; return; }
     const bits = [];
-    if (appContext.role) bits.push(appContext.role);
+    if (appContext.role) bits.push(ROLE_LABELS[appContext.role] || appContext.role);
     if (appContext.subject) bits.push(appContext.subject);
-    if (appContext.view) bits.push(appContext.view);
-    box.textContent = `Đang hỗ trợ theo ngữ cảnh: ${bits.join(" · ")}`;
+    box.textContent = bits.length ? `Ngữ cảnh: ${bits.join(" · ")}` : "";
     box.hidden = !bits.length;
   }
 

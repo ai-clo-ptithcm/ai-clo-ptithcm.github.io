@@ -8,6 +8,7 @@ const mapBy=(rows,key)=>new Map(rows.map(x=>[x[key],x]));
 const profileCache=new Map();
 const PROFILE_TTL=45000;
 const profileKey=studentId=>`${state.subjectId}:${studentId}`;
+const closeMobileSidebar=()=>window.AICLO_MOBILE_SHELL?.close?.();
 
 async function loadProfileData(student,{force=false}={}){
  const cacheKey=profileKey(student.id),cached=profileCache.get(cacheKey);
@@ -53,6 +54,7 @@ function aiHtml(value){
  return `<p>${esc(a.summary||a.overview||'Đã có nhận xét AI.')}</p>${list('Điểm mạnh',a.strengths)}${list('Cần cải thiện',a.needs_improvement||a.weaknesses)}${list('Gợi ý tiếp theo',a.next_actions||a.recommendations)}<small>Cập nhật ${date(value.generated_at)}</small>`;
 }
 async function renderProfile(student,{back=true,teacher=false}={}){
+ closeMobileSidebar();
  const c=$('#content');c.innerHTML='<div class="panel">Đang mở hồ sơ học tập…</div>';
  try{
   const data=await loadProfileData(student),ids=data.attempts.map(x=>x.id),clo=aggregate(data,ids,'clo_code'),chapter=aggregate(data,ids,'chapter_name'),avg=data.attempts.length?data.attempts.reduce((s,x)=>s+n(x.score),0)/data.attempts.length:null,exams=mapBy(data.exams,'id');
@@ -65,10 +67,23 @@ async function renderProfile(student,{back=true,teacher=false}={}){
  }catch(ex){c.innerHTML='<div class="panel"><b>Không thể mở hồ sơ học tập</b></div>';err(ex)}
 }
 
+async function loadStudent(studentId){
+ const p=await q('profiles','id,full_name,email,mssv,is_active',x=>x.eq('id',studentId).limit(1));
+ return p[0]||null;
+}
+
 const baseResults=api.results;
-api.results=async c=>{if(role()!=='student')return baseResults(c);return renderProfile({id:state.user.id,full_name:state.profile?.full_name||'Sinh viên',email:state.profile?.email||state.user?.email,mssv:state.profile?.mssv},{back:false,teacher:false})};
+api.results=async c=>{
+ if(role()==='student')return renderProfile({id:state.user.id,full_name:state.profile?.full_name||'Sinh viên',email:state.profile?.email||state.user?.email,mssv:state.profile?.mssv},{back:false,teacher:false});
+ await baseResults(c);
+ c.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-student-profile]');if(!b)return;
+  e.preventDefault();e.stopImmediatePropagation();closeMobileSidebar();
+  const p=await loadStudent(b.dataset.studentProfile);if(p)renderProfile(p,{back:true,teacher:true});
+ },true);
+};
 const baseClassList=api.teacherClassList;
-api.teacherClassList=async c=>{await baseClassList(c);c.addEventListener('click',async e=>{const b=e.target.closest('[data-profile]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();const p=await q('profiles','id,full_name,email,mssv,is_active',x=>x.eq('id',b.dataset.profile).limit(1));if(p[0])renderProfile(p[0],{back:true,teacher:true})},true)};
+api.teacherClassList=async c=>{await baseClassList(c);c.addEventListener('click',async e=>{const b=e.target.closest('[data-profile]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();closeMobileSidebar();const p=await loadStudent(b.dataset.profile);if(p)renderProfile(p,{back:true,teacher:true})},true)};
 const baseRefresh=window.v95RefreshShell;
 window.v95RefreshShell=function(){baseRefresh?.();if(role()==='student'&&state.space==='course'){const button=$('#nav [data-view="results"]');if(button){const label=button.querySelector('span:last-child');if(label)label.textContent='Tiến độ học tập'}if(state.view==='results'){const title=$('#pageTitle'),sub=$('#pageSub');if(title)title.textContent='Tiến độ học tập của tôi';if(sub)sub.textContent='Kết quả, tiến bộ CLO và lịch sử bài kiểm tra trong học phần'}}};
 })();
