@@ -44,7 +44,7 @@ async function openClassMembershipManager(members){
 }
 
 window.users=async function(c){
- if(role()!=='admin')return oldUsers(c);
+ if(role()!=='admin'||state.space!=='course')return oldUsers(c);
  if(!state.subjectId){c.replaceChildren(empty());return}
  const subject=activeSubject();
  const members=await q('subject_members','id,user_id,subject_id,role',x=>x.eq('subject_id',state.subjectId));
