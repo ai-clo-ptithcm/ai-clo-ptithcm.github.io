@@ -144,7 +144,9 @@ window.v96QuestionForm=async function(x={},sets){
  form.onsubmit=async e=>{
   jsonWrite(draftKey(id),readFormDraft(form));
   invalidateQuestionData(id==='new'?null:id);
-  await originalSubmit(e);
+  const originalRpc=db.rpc.bind(db),chapterId=form.elements.namedItem('chapter_id')?.value||x.chapter_id,topicId=form.elements.namedItem('topic_id')?.value||x.topic_id||null;
+  db.rpc=(name,params)=>name==='find_similar_questions'?originalRpc('find_similar_questions_scoped',{p_subject_id:params.p_subject_id,p_chapter_id:chapterId,p_topic_id:topicId,p_content:params.p_content,p_exclude_id:params.p_exclude_id||null,p_limit:params.p_limit||3}):originalRpc(name,params);
+  try{await originalSubmit(e)}finally{db.rpc=originalRpc}
   if(!document.body.contains(form))jsonDrop(draftKey(id));
  };
  const cancel=$('#cancelQuestionEdit');
@@ -197,11 +199,11 @@ function restoreValues(active,d){
 }
 function scoreClass(score){return score>=.9?'danger':score>=.75?'warning':'neutral'}
 function scopeLabel(scope){return window.AICLO_V105? (scope==='secure_exam'?'Đề thi - bảo mật':scope==='both'?'Cả hai ngân hàng':'Luyện tập - kiểm tra') : scope}
-async function loadSimilar(content){
+async function loadSimilar(content,batch,d){
  const box=$('#aiSimilarQuestions');if(!box)return;
  const run=++similarityRun;
  box.innerHTML='<p class="hint">Đang đối chiếu ngân hàng câu hỏi…</p>';
- const {data,error}=await db.rpc('find_similar_questions',{p_subject_id:state.subjectId,p_content:String(content||'').trim(),p_exclude_id:null,p_limit:3});
+ const {data,error}=await db.rpc('find_similar_questions_scoped',{p_subject_id:state.subjectId,p_chapter_id:batch.chapter_id,p_topic_id:d.topic_id||batch.topic_id||null,p_content:String(content||'').trim(),p_exclude_id:null,p_limit:3});
  if(run!==similarityRun||!$('#aiSimilarQuestions'))return;
  if(error){box.innerHTML='<p class="hint">Chưa thể tải các câu tương tự.</p>';return}
  if(!data?.length){box.innerHTML='<p class="ai-similar-empty">Không phát hiện câu có độ giống văn bản từ 55% trở lên.</p>';return}
@@ -218,14 +220,16 @@ window.showDraft=function(batch,drafts,d,pos){
  restoreValues(read(),d);
  const note=$('.review-wrap .ai-note');
  if(note){
-  const section=document.createElement('section');section.className='ai-similar-panel';section.innerHTML='<div class="ai-similar-head"><div><h4>3 câu gần giống nhất</h4><p>So sánh nội dung câu hỏi trong cùng học phần bằng pg_trgm; chưa đánh giá độ giống về phương pháp giải.</p></div><span class="ai-similar-legend"><i></i> ≥90% · <i></i> 75–89% · <i></i> 55–74%</span></div><div id="aiSimilarQuestions"></div>';
+  const section=document.createElement('section');section.className='ai-similar-panel';section.innerHTML=`<div class="ai-similar-head"><div><h4>3 câu gần giống nhất</h4><p>Phạm vi: cùng ${d.topic_id||batch.topic_id?'chủ đề':'chương'}. Chỉ số bên dưới là độ giống văn bản bằng pg_trgm.</p></div><span class="ai-similar-legend"><i></i> ≥90% · <i></i> 75–89% · <i></i> 45–74%</span></div><div id="aiSimilarQuestions"></div><div class="ai-math-check"><button type="button" id="checkMathSimilarity" class="ai-btn">✦ AI kiểm tra giống về toán học</button><span>Gemini phân tích dạng toán, cấu trúc dữ kiện và hướng giải; chỉ gọi khi bạn nhấn.</span></div><div id="aiMathSimilarity"></div>`;
   note.insertAdjacentElement('afterend',section);
  }
- loadSimilar($('#draftContent')?.value||d.content);
- const queue=()=>{clearTimeout(saveTimer);saveTimer=setTimeout(()=>{saveVisibleReview();loadSimilar($('#draftContent')?.value||'')},350)};
+ loadSimilar($('#draftContent')?.value||d.content,batch,d);
+ const queue=()=>{clearTimeout(saveTimer);saveTimer=setTimeout(()=>{saveVisibleReview();loadSimilar($('#draftContent')?.value||'',batch,d);if($('#aiMathSimilarity'))$('#aiMathSimilarity').innerHTML='<p class="hint">Nội dung đã thay đổi; hãy kiểm tra AI lại nếu cần.</p>'},350)};
  $('#draftContent')?.addEventListener('input',queue);
  ['#draftExplanation','#draftCorrect','#draftA','#draftB','#draftC','#draftD'].forEach(sel=>$(sel)?.addEventListener('input',()=>{clearTimeout(saveTimer);saveTimer=setTimeout(saveVisibleReview,120)}));
  const back=$('#questionBack');if(back){const fn=back.onclick;back.onclick=async()=>{clear();return fn?.()}}
+ const approve=$('#approveDraft');if(approve?.onclick){const save=approve.onclick;approve.onclick=async event=>{const originalRpc=db.rpc.bind(db);db.rpc=(name,params)=>name==='find_similar_questions'?originalRpc('find_similar_questions_scoped',{p_subject_id:params.p_subject_id,p_chapter_id:batch.chapter_id,p_topic_id:d.topic_id||batch.topic_id||null,p_content:params.p_content,p_exclude_id:params.p_exclude_id||null,p_limit:params.p_limit||3}):originalRpc(name,params);try{return await save.call(approve,event)}finally{db.rpc=originalRpc}}}
+ $('#checkMathSimilarity')?.addEventListener('click',async()=>{const button=$('#checkMathSimilarity'),box=$('#aiMathSimilarity');button.disabled=true;button.textContent='✦ Gemini đang phân tích…';box.innerHTML='<p class="hint">Đang so sánh bản chất toán học…</p>';try{const options=['A','B','C','D'].map(k=>`${k}. ${$('#draft'+k)?.value||''}`).join('\n'),{data,error}=await db.functions.invoke('analyze-question-similarity',{body:{subject_id:state.subjectId,chapter_id:batch.chapter_id,topic_id:d.topic_id||batch.topic_id||null,content:$('#draftContent')?.value||'',options,explanation:$('#draftExplanation')?.value||''}});if(error){let detail;try{detail=await error.context?.json()}catch{}throw new Error(detail?.error||error.message)}if(!data?.success)throw new Error(data?.error||'Không thể phân tích');box.innerHTML=data.matches?.length?data.matches.map(item=>`<article class="ai-similar-item math ${scoreClass(Number(item.score)/100)}"><div><b>${esc(item.code)}</b><span class="ai-similar-score">${item.score}% giống toán học</span>${item.only_surface_changed?'<span class="badge red">Chỉ thay dữ kiện bề mặt</span>':''}</div><p>${esc(item.content)}</p><small>${esc(item.reason)}</small></article>`).join(''):'<p class="ai-similar-empty">AI không phát hiện câu giống đáng kể về bản chất toán học.</p>';renderMath(box);button.textContent='✦ Kiểm tra lại bằng AI'}catch(ex){box.innerHTML=`<p class="hint">${esc(ex.message||'Không thể phân tích.')}</p>`;button.textContent='✦ Thử lại'}finally{button.disabled=false}});
 };
 
 const oldAdvanceReview=window.advanceReview;
