@@ -33,13 +33,16 @@ function ensurePager(tbody){
 function preserveCurrentPage(tbody,s){
  if(!s?.rows?.length||!tbody.children.length)return;
  const start=s.page*PAGE_SIZE;
- [...tbody.children].forEach((row,i)=>{if(start+i<s.rows.length)s.rows[start+i]=row.outerHTML});
+ [...tbody.children].forEach((row,i)=>{
+  const check=row.querySelector('[data-select-question]');
+  if(check)check.toggleAttribute('checked',check.checked);
+  if(start+i<s.rows.length)s.rows[start+i]=row.outerHTML;
+ });
 }
 
 function updateCount(s){
  const box=document.querySelector('#questionCount');if(!box)return;
- const total=s.rows.length,start=total?s.page*PAGE_SIZE+1:0,end=Math.min(total,(s.page+1)*PAGE_SIZE);
- const old=box.textContent||'',match=old.match(/\/(\d+)\s*câu/),bankTotal=match?Number(match[1]):total;
+ const total=s.rows.length,start=total?s.page*PAGE_SIZE+1:0,end=Math.min(total,(s.page+1)*PAGE_SIZE),bankTotal=Number.isFinite(s.bankTotal)?s.bankTotal:total;
  box.textContent=total===bankTotal?`Hiển thị ${start}–${end}/${total} câu`:`Hiển thị ${start}–${end}/${total} câu phù hợp · ${bankTotal} câu trong ngân hàng`;
 }
 
@@ -73,8 +76,8 @@ function showPage(tbody,s,page,typeset=true){
  * #qrows: capture the rows, detach all but the current page, then typeset that page only. */
 if(typeof originalRenderMath==='function')window.renderMath=function(container=document.body){
  if(!isQuestionRows(container))return originalRenderMath(container);
- const rows=[...container.children].map(row=>row.outerHTML);
- const s={rows,page:readPage()};states.set(container,s);
+ const rows=[...container.children].map(row=>row.outerHTML),countText=document.querySelector('#questionCount')?.textContent||'',match=countText.match(/\/(\d+)\s*câu/);
+ const s={rows,page:readPage(),bankTotal:match?Number(match[1]):rows.length};states.set(container,s);
  showPage(container,s,s.page,false);
  return originalRenderMath(container);
 };
