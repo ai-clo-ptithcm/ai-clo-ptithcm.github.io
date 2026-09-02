@@ -8,12 +8,15 @@
 
   const RPC_TTL=300000;
   const BADGE_TTL=30000;
+  const DASHBOARD_NOTICE_TTL=30000;
   let notificationRefreshAt=0;
 
   const noticeTime=v=>v?new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',dateStyle:'short',timeStyle:'short'}).format(new Date(v)):'—';
 
   function badgeCacheKey(){return `notifications:unread:${state.user?.id||'guest'}`}
+  function dashboardNoticeKey(){return `notifications:dashboard:${state.user?.id||'guest'}`}
   function invalidateBadge(){window.AICLO_PERF?.invalidate?.('notifications:unread:')}
+  function invalidateNoticeLists(){window.AICLO_PERF?.invalidate?.('notifications:dashboard:')}
 
   async function unreadCount(force=false){
     if(!state.user?.id)return 0;
@@ -45,8 +48,6 @@
   }
 
   async function notifications(c){
-    /* Do not force the expensive refresh RPC every time the user opens this view.
-       refreshNotificationData already refreshes server-side data at most every 5 minutes. */
     await refreshNotificationData(false);
     let items=await q('notifications','*',x=>x.eq('user_id',state.user.id).order('created_at',{ascending:false}).limit(200));
     c.innerHTML=`<div class="toolbar"><select id="noticeFilter"><option value="all">Tất cả</option><option value="unread">Chưa đọc</option><option value="exam">Bài kiểm tra</option><option value="clo">CLO</option><option value="activity">Hoạt động</option><option value="ai">AI</option></select><button id="readAll" class="secondary">Đánh dấu tất cả đã đọc</button></div><section class="panel notice-list" id="noticeList"></section>`;
@@ -62,7 +63,7 @@
       if(error)return err(error);
       items.forEach(n=>n.read_at=n.read_at||now);
       draw();
-      invalidateBadge();
+      invalidateBadge();invalidateNoticeLists();
       refreshNotificationData(true);
       toast('Đã đánh dấu tất cả là đã đọc');
     };
@@ -74,7 +75,7 @@
     if(!n.read_at){
       const now=new Date().toISOString();
       const {error}=await db.from('notifications').update({read_at:now}).eq('id',id);
-      if(!error){n.read_at=now;invalidateBadge();refreshNotificationData(false)}
+      if(!error){n.read_at=now;invalidateBadge();invalidateNoticeLists();refreshNotificationData(false)}
     }
     window.logActivity?.('read_notification','notification',id,'Đọc thông báo');
     navigate(n.target_view&&titles[n.target_view]?n.target_view:'notifications');
@@ -84,8 +85,9 @@
   window.dashboard=async function(c){
     await previousDashboard(c);
     try{
-      await refreshNotificationData();
-      let items=await q('notifications','*',x=>x.eq('user_id',state.user.id).is('read_at',null).order('created_at',{ascending:false}).limit(5)),box=document.createElement('section');
+      await refreshNotificationData(false);
+      const loader=()=>q('notifications','*',x=>x.eq('user_id',state.user.id).is('read_at',null).order('created_at',{ascending:false}).limit(5));
+      let items=window.AICLO_PERF?.memo?await window.AICLO_PERF.memo(dashboardNoticeKey(),DASHBOARD_NOTICE_TTL,loader):await loader(),box=document.createElement('section');
       box.className='panel task-center';
       box.innerHTML=`<div class="panel-head"><h3>Việc cần xử lý</h3><button id="allNotices">Xem tất cả</button></div>${items.length?items.map(notificationCard).join(''):'<p class="hint">Hiện không có việc mới.</p>'}`;
       c.append(box);
@@ -120,5 +122,5 @@
     tabHiddenAt=0;
   });
 
-  window.AICLO_NOTIFICATIONS=Object.freeze({refresh:refreshNotificationData,invalidate:invalidateBadge});
+  window.AICLO_NOTIFICATIONS=Object.freeze({refresh:refreshNotificationData,invalidate:()=>{invalidateBadge();invalidateNoticeLists()}});
 })();
