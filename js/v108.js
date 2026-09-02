@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V10.8 — system/course context, notifications, profiles, shell integration. */
+/* AI-CLO PTITHCM V10.8 — system/course context, profiles, shell integration. */
 (() => {
 'use strict';
 const V='10.8';
@@ -48,16 +48,6 @@ async function systemDashboard(c){
 const courseDashboard=window.dashboard;
 window.dashboard=async function(c){return state.space==='system'?systemDashboard(c):courseDashboard(c)};
 
-function notificationActionLabel(n){const v=n.target_view;return v==='exams'?'Mở bài kiểm tra':v==='results'?'Xem kết quả CLO':v==='questions'?'Mở ngân hàng câu hỏi':v==='structure'?'Mở Chương · CLO':v==='users'?'Mở danh sách lớp':'Mở nội dung liên quan'}
-async function openNoticeDetail(n){
- if(!n)return;if(!n.read_at){const now=new Date().toISOString();await db.from('notifications').update({read_at:now}).eq('id',n.id);n.read_at=now;refreshNotificationData?.(true)}
- window.logActivity?.('read_notification','notification',n.id,'Đọc thông báo');
- const subject=state.subjects.find(s=>s.id===n.subject_id);openDrawer('Thông báo',`<div class="notice-detail-v108"><div class="notice-detail-icon">🔔</div><div><small>${esc(n.category||'Thông báo')} · ${dt(n.created_at)}</small><h3>${esc(n.title||'Thông báo')}</h3></div><p>${esc(n.message||'')}</p>${subject?`<div><small>Học phần</small><b>${esc(subject.name)} · ${esc(subject.semester||'')}</b></div>`:''}<div class="notice-detail-actions">${n.target_view?'<button id="v108OpenNoticeTarget" class="primary">'+notificationActionLabel(n)+'</button>':''}<button id="v108UnreadNotice" class="secondary">Đánh dấu chưa đọc</button></div></div>`);
- $('#v108OpenNoticeTarget')?.addEventListener('click',()=>{closeDrawer();if(n.subject_id&&['structure','questions','exams','results','users','dashboard'].includes(n.target_view)){window.v95EnterCourse?.(n.subject_id,n.target_view)}else navigate(n.target_view||'notifications')});
- $('#v108UnreadNotice').onclick=async()=>{await db.from('notifications').update({read_at:null}).eq('id',n.id);closeDrawer();refreshNotificationData?.(true);if(state.view==='notifications')render()};
-}
-window.openNotification=async function(id,items=[]){const n=items.find(x=>x.id===id);if(n)await openNoticeDetail(n)};
-
 async function recentActivities(userId,limit=12){try{return await q('activity_logs','action,summary,created_at,subject_id,status',x=>x.eq('user_id',userId).order('created_at',{ascending:false}).limit(limit))}catch{return []}}
 async function profileSubjects(userId){try{const ms=await q('subject_members','subject_id,role',x=>x.eq('user_id',userId));return ms.map(m=>({member:m,subject:state.subjects.find(s=>s.id===m.subject_id)})).filter(x=>x.subject)}catch{return []}}
 async function studentCourseStats(userId,subjectId){
@@ -71,7 +61,7 @@ async function openUserProfile(p){
  openDrawer(`Hồ sơ · ${p.full_name||p.email}`,`<div class="profile-page-v108"><section class="profile-hero-v108"><div class="profile-avatar-v108">${esc((p.full_name||p.email||'?').trim().charAt(0).toUpperCase())}</div><div class="profile-identity-v108"><h3>${esc(p.full_name||'Chưa đặt tên')}</h3><p>${esc(p.email||'')}${p.mssv?` · ${esc(p.mssv)}`:''}</p><span class="profile-role-v108">${esc(roleText(r))}</span></div></section><div class="v108-stat-grid"><div class="v108-stat"><small>Học phần</small><b>${joined.length}</b></div><div class="v108-stat"><small>Trạng thái</small><b style="font-size:17px">${p.is_active===false?'Đã khóa':'Hoạt động'}</b></div><div class="v108-stat"><small>Đăng nhập gần đây</small><b style="font-size:15px">${dt(lastLogin)}</b></div><div class="v108-stat"><small>Vai trò</small><b style="font-size:17px">${esc(roleText(r))}</b></div></div><div class="profile-grid-v108"><section class="panel"><div class="panel-head"><h3>${r==='student'?'Lớp / học phần đang học':isTeacherRole(r)?'Học phần phụ trách':'Học phần liên quan'}</h3></div>${joined.map(x=>`<button class="profile-course-v108" data-profile-course="${x.subject.id}"><b>${esc(x.subject.name)}</b><small>${esc(x.subject.semester||'')} · ${esc(x.subject.academic_year||'')} · ${esc(roleText(x.member.role))}</small></button>`).join('')||'<p class="hint">Chưa có học phần.</p>'}</section><section class="panel"><div class="panel-head"><h3>Hoạt động gần đây</h3></div><div class="profile-timeline-v108">${acts.slice(0,12).map(a=>`<article><b>${esc(a.summary||a.action)}</b><small>${dt(a.created_at)}</small></article>`).join('')||'<p class="hint">Chưa có hoạt động được ghi nhận.</p>'}</div></section></div></div>`,null,{wide:true});
  $$('[data-profile-course]',$('#drawerBody')).forEach(b=>b.onclick=()=>{const s=state.subjects.find(x=>x.id===b.dataset.profileCourse);if(!s)return;if(r==='student')openStudentCourseProfile(p,s);else window.v95EnterCourse?.(s.id,'dashboard')});
 }
-window.AICLO_V108={version:V,openUserProfile,openNoticeDetail};
+window.AICLO_V108={version:V,openUserProfile,openNoticeDetail:window.AICLO_NOTIFICATION_DETAIL?.openNoticeDetail};
 
 function enhanceUserLists(){
  const root=$('#content');if(!root)return;$$('#userRows tr,#classMemberRows tr,#classRows tr',root).forEach(tr=>{const cell=tr.querySelector('td');const bold=cell?.querySelector('b');if(!bold||cell.querySelector('.user-name-link-v108'))return;let id=tr.querySelector('[data-manage-user]')?.dataset.manageUser||tr.querySelector('[data-profile]')?.dataset.profile||tr.querySelector('[data-ai]')?.dataset.ai;if(!id)return;const text=bold.textContent;const btn=document.createElement('button');btn.type='button';btn.className='user-name-link-v108';btn.textContent=text;btn.onclick=async()=>{try{let rows=await q('profiles','*',x=>x.eq('id',id).limit(1));openUserProfile(rows[0])}catch(ex){err(ex)}};bold.replaceWith(btn)})
