@@ -6,8 +6,12 @@ const oldUsers=window.users;
 const teacherRoles=['teacher','lecturer','giangvien'];
 const roleLabel=r=>r==='admin'?'Admin':teacherRoles.includes(r)?'Giảng viên':'Sinh viên';
 
-async function openClassMembershipManager(profiles,members){
+async function openClassMembershipManager(members){
  const subject=activeSubject();
+ let profiles=[];
+ try{
+  profiles=await q('profiles','id,full_name,email,mssv,role,is_active',x=>x.order('full_name'));
+ }catch(ex){return err(ex)}
  const currentIds=new Set(members.map(m=>m.user_id));
  const eligible=profiles.filter(p=>['teacher','student'].includes(p.role)&&p.is_active!==false&&!currentIds.has(p.id));
  modal(`Thành viên · ${subject?.name||'Học phần'}`,`<div class="class-manager v1053-class-manager">
@@ -43,12 +47,11 @@ window.users=async function(c){
  if(role()!=='admin')return oldUsers(c);
  if(!state.subjectId){c.replaceChildren(empty());return}
  const subject=activeSubject();
- let [profiles,members]=await Promise.all([
-  q('profiles','id,full_name,email,mssv,role,is_active',x=>x.order('full_name')),
-  q('subject_members','id,user_id,subject_id,role',x=>x.eq('subject_id',state.subjectId))
- ]);
- const memberIds=new Set(members.map(m=>m.user_id));
- const classProfiles=profiles.filter(p=>memberIds.has(p.id));
+ const members=await q('subject_members','id,user_id,subject_id,role',x=>x.eq('subject_id',state.subjectId));
+ const memberIds=[...new Set(members.map(m=>m.user_id).filter(Boolean))];
+ const profiles=memberIds.length?await q('profiles','id,full_name,email,mssv,role,is_active',x=>x.in('id',memberIds).order('full_name')):[];
+ const memberIdsSet=new Set(memberIds);
+ const classProfiles=profiles.filter(p=>memberIdsSet.has(p.id));
  const membership=new Map(members.map(m=>[m.user_id,m]));
 
  if($('#usersNavLabel'))$('#usersNavLabel').textContent='Danh sách lớp';
@@ -83,7 +86,7 @@ window.users=async function(c){
  };
  draw();
  $('#classMemberSearch').oninput=draw;$('#classMemberRole').onchange=draw;$('#classMemberStatus').onchange=draw;
- $('#manageCurrentClass').onclick=()=>openClassMembershipManager(profiles,members);
+ $('#manageCurrentClass').onclick=()=>openClassMembershipManager(members);
  $('#classMemberRows').onclick=async e=>{
   const b=e.target.closest('[data-remove-class-member]');if(!b||!b.dataset.removeClassMember)return;
   if(!await confirmAction('Gỡ khỏi lớp','Gỡ tài khoản này khỏi học phần hiện tại? Tài khoản hệ thống vẫn được giữ nguyên.',{confirmLabel:'Gỡ khỏi lớp',danger:true}))return;
