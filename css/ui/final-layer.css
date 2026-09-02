@@ -22,3 +22,14 @@
 .v109-member-tabs{justify-content:flex-start;margin-left:0}
 .online-matrix-box{padding:18px;border:1px solid var(--line);border-radius:13px;background:#fafbfc}.online-matrix-box .clo-count-title{margin-bottom:14px}.online-exam-matrix{min-width:560px}.online-exam-matrix th:not(:first-child),.online-exam-matrix td:not(:first-child){text-align:center}.online-exam-matrix td:first-child{min-width:210px}.online-exam-matrix input{width:76px;min-width:62px;text-align:center;padding:9px}.online-exam-matrix .online-matrix-total{background:#f2f4f7}.online-exam-matrix .online-row-total,.online-exam-matrix-total b{font-weight:900}.online-matrix-box .bank-check{margin-top:14px}
 @media(max-width:620px){.online-matrix-box{padding:12px}.online-exam-matrix{min-width:500px;font-size:12px}.online-exam-matrix td:first-child{min-width:160px}.online-exam-matrix input{width:58px;min-width:52px;padding:8px 5px}.online-matrix-box .table-wrap{margin-left:-4px;margin-right:-4px}}
+
+/* Mobile question cards: reset legacy desktop column widths after all bank styles. */
+@media(max-width:760px){
+ .v105-question-table table,.v105-question-table tbody,.v105-question-table tr{width:100%!important;min-width:0!important;max-width:100%!important}
+ .v105-question-table tr>td:nth-child(1),.v105-question-table tr>td:nth-child(2),.v105-question-table tr>td:nth-child(3),.v105-question-table tr>td:nth-child(4),.v105-question-table tr>td:nth-child(5),.v105-question-table tr>td:nth-child(6){width:100%!important;max-width:none!important;min-width:0!important;box-sizing:border-box!important}
+ .v105-question-table td.select-col{width:auto!important;max-width:none!important}
+ .v105-question-table td.q-code-cell,.v105-question-table td.q-content-cell,.v105-question-table td.q-structure-cell,.v105-question-table td.q-class-cell,.v105-question-table td.row-actions{justify-self:stretch!important;align-self:stretch!important}
+ .v105-question-table .question-summary{display:block!important;width:100%!important;max-width:none!important;text-align:left!important}
+ .v105-question-table .q-structure-cell b,.v105-question-table .q-structure-cell small{width:100%!important;max-width:none!important}
+ .v105-question-table .row-actions{width:100%!important}
+}
