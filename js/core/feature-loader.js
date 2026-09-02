@@ -7,7 +7,7 @@ const loaded=new Set();
 const FINAL_WORKFLOW='js/exams/final-workflow.js';
 
 function loadScript(src){
- if(loaded.has(src)||document.querySelector(`script[data-aiclo-feature="${CSS.escape(src)}"]`))return Promise.resolve();
+ if(loaded.has(src))return Promise.resolve();
  if(pending.has(src))return pending.get(src);
  const promise=new Promise((resolve,reject)=>{
   const script=document.createElement('script');
