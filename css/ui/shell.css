@@ -6,5 +6,21 @@
 @media(max-width:760px){
  .app>aside{z-index:1500!important;width:min(82vw,320px)!important;max-width:320px!important;transition:transform .22s ease!important}.app>aside:not(.open){transform:translateX(-105%)!important}.app>aside.open{transform:translateX(0)!important}.mobile-sidebar-close{display:grid;position:absolute;top:13px;right:13px;width:36px;height:36px;place-items:center;border:1px solid rgba(255,255,255,.18);border-radius:9px;background:rgba(255,255,255,.08);color:#fff;font-size:22px;z-index:2}.app.sidebar-open{overflow:hidden}.app.sidebar-open main{overflow:hidden}
  .app main>header{gap:8px!important}.app-ai-button{width:38px;height:38px;padding:0;display:grid;place-items:center;font-size:0}.app-ai-button::before{content:'💬';font-size:17px}.notification-bell{flex:none}.page-heading{min-width:0}.page-heading h2{font-size:18px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.page-heading p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:58vw}.app-context-badge{font-size:10px;padding:4px 7px}.subject-pick{display:none!important}
+
+ /* Mobile header: title on top, Home | AI | notifications | course picker on one row. */
+ #app.app main>header{display:grid!important;grid-template-columns:40px 38px 42px minmax(0,1fr)!important;grid-template-rows:42px minmax(48px,auto)!important;grid-template-areas:"menu title title title" "home ai bell subject"!important;align-items:center!important;gap:6px 7px!important;height:auto!important;min-height:102px!important;padding:7px 10px!important;overflow:visible!important}
+ #app.app main>header>#menuBtn{grid-area:menu!important;order:initial!important;width:40px!important;min-width:40px!important;margin:0!important}
+ #app.app main>header>.page-heading{grid-area:title!important;order:initial!important;min-width:0!important;max-width:none!important;width:100%!important}
+ #app.app main>header>.system-home{grid-area:home!important;order:initial!important;width:40px!important;min-width:40px!important;height:40px!important;padding:0!important;margin:0!important;justify-self:start!important}
+ #app.app main>header>.app-ai-button{grid-area:ai!important;order:initial!important;width:38px!important;min-width:38px!important;height:38px!important;margin:0!important;padding:0!important}
+ #app.app main>header>.notification-bell{grid-area:bell!important;order:initial!important;width:42px!important;min-width:42px!important;height:40px!important;margin:0!important;padding:0!important;display:grid!important;place-items:center!important}
+ #app.app main>header>.subject-pick:not(.hidden){grid-area:subject!important;order:initial!important;display:block!important;width:100%!important;min-width:0!important;max-width:none!important;height:auto!important;min-height:46px!important;margin:0!important}
+ #app.app main>header>.subject-pick label{display:none!important}
+ #app.app main>header>.subject-pick .subject-value{height:auto!important;min-height:46px!important;padding:6px 30px 6px 9px!important;white-space:normal!important;display:flex!important;align-items:center!important}
+ #app.app main>header>.subject-pick .subject-value b{display:-webkit-box!important;white-space:normal!important;overflow:hidden!important;text-overflow:ellipsis!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:3!important;font-size:11.5px!important;line-height:1.16!important;overflow-wrap:break-word!important}
+ #app.app main>header>.subject-pick .subject-value small{display:none!important}
+ #app.app main>header>.system-home.hidden{display:none!important}
+ #app.app main>header:has(.subject-pick.hidden){grid-template-columns:40px minmax(0,1fr) 42px!important;grid-template-rows:44px!important;grid-template-areas:"menu title bell"!important;min-height:58px!important}
+ #app.app main>header:has(.subject-pick.hidden)>.app-ai-button,#app.app main>header:has(.subject-pick.hidden)>.system-home{display:none!important}
 }
-@media(max-width:430px){.page-heading p{max-width:50vw}}
+@media(max-width:430px){.page-heading p{max-width:50vw}#app.app main>header{grid-template-columns:38px 36px 40px minmax(0,1fr)!important;gap:5px 6px!important;padding-inline:8px!important}#app.app main>header>.system-home{width:38px!important;min-width:38px!important}#app.app main>header>.app-ai-button{width:36px!important;min-width:36px!important}#app.app main>header>.notification-bell{width:40px!important;min-width:40px!important}#app.app main>header>.subject-pick .subject-value b{font-size:11px!important}}
