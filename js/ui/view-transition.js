@@ -10,9 +10,10 @@ const MAX_ENTRIES=24;
 const viewCache=new Map();
 let sequence=0;
 
-function currentKey(){
- return `${state.user?.id||'guest'}:${state.subjectId||'no-subject'}:${state.view||'dashboard'}`;
+function keyParts(){
+ return [state.user?.id||'guest',state.space||'system',state.subjectId||'no-subject',state.view||'dashboard'];
 }
+function currentKey(){return keyParts().join('|')}
 
 function isGlobalLoading(container){
  if(!container||container.children.length!==1)return false;
@@ -44,11 +45,10 @@ function recall(key){
  return hit.html;
 }
 
-function invalidate(view=null,subjectId=null){
+function invalidate(view=null,subjectId=null,space=null){
  for(const key of [...viewCache.keys()]){
-  const parts=key.split(':');
-  const keySubject=parts[1],keyView=parts.slice(2).join(':');
-  if((!view||keyView===view)&&(!subjectId||keySubject===subjectId))viewCache.delete(key);
+  const [,keySpace,keySubject,keyView]=key.split('|');
+  if((!view||keyView===view)&&(!subjectId||keySubject===subjectId)&&(!space||keySpace===space))viewCache.delete(key);
  }
 }
 
@@ -84,9 +84,6 @@ window.render=async function(...args){
   throw error;
  }
 
- /* previousRender intentionally writes the global loading panel first.
-    If this view has already been opened, immediately replace that panel with
-    its own last successful snapshot while fresh Supabase data loads behind it. */
  if(cached&&isGlobalLoading(container)){
   container.innerHTML=cached;
   setRefreshing(container,true);
@@ -102,7 +99,7 @@ window.render=async function(...args){
 };
 
 window.AICLO_VIEW_TRANSITION=Object.freeze({
- version:'11.1',
+ version:'11.1.1',
  invalidate,
  clear:()=>viewCache.clear(),
  isRefreshing:()=>document.querySelector('#content')?.dataset.aicloRefreshing==='1'
