@@ -66,12 +66,13 @@ window.aiGenerateForm=lazyAiGenerate;
 
 async function ensureView(view){
  if(view==='exams'){
-  await loadFinalWorkflow();
+  if(canTeach())await loadFinalWorkflow();
   await loadScript('js/exams/attempt-autosave.js');
   return;
  }
  if(view==='results'){
-  await loadMany(['js/results/summary.js','js/students/profile.js']);
+  if(role()==='student')await loadScript('js/students/profile.js');
+  else await loadMany(['js/results/summary.js','js/students/profile.js']);
   return;
  }
  if(view==='users'&&state.space==='course')await loadScript('js/students/profile.js');
