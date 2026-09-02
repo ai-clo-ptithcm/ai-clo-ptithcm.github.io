@@ -4,6 +4,7 @@
 
 const pending=new Map();
 const loaded=new Set();
+const FINAL_WORKFLOW='js/exams/final-workflow.js';
 
 function loadScript(src){
  if(loaded.has(src)||document.querySelector(`script[data-aiclo-feature="${CSS.escape(src)}"]`))return Promise.resolve();
@@ -30,6 +31,23 @@ const lazyImport=async function(...args){
 };
 window.v102BulkImportQuestions=lazyImport;
 
+async function loadFinalWorkflow(){
+ if(loaded.has(FINAL_WORKFLOW))return;
+ /* final-workflow still contains a legacy importer. Preserve the semantic importer/stub
+    that is already active so script load order cannot downgrade bulk import. */
+ const importHandler=window.v102BulkImportQuestions;
+ await loadScript(FINAL_WORKFLOW);
+ if(typeof importHandler==='function')window.v102BulkImportQuestions=importHandler;
+}
+
+const lazyCloForm=async function(...args){
+ await loadFinalWorkflow();
+ const fn=window.v102CloForm;
+ if(typeof fn!=='function'||fn===lazyCloForm)throw new Error('Không khởi tạo được chức năng CLO.');
+ return fn(...args);
+};
+window.v102CloForm=lazyCloForm;
+
 const lazyAiHistory=async function(...args){
  await loadScript('js/ai/question-review.js');
  const fn=window.aiHistory;
@@ -48,7 +66,8 @@ window.aiGenerateForm=lazyAiGenerate;
 
 async function ensureView(view){
  if(view==='exams'){
-  await loadMany(['js/exams/final-workflow.js','js/exams/attempt-autosave.js']);
+  await loadFinalWorkflow();
+  await loadScript('js/exams/attempt-autosave.js');
   return;
  }
  if(view==='results'){
@@ -80,6 +99,7 @@ window.AICLO_FEATURES=Object.freeze({
  load:loadScript,
  loadMany,
  ensureView,
+ loadFinalWorkflow,
  isLoaded:src=>loaded.has(src),
  pending:()=>[...pending.keys()]
 });
