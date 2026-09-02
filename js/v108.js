@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V10.8 — system/course context, notifications, profiles, mobile shell. */
+/* AI-CLO PTITHCM V10.8 — system/course context, notifications, profiles, shell integration. */
 (() => {
 'use strict';
 const V='10.8';
@@ -13,17 +13,6 @@ function setContextBadge(){
  if(state.space==='course'&&activeSubject()){
   const s=activeSubject();badge.classList.add('course');badge.textContent=`${s.name} · ${s.semester||''}`;
  }else{badge.classList.remove('course');badge.textContent='HỆ THỐNG'}
-}
-function closeMobileSidebar(){const aside=$('.app>aside'),backdrop=$('#appSidebarBackdrop');aside?.classList.remove('open');backdrop?.classList.remove('show');$('#app')?.classList.remove('sidebar-open')}
-function openMobileSidebar(){if(!matchMedia('(max-width:760px)').matches)return;$('.app>aside')?.classList.add('open');$('#appSidebarBackdrop')?.classList.add('show');$('#app')?.classList.add('sidebar-open')}
-function setupMobileShell(){
- const app=$('#app'),aside=$('.app>aside');if(!app||!aside)return;
- if(!$('#appSidebarBackdrop')){const b=document.createElement('div');b.id='appSidebarBackdrop';b.className='app-sidebar-backdrop';document.body.append(b);b.onclick=closeMobileSidebar}
- if(!$('#mobileSidebarClose')){const b=document.createElement('button');b.id='mobileSidebarClose';b.type='button';b.className='mobile-sidebar-close';b.setAttribute('aria-label','Đóng menu');b.textContent='×';aside.prepend(b);b.onclick=closeMobileSidebar}
- const menu=$('#menuBtn');if(menu){menu.onclick=e=>{e.preventDefault();if(matchMedia('(max-width:760px)').matches){aside.classList.contains('open')?closeMobileSidebar():openMobileSidebar()}else aside.classList.toggle('open')}}
- $('#nav')?.addEventListener('click',e=>{if(e.target.closest('[data-view]'))closeMobileSidebar()});
- document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMobileSidebar()});
- window.addEventListener('resize',()=>{if(!matchMedia('(max-width:760px)').matches)closeMobileSidebar()});
 }
 function setupAppAi(){
  const header=$('.app main>header');if(!header||$('#appAiButton'))return;
@@ -90,5 +79,5 @@ function enhanceUserLists(){
 const oldRender=window.render;
 window.render=async function(){await oldRender();setContextBadge();setupAppAi();makeMiniUserClickable();enhanceUserLists()};
 
-document.addEventListener('DOMContentLoaded',()=>{document.documentElement.dataset.aicloVersion=V;setupMobileShell();setupAppAi();setContextBadge();setTimeout(makeMiniUserClickable,250)});
+document.addEventListener('DOMContentLoaded',()=>{document.documentElement.dataset.aicloVersion=V;setupAppAi();setContextBadge();setTimeout(makeMiniUserClickable,250)});
 })();
