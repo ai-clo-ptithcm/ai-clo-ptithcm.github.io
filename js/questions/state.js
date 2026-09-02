@@ -55,8 +55,6 @@ window.backToQuestionList=async function(){
  persistFilters();
 };
 
-/* Keep the full loader for exam/final workflows. The question-bank list gets only
- * fields needed to draw/filter rows; A-D and explanation are fetched on demand. */
 const fullQuestionSets=window.v96QuestionSets;
 async function lightQuestionSets(){
  const sid=state.subjectId;
@@ -76,8 +74,9 @@ async function hydrateQuestion(x){
  return {...x,...data};
 }
 function invalidateQuestionData(id=null){
- window.AICLO_PERF?.invalidate?.(`questions:list:${state.user?.id||'user'}:${state.subjectId}`);
  if(id)window.AICLO_PERF?.invalidate?.(`questions:detail:${id}`);
+ window.AICLO_OVERVIEW?.invalidate?.(state.subjectId);
+ window.AICLO_VIEW_TRANSITION?.invalidate?.('questions',state.subjectId,'course');
 }
 
 const oldQuestions=window.questions;
