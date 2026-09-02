@@ -47,3 +47,26 @@
  .v1053-user-toolbar #userSearch{grid-column:1/-1}
 }
 @media(max-width:480px){.v1053-user-toolbar{grid-template-columns:1fr}}
+
+/* Mobile: chuyển bảng câu hỏi thành danh sách thẻ, không cuộn ngang. */
+@media(max-width:760px){
+ .v105-question-table{overflow:visible!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+ .v105-question-table table,.v105-question-table tbody{display:block!important;width:100%!important;min-width:0!important}
+ .v105-question-table thead{display:none!important}
+ .v105-question-table tr{display:grid!important;grid-template-columns:auto minmax(0,1fr);gap:8px 10px;width:100%!important;margin:0 0 10px;padding:12px;border:1px solid var(--line);border-radius:13px;background:#fff;box-sizing:border-box}
+ .v105-question-table td{display:block!important;width:auto!important;max-width:none!important;padding:0!important;border:0!important;min-width:0!important}
+ .v105-question-table td.select-col{grid-column:1;grid-row:1;align-self:start;padding-top:4px!important}
+ .v105-question-table td.q-code-cell{grid-column:2;grid-row:1;display:flex!important;align-items:center;gap:7px;flex-wrap:wrap;word-break:normal}
+ .v105-question-table td.q-content-cell{grid-column:1/-1;grid-row:2;padding-top:2px!important}
+ .v105-question-table td.q-structure-cell{grid-column:1/-1;grid-row:3;padding:8px 0!important;border-top:1px solid #edf0f4!important;color:#475467}
+ .v105-question-table td.q-class-cell{grid-column:1/-1;grid-row:4;display:flex!important;gap:6px;align-items:center;flex-wrap:wrap}
+ .v105-question-table td.row-actions{grid-column:1/-1;grid-row:5;display:grid!important;grid-template-columns:1fr 1fr!important;gap:7px;margin-top:2px}
+ .v105-question-table .question-code{width:auto!important;max-width:100%;text-align:left;padding:5px 7px!important}
+ .v105-question-table .question-summary{font-size:14px;line-height:1.5!important;overflow-wrap:anywhere}
+ .v105-question-table .q-structure-cell b{font-size:13px}.v105-question-table .q-structure-cell small{font-size:12px;margin-top:2px}
+ .v105-question-table .q-class-cell .badge{width:auto!important;max-width:100%;padding:5px 8px!important;white-space:normal}
+ .v105-question-table .q-class-cell br{display:none}
+ .v105-question-table .row-actions button{min-height:36px;padding:7px 8px!important;white-space:nowrap}
+ .v105-question-table tr:has(.empty){display:block!important;text-align:center}
+ .v105-question-table .empty{padding:18px!important}
+}
