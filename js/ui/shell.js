@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V10.8 — shell compatibility bridge. */
+/* AI-CLO PTITHCM V11 — app shell bridge, preserving legacy V10.8 compatibility. */
 (() => {
 'use strict';
 const V='10.8';
@@ -23,6 +23,7 @@ const oldRefreshShell=window.v95RefreshShell;
 if(typeof oldRefreshShell==='function')window.v95RefreshShell=function(){oldRefreshShell();setContextBadge();setupAppAi();makeMiniUserClickable()};
 
 window.AICLO_V108={version:V,openUserProfile,openNoticeDetail:window.AICLO_NOTIFICATION_DETAIL?.openNoticeDetail};
+window.AICLO_SHELL=Object.freeze({setContextBadge,setupAppAi});
 
 const oldRender=window.render;
 window.render=async function(){await oldRender();setContextBadge();setupAppAi();makeMiniUserClickable();enhanceUserLists()};
