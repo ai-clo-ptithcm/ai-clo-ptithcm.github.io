@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V11 — question bank filters and draft persistence. */
+/* AI-CLO PTITHCM V11 — question bank filters, draft persistence and lightweight list loading. */
 (() => {
 'use strict';
 
@@ -55,14 +55,42 @@ window.backToQuestionList=async function(){
  persistFilters();
 };
 
+/* Keep the full loader for exam/final workflows. The question-bank list gets only
+ * fields needed to draw/filter rows; A-D and explanation are fetched on demand. */
+const fullQuestionSets=window.v96QuestionSets;
+async function lightQuestionSets(){
+ const sid=state.subjectId;
+ const [items,ch,clos]=await Promise.all([
+  q('questions','id,subject_id,chapter_id,topic_id,clo_id,content,created_by,status,question_scope,approval_status,created_at,updated_at',x=>x.eq('subject_id',sid).order('created_at',{ascending:false})),
+  q('chapters','*',x=>x.eq('subject_id',sid).order('order_index')),
+  q('clos','*',x=>x.eq('subject_id',sid).order('code'))
+ ]);
+ const chapterIds=ch.map(x=>x.id).filter(Boolean);
+ const topics=chapterIds.length?await q('topics','*',x=>x.in('chapter_id',chapterIds).order('order_index')):[];
+ return {items,ch,topics,clos};
+}
+async function hydrateQuestion(x){
+ if(!x?.id||Array.isArray(x.question_options))return x;
+ const {data,error}=await db.from('questions').select('*, question_options(*)').eq('id',x.id).single();
+ if(error)throw error;
+ return {...x,...data};
+}
+function invalidateQuestionData(id=null){
+ window.AICLO_PERF?.invalidate?.(`questions:list:${state.user?.id||'user'}:${state.subjectId}`);
+ if(id)window.AICLO_PERF?.invalidate?.(`questions:detail:${id}`);
+}
+
 const oldQuestions=window.questions;
 window.questions=async function(c){
  const f=savedFilters();
- if(f?.bank&&window.AICLO_V105?.activeBank?.()!==f.bank){
-  // v105 bank state is private; the old back helper restores it from v94QuestionFilters.
-  v94QuestionFilters=f;
+ if(f?.bank&&window.AICLO_V105?.activeBank?.()!==f.bank)v94QuestionFilters=f;
+ const currentLoader=window.v96QuestionSets;
+ window.v96QuestionSets=lightQuestionSets;
+ try{
+  await oldQuestions(c);
+ }finally{
+  window.v96QuestionSets=currentLoader||fullQuestionSets;
  }
- await oldQuestions(c);
  restoreFilters();
  bindFilterPersistence();
 };
@@ -102,6 +130,9 @@ window.fillSubjectSelect=function(){return oldFillSubjectSelect()};
 const oldQuestionForm=window.v96QuestionForm;
 window.v96QuestionForm=async function(x={},sets){
  x=x||{};
+ if(x.id&&!Array.isArray(x.question_options)){
+  try{x=await hydrateQuestion(x)}catch(ex){return err(ex)}
+ }
  await oldQuestionForm(x,sets);
  const form=$('#qForm');if(!form)return;
  const id=x.id||'new';form.dataset.draftId=id;
@@ -112,6 +143,7 @@ window.v96QuestionForm=async function(x={},sets){
  const originalSubmit=form.onsubmit;
  form.onsubmit=async e=>{
   jsonWrite(draftKey(id),readFormDraft(form));
+  invalidateQuestionData(id==='new'?null:id);
   await originalSubmit(e);
   if(!document.body.contains(form))jsonDrop(draftKey(id));
  };
@@ -121,5 +153,14 @@ window.v96QuestionForm=async function(x={},sets){
  if(back){const old=back.onclick;back.onclick=async()=>{saveVisibleQuestionDraft();return old?.()}}
 };
 
-window.AICLO_QUESTION_STATE=Object.freeze({persistFilters,savedFilters});
+const oldQuestionDetail=window.v96QuestionDetail;
+if(typeof oldQuestionDetail==='function')window.v96QuestionDetail=async function(x,sets){
+ try{return oldQuestionDetail(await hydrateQuestion(x),sets)}catch(ex){err(ex)}
+};
+const oldQuestionAnalysis=window.v95QuestionAnalysis;
+if(typeof oldQuestionAnalysis==='function')window.v95QuestionAnalysis=async function(x,...args){
+ try{return oldQuestionAnalysis(await hydrateQuestion(x),...args)}catch(ex){err(ex)}
+};
+
+window.AICLO_QUESTION_STATE=Object.freeze({persistFilters,savedFilters,lightQuestionSets,hydrateQuestion,invalidate:invalidateQuestionData});
 })();
