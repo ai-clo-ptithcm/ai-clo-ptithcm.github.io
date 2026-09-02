@@ -76,6 +76,7 @@ async function hydrateQuestion(x){
 function invalidateQuestionData(id=null){
  if(id)window.AICLO_PERF?.invalidate?.(`questions:detail:${id}`);
  window.AICLO_OVERVIEW?.invalidate?.(state.subjectId);
+ window.AICLO_RUNTIME_PERF?.invalidateCourse?.(state.subjectId);
  window.AICLO_VIEW_TRANSITION?.invalidate?.('questions',state.subjectId,'course');
 }
 
