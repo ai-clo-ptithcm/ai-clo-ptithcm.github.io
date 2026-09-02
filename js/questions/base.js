@@ -1,5 +1,5 @@
 /* AI-CLO PTITHCM V11 — question workspace base extracted from legacy V9.4. */
-var v94QuestionFilters=null;
+let v94QuestionFilters=null;
 const v94Time=v=>v?new Intl.DateTimeFormat('vi-VN',{timeZone:'Asia/Ho_Chi_Minh',dateStyle:'medium',timeStyle:'short'}).format(new Date(v)):'—';
 function questionWorkspace(title,subtitle,body){
  closeModal();closeDrawer();
