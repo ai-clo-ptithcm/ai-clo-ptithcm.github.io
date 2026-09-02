@@ -1,3 +1,21 @@
+# AI-CLO PTITHCM — V11
+
+**V11 là checkpoint frontend hiện tại của dự án.** Bản này tập trung tái cấu trúc JS/CSS theo chức năng, giảm tải ban đầu và cải thiện cảm nhận khi chuyển các mục trong sidebar mà không thay đổi nghiệp vụ cốt lõi.
+
+- Runtime checkpoint đã deploy thành công: `e71e973bea14c09d561eb86d2a9c542e693829d3`
+- GitHub Pages run #169: success
+- XLSX, JSZip và MathJax đã chuyển sang lazy-load.
+- Chuyển sidebar giữ nội dung đang hiển thị trong lúc view mới tải, giảm nháy `Đang tải dữ liệu…` toàn trang.
+- Không migration Supabase mới, không deploy Edge Function mới cho checkpoint này, không đổi Gemini model/quota/fallback.
+
+Tài liệu V11:
+
+- [`VERSION-v11.md`](VERSION-v11.md)
+- [`HUONG-DAN-CAP-NHAT-V11.md`](HUONG-DAN-CAP-NHAT-V11.md)
+- [`V11-TECHNICAL-NOTES.md`](V11-TECHNICAL-NOTES.md)
+
+---
+
 # AI-CLO PTITHCM — V10.9
 
 V10.9 tổ chức rõ hai không gian **Tổng quan hệ thống** và **Tổng quan học phần** theo từng vai trò Admin, Giảng viên và Sinh viên. Menu học phần dùng thống nhất **Chương · Chủ đề · CLO**; mục **Đánh giá** của giảng viên tách thành hai tab **Bài kiểm tra trực tuyến** và **Đề thi cuối kỳ**.
