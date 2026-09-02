@@ -27,7 +27,7 @@ function v95RefreshShell(){
  const pick=$('.subject-pick');if(pick&&course){let value=$('.subject-value',pick);if(!value){value=document.createElement('span');value.className='subject-value';pick.append(value)}value.innerHTML=`<b>${esc(course.name)}</b><small>${esc(course.semester)}</small>`}
 }
 function v95EnterSystem(view='dashboard'){state.space='system';state.view=view;localStorage.setItem('aiclo_space','system');v95RefreshShell();navigate(view)}
-function v95EnterCourse(subjectId,view='dashboard'){if(subjectId){state.subjectId=subjectId;localStorage.setItem('aiclo_subject',subjectId);fillSubjectSelect()}state.space='course';state.view=view;localStorage.setItem('aiclo_space','course');v95RefreshShell();navigate(view)}
+function v95EnterCourse(subjectId,view='dashboard'){if(subjectId){state.subjectId=subjectId;localStorage.setItem('aiclo_subject',subjectId);fillSubjectSelect()}state.space='course';state.view=view;localStorage.setItem('aiclo_space','course');v95RefreshShell();return navigate(view)}
 window.v95EnterCourse=v95EnterCourse;
 
 navigate=function(v){
@@ -35,7 +35,7 @@ navigate=function(v){
  if(state.space==='system'&&!v95SystemViews.has(v))v='dashboard';if(state.space==='course'&&!v95CourseViews.has(v))v='dashboard';if(v==='users'&&!canTeach()&&role()!=='admin')v='dashboard';
  closeDrawer();state.view=v;v95RefreshShell();$('aside')?.classList.remove('open');let t,s;
  if(state.space==='system'){const globalTitles={dashboard:['Tổng quan hệ thống','Các môn học và hoạt động chung'],subjects:['Môn học','Danh sách các môn bạn được phép truy cập'],notifications:titles.notifications||['Thông báo','Thông báo của toàn hệ thống'],activity:titles.activity||['Nhật ký','Hoạt động gần đây'],users:['Người dùng','Quản lý tài khoản và phân quyền']};[t,s]=globalTitles[v]||globalTitles.dashboard}else{const courseTitles={dashboard:['Tổng quan môn học','Theo dõi dữ liệu của học phần hiện tại'],structure:titles.structure,questions:titles.questions,exams:titles.exams,results:titles.results,users:['Danh sách lớp','Sinh viên thuộc học phần hiện tại']};[t,s]=courseTitles[v]||courseTitles.dashboard}
- $('#pageTitle').textContent=t;$('#pageSub').textContent=s;render();
+ $('#pageTitle').textContent=t;$('#pageSub').textContent=s;return render();
 };
 
 function v95CourseCards(list){return list.map(s=>`<article class="course-card"><div><span class="course-role">${esc(v95RoleLabel())}</span><h3>${esc(s.name)}</h3><p>${esc(s.semester)} · ${esc(s.academic_year)}</p></div><button class="primary" data-open-course="${s.id}">Vào môn học <b>→</b></button></article>`).join('')||'<div class="empty"><b>Chưa có môn học</b><span>Quản trị viên cần phân công bạn vào một môn học.</span></div>'}

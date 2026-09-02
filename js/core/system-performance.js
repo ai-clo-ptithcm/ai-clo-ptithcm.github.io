@@ -32,7 +32,7 @@ async function membershipsForUser(){
 async function recentNotices(){
  if(role()==='admin')return [];
  const uid=state.user.id;
- return memo(`system:notices:${uid}`,NOTICE_TTL,()=>q('notifications','id,title,message,category,created_at,read_at,subject_id,target_view',x=>x.eq('user_id',uid).order('created_at',{ascending:false}).limit(5)));
+ return memo(`system:notices:${uid}`,NOTICE_TTL,()=>q('notifications','id,title,message,category,severity,created_at,read_at,subject_id,target_view,target_id',x=>x.eq('user_id',uid).order('created_at',{ascending:false}).limit(5)));
 }
 async function systemData(){
  const uid=state.user.id,r=role();
