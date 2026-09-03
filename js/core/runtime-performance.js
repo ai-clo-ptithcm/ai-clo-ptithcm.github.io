@@ -27,7 +27,7 @@ async function courseDashboardData(){
  return memo(key,DASHBOARD_TTL,async()=>{
   if(r==='student'){
    const [clos,examRows]=await Promise.all([
-    countRows('clos',x=>x.eq('subject_id',sid)),
+    countRows('clos',x=>contentFilter(x,sid)),
     q('exams','id,title,status,created_at',x=>x.eq('subject_id',sid).order('created_at',{ascending:false}))
    ]);
    const ids=examRows.map(x=>x.id);
@@ -35,9 +35,9 @@ async function courseDashboardData(){
    return {kind:'student',clos,examRows,attempts};
   }
   const [chapters,clos,questionScopes,members]=await Promise.all([
-   q('chapters','id',x=>x.eq('subject_id',sid).order('order_index')),
-   countRows('clos',x=>x.eq('subject_id',sid)),
-   q('questions','question_scope',x=>x.eq('subject_id',sid)),
+   q('chapters','id',x=>contentFilter(x,sid).order('order_index')),
+   countRows('clos',x=>contentFilter(x,sid)),
+   q('questions','question_scope',x=>contentFilter(x,sid)),
    countRows('subject_members',x=>x.eq('subject_id',sid).eq('role','student'))
   ]);
   const chapterIds=chapters.map(x=>x.id);
@@ -76,8 +76,8 @@ window.dashboard=async function(c){
 window.structure=async function(c){
  if(!state.subjectId){c.replaceChildren(empty());return}
  const [ch,clos]=await Promise.all([
-  q('chapters','*',x=>x.eq('subject_id',state.subjectId).order('order_index')),
-  q('clos','*',x=>x.eq('subject_id',state.subjectId).order('code'))
+  q('chapters','*',x=>contentFilter(x).order('order_index')),
+  q('clos','*',x=>contentFilter(x).order('code'))
  ]);
  const chapterIds=ch.map(x=>x.id);
  const topics=chapterIds.length?await q('topics','*',x=>x.in('chapter_id',chapterIds).order('order_index')):[];
@@ -150,7 +150,7 @@ const dateText=v=>v?new Date(v).toLocaleString('vi-VN'):'—';
 async function assessmentMeta(){
  const sid=state.subjectId,key=`runtime:assessment-meta:${sid}`;
  return memo(key,META_TTL,async()=>{
-  const [chapters,clos]=await Promise.all([q('chapters','id,name,order_index',x=>x.eq('subject_id',sid).order('order_index')),q('clos','id,code',x=>x.eq('subject_id',sid).order('code'))]);
+  const [chapters,clos]=await Promise.all([q('chapters','id,name,order_index',x=>contentFilter(x,sid).order('order_index')),q('clos','id,code',x=>contentFilter(x,sid).order('code'))]);
   const ids=chapters.map(x=>x.id),topics=ids.length?await q('topics','id,chapter_id,name,order_index',x=>x.in('chapter_id',ids).order('order_index')):[];
   return {chapters,clos,topics};
  });
