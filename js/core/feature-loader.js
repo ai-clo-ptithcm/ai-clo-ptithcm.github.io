@@ -49,7 +49,7 @@ const lazyCloForm=async function(...args){
 window.v102CloForm=lazyCloForm;
 
 async function loadAiReviewFlow(){
- await loadMany(['js/ai/question-review.js?v=11.6.8','js/ai/review-flow.js?v=11.6.8']);
+ await loadMany(['js/ai/question-review.js?v=11.6.8','js/ai/review-flow.js?v=11.6.10']);
 }
 
 const lazyAiHistory=async function(...args){
