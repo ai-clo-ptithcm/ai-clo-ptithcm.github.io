@@ -4,3 +4,5 @@
 .v102-matrix .matrix-chapter td{padding:10px 12px;background:#f6f7f9;font-size:14px}
 .v102-matrix tbody tr:not(.matrix-chapter):not(.matrix-grand) td{padding-top:10px;padding-bottom:10px}
 .v102-matrix .matrix-grand td{background:#fff7f7;font-weight:700}
+#finalExamForm #matrixAvailability .bank-check-items span:not(.bad){display:none}
+#finalExamForm #matrixAvailability .bank-check-items:not(:has(.bad)){display:none}
