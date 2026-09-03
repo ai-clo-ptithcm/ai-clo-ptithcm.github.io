@@ -4,7 +4,7 @@
 
 const pending=new Map();
 const loaded=new Set();
-const FINAL_WORKFLOW='js/exams/final-workflow.js';
+const FINAL_WORKFLOW='js/exams/final-workflow.js?v=11.6.22';
 
 function loadScript(src){
  if(loaded.has(src))return Promise.resolve();
@@ -31,12 +31,34 @@ const lazyImport=async function(...args){
 };
 window.v102BulkImportQuestions=lazyImport;
 
+function installFinalWorkflowRaceGuard(){
+ const current=window.exams;
+ if(typeof current!=='function'||current.__aicloFinalRaceGuard)return;
+ const guarded=async function(...args){
+  try{return await current.apply(this,args)}
+  catch(error){
+   const message=String(error?.message||error||'');
+   const detailOpen=!!document.querySelector('.assessment-detail-page');
+   const staleFinalRender=/Cannot set properties of null \(setting ['\"]innerHTML['\"]\)/i.test(message);
+   if(detailOpen&&staleFinalRender){
+    console.warn('AI-CLO: bỏ qua kết quả render đề cuối kỳ đã cũ sau khi mở chi tiết bài kiểm tra.');
+    return;
+   }
+   throw error;
+  }
+ };
+ guarded.__aicloFinalRaceGuard=true;
+ guarded.__aicloFinalLegacy=current;
+ window.exams=guarded;
+}
+
 async function loadFinalWorkflow(){
- if(loaded.has(FINAL_WORKFLOW))return;
+ if(loaded.has(FINAL_WORKFLOW)){installFinalWorkflowRaceGuard();return}
  /* final-workflow still contains a legacy importer. Preserve the semantic importer/stub
     that is already active so script load order cannot downgrade bulk import. */
  const importHandler=window.v102BulkImportQuestions;
  await loadScript(FINAL_WORKFLOW);
+ installFinalWorkflowRaceGuard();
  if(typeof importHandler==='function')window.v102BulkImportQuestions=importHandler;
 }
 
