@@ -22,7 +22,7 @@ function saveState(value){write(stateKey(),{...value,subjectId:state.subjectId,u
 function rememberWorkspace(){window.AICLO_QUESTION_WORKSPACE?.rememberDuplicate?.()}
 function forgetWorkspace(){window.AICLO_QUESTION_WORKSPACE?.forgetDuplicate?.()}
 
-function chapterOptions(ch,selected){return '<option value="all">Tất cả chương</option>'+ch.map(x=>`<option value="${esc(x.id)}" ${String(x.id)===String(selected)?'selected':''}>${esc(x.order_index?`${x.order_index}. `:'')}${esc(x.name)}</option>`).join('')}
+function chapterOptions(ch,selected){return '<option value="all">Tất cả chương</option>'+ch.map(x=>`<option value="${esc(x.id)}" ${String(x.id)===String(selected)?'selected':''}>${x.order_index?`${esc(x.order_index)}. `:''}${esc(x.name)}</option>`).join('')}
 function topicOptions(topics,chapter,selected){
  const list=chapter==='all'?topics:topics.filter(x=>String(x.chapter_id)===String(chapter));
  return '<option value="all">Tất cả chủ đề</option>'+list.map(x=>`<option value="${esc(x.id)}" ${String(x.id)===String(selected)?'selected':''}>${esc(x.name)}</option>`).join('');
@@ -54,16 +54,12 @@ async function reconcileEditedQuestion(ret,saved){
   const {data,error}=await db.from('questions').select('id,display_code,content,chapter_id,topic_id,clo_id,question_scope,updated_at').eq('id',ret.questionId).single();
   if(error||!data)return saved;
   const changed=String(data.updated_at||'')!==String(ret.beforeUpdatedAt||'');
-  if(!changed)return saved;
+  if(!changed)return {...saved,anchor:ret.anchor||saved.anchor};
   const code=String(data.display_code||'').trim();
+  const patch=q=>String(q.id)===String(data.id)?{...q,code:code?code.padStart(6,'0'):q.code,content:data.content,chapter_id:data.chapter_id,topic_id:data.topic_id,clo_id:data.clo_id,question_scope:data.question_scope,updated_at:data.updated_at}:q;
   const pairs=saved.result.pairs.map(pair=>{
-   let touched=false;
-   const patch=q=>{
-    if(String(q.id)!==String(data.id))return q;
-    touched=true;
-    return {...q,code:code?code.padStart(6,'0'):q.code,content:data.content,chapter_id:data.chapter_id,topic_id:data.topic_id,clo_id:data.clo_id,question_scope:data.question_scope,updated_at:data.updated_at};
-   };
-   return touched?pair:{...pair,a:patch(pair.a),b:patch(pair.b),...(String(pair.a.id)===String(data.id)||String(pair.b.id)===String(data.id)?{needs_recheck:true}:{})};
+   const touched=String(pair.a.id)===String(data.id)||String(pair.b.id)===String(data.id);
+   return touched?{...pair,a:patch(pair.a),b:patch(pair.b),needs_recheck:true}:pair;
   });
   return {...saved,result:{...saved.result,pairs},anchor:ret.anchor||saved.anchor};
  }catch{return saved}
@@ -123,10 +119,11 @@ async function runScan(sets){
 }
 
 function bindResultActions(sets){
- $('#duplicateScanResults')?.addEventListener('click',event=>{
+ const box=$('#duplicateScanResults');if(!box)return;
+ box.onclick=event=>{
   const button=event.target.closest?.('[data-edit-duplicate]');
   if(button)editQuestion(button.dataset.editDuplicate,button.dataset.pairAnchor,sets);
- },{once:true});
+ };
 }
 
 async function openDuplicateScan(options={}){
@@ -144,7 +141,15 @@ async function openDuplicateScan(options={}){
 
  const back=$('#questionBack');if(back){const base=back.onclick;back.onclick=async()=>{forgetWorkspace();return base?.()}}
  const chapter=$('#dupChapter'),topic=$('#dupTopic'),clo=$('#dupClo');
- const persist=()=>{const now=currentState();saveState({...now,filters:{chapter:chapter?.value||'all',topic:topic?.value||'all',clo:clo?.value||'all'}})};
+ const persist=()=>{
+  const now=currentState(),next={chapter:chapter?.value||'all',topic:topic?.value||'all',clo:clo?.value||'all'};
+  const changed=JSON.stringify(now.filters)!==JSON.stringify(next);
+  saveState({...now,filters:next,result:changed?null:now.result,anchor:changed?null:now.anchor});
+  if(changed){
+   $('#duplicateScanStatus').textContent='Bộ lọc đã thay đổi · nhấn Bắt đầu kiểm tra bằng AI.';
+   $('#duplicateScanResults').innerHTML=resultHtml(null,sets);
+  }
+ };
  chapter?.addEventListener('change',()=>{if(topic){topic.innerHTML=topicOptions(sets.topics,chapter.value,'all');topic.value='all'}persist()});
  topic?.addEventListener('change',persist);clo?.addEventListener('change',persist);
  $('#startDuplicateAiScan')?.addEventListener('click',()=>runScan(sets));
