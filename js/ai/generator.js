@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V11.6.8 — AI question generation with optional duplicate-avoidance context. */
+/* AI-CLO PTITHCM V11.6.9 — AI generation with persistent pre-submit workspace. */
 (()=>{
 'use strict';
 
@@ -18,8 +18,12 @@ async function invokeDetailed(name,body){
 }
 
 const validScope=value=>['practice','secure_exam','both'].includes(value)?value:'practice';
+const clearAiDraft=()=>{
+ window.AICLO_FORM_PERSISTENCE?.clear?.('aiForm');
+ window.AICLO_QUESTION_WORKSPACE?.forgetAi?.();
+};
 
-window.aiGenerateForm=function aiGenerateFormV1168(sets){
+window.aiGenerateForm=function aiGenerateFormV1169(sets){
  if(!sets.ch.length||!sets.clos.length)return toast('Học phần cần có chương và CLO trước khi tạo câu hỏi',true);
 
  captureQuestionFilters();
@@ -43,16 +47,24 @@ window.aiGenerateForm=function aiGenerateFormV1168(sets){
   </form>`
  );
 
+ window.AICLO_QUESTION_WORKSPACE?.rememberAi?.();
  const fillTopics=()=>{$('#aiTopic').innerHTML='<option value="">Tất cả chủ đề trong chương</option>'+sets.topics.filter(t=>t.chapter_id===$('#aiChapter').value).map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('')};
  const showClo=()=>{const clo=sets.clos.find(c=>c.id===$('#aiClo').value);$('#cloDescription').innerHTML=`<b>${esc(clo?.code||'')}</b><span>${esc(clo?.description||'')}</span>`;renderMath($('#cloDescription'))};
  fillTopics();showClo();
  $('#aiChapter').onchange=fillTopics;
  $('#aiClo').onchange=showClo;
- $('#cancelAiGenerate').onclick=backToQuestionList;
+ // form-persistence khôi phục select trong MutationObserver; cập nhật lại mô tả CLO sau đó.
+ setTimeout(showClo,0);
+
+ $('#cancelAiGenerate').onclick=()=>{clearAiDraft();backToQuestionList()};
+ const pageBack=$('#questionBack');
+ if(pageBack){const old=pageBack.onclick;pageBack.onclick=async()=>{clearAiDraft();return old?.()}}
+
  $('#aiForm').onsubmit=async event=>{
   event.preventDefault();
   const button=$('#aiSubmit'),errorBox=$('#aiErrorBox'),values=Object.fromEntries(new FormData(event.target));
   const avoidDuplicates=$('#avoidDuplicateQuestions')?.checked!==false;
+  window.AICLO_FORM_PERSISTENCE?.flush?.(event.target);
   button.disabled=true;button.textContent='AI đang tạo…';
   errorBox.classList.add('hidden');errorBox.textContent='';
   try{
@@ -68,6 +80,7 @@ window.aiGenerateForm=function aiGenerateFormV1168(sets){
    });
    window.AICLO_AI_REVIEW_FLOW?.rememberScope?.(data.batch_id,targetScope);
    try{localStorage.setItem(`aiclo:ai-batch-scope:${data.batch_id}`,targetScope)}catch{}
+   clearAiDraft();
    toast(`Đã tạo ${data.total} câu chờ duyệt${avoidDuplicates?' · đã bật tránh trùng':''}`);
    reviewBatch(data.batch_id,0,{questionScope:targetScope});
   }catch(error){
