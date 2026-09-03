@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V11.6.2 — compact bank intro + Chapter/Topic × CLO matrix */
+/* AI-CLO PTITHCM V11.6.3 — compact bank intro + Chapter/Topic × CLO matrix */
 .v105-bank-tabs.v1161-bank-tabs-compact{margin-bottom:7px!important}
 .v105-bank-note.v1161-bank-note-compact{min-height:0!important;margin:0 0 9px!important;padding:7px 12px!important;gap:7px!important;border-radius:10px!important;line-height:1.32!important}
 .v105-bank-note.v1161-bank-note-compact b,.v105-bank-note.v1161-bank-note-compact span{margin:0!important;line-height:1.32!important}
@@ -12,7 +12,20 @@
 .bank-actions>#questionBankMatrix:hover,.bank-actions>#scanDuplicates:hover,.bank-actions>#aiHistory:hover{background:#f8fafc!important;border-color:#b9c3d1!important;color:#172033!important}
 
 /* Nội dung danh sách chỉ hiện tối đa 3 dòng để bảng gọn và đều. */
-.v105-question-table .q-content-cell .question-summary{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:3!important;overflow:hidden!important;line-height:1.5!important;max-height:4.5em!important;text-overflow:ellipsis;text-align:left!important}
+.v105-question-table .q-content-cell .question-summary{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:3!important;overflow:hidden!important;line-height:1.5!important;max-height:4.5em!important;text-overflow:ellipsis;text-align:left!important;cursor:help}
+
+/* Nguồn đặc biệt của câu hỏi luôn hiện dưới CLO. Câu giảng viên biên soạn không lặp lại ở danh sách. */
+.v105-question-table .q-code-cell .question-origin.lecturer{display:none!important}
+.v105-question-table .q-code-cell .question-origin.gemini{margin-top:6px;background:#f1ebff!important;color:#6236b7!important;border:1px solid #d8c9ff;font-size:10px;white-space:normal;line-height:1.2;text-align:center}
+.v105-question-table .q-code-cell .question-origin.academy{margin-top:6px;background:#edf4ff!important;color:#285a96!important;border:1px solid #cfe0f7;font-size:10px;white-space:normal;line-height:1.2;text-align:center}
+.v105-question-table .q-code-cell .question-origin-list-state{margin-top:4px;font-size:10px;white-space:normal;line-height:1.15}
+
+/* Khung xem toàn bộ nội dung khi rê chuột vào phần Nội dung. */
+.qbank-question-hover{position:fixed;z-index:1000;max-width:calc(100vw - 28px);max-height:56vh;overflow:auto;padding:14px 16px;border:1px solid #d7dee8;border-radius:12px;background:#fff;color:var(--ink);box-shadow:0 16px 44px #1018282e;pointer-events:none;line-height:1.55;text-align:left}
+.qbank-question-hover[hidden]{display:none!important}
+.qbank-question-hover>small{display:block;margin-bottom:7px;color:var(--red);font-size:10px;font-weight:900;letter-spacing:.08em}
+.qbank-question-hover-content{font-size:14px;white-space:normal;overflow-wrap:anywhere}
+.qbank-question-hover mjx-container{max-width:100%;overflow-x:auto;overflow-y:hidden}
 
 /* Nhập hàng loạt nằm trong trang Thêm câu hỏi. */
 .question-create-import{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:12px 14px;border:1px solid #dce3ec;border-radius:11px;background:#f8fafc}
@@ -49,6 +62,9 @@
 @media(max-width:900px){
  .qbank-matrix-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
  .bank-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:760px){
+ .qbank-question-hover{display:none!important}
 }
 @media(max-width:620px){
  .v105-bank-note.v1161-bank-note-compact{padding:7px 10px!important;margin-bottom:8px!important;gap:2px!important}
