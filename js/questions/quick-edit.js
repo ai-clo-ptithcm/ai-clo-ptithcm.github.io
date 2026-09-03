@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V11.6.16 — compact draggable/resizable quick editor. */
+/* AI-CLO PTITHCM V11.6.24 — compact draggable/resizable quick editor and shared app-window controller. */
 (()=>{
 'use strict';
 
@@ -137,6 +137,21 @@ function installWindowInteractions(dialog){
  };
  dialog.addEventListener('close',cleanup,{once:true});
 }
+function openAppWindow(dialog,{className='quick-edit-modal',width=720,height=600}={}){
+ if(!dialog)return null;
+ dialog.classList.add('quick-edit-modal');
+ if(className&&className!=='quick-edit-modal')dialog.classList.add(className);
+ if(matchMedia('(max-width:700px)').matches){
+  resetModalGeometry(dialog);
+ }else{
+  const pad=16,availableWidth=Math.max(520,innerWidth-pad*2),availableHeight=Math.max(410,innerHeight-pad*2);
+  const w=Math.min(width,availableWidth),h=Math.min(height,availableHeight);
+  setGeometry(dialog,{left:(innerWidth-w)/2,top:(innerHeight-h)/2,width:w,height:h});
+ }
+ installWindowInteractions(dialog);
+ if(className&&className!=='quick-edit-modal')dialog.addEventListener('close',()=>dialog.classList.remove(className),{once:true});
+ return dialog;
+}
 
 async function confirmSimilar(question,content){
  let result=await db.rpc('find_similar_questions_scoped',{p_subject_id:state.subjectId,p_chapter_id:question.chapter_id,p_topic_id:question.topic_id||null,p_content:content,p_exclude_id:question.id,p_limit:3});
@@ -192,7 +207,7 @@ async function openQuick(id,{source='bank',pairId=null,onSaved=null}={}){
   captureQuestionFilters?.();
   const initial={content:String(question.content||'').trim(),correct_answer:String(question.correct_answer||'A').toUpperCase(),options:optionMap(question)};
   modal(`AI-CLO | Sửa nhanh · ${questionCode(question)}`,modalMarkup(question));
-  const dialog=$('#modal');dialog.classList.add('quick-edit-modal');resetModalGeometry(dialog);installWindowInteractions(dialog);
+  const dialog=$('#modal');window.AICLO_APP_WINDOW.open(dialog,{className:'quick-edit-modal',width:720,height:600});
   const form=$('#quickQuestionForm'),cancel=$('#cancelQuickQuestion'),save=$('#saveQuickQuestion'),errorBox=$('#quickQuestionError');
   cancel.onclick=closeModal;
   form.onsubmit=async event=>{
@@ -237,5 +252,6 @@ document.addEventListener('DOMContentLoaded',()=>{
  enhance();const host=$('#content');if(host)new MutationObserver(queueEnhance).observe(host,{childList:true,subtree:true});
 });
 
+window.AICLO_APP_WINDOW=Object.freeze({open:openAppWindow,setGeometry});
 window.AICLO_QUESTION_QUICK_EDIT=Object.freeze({open:openQuick,enhance});
 })();
