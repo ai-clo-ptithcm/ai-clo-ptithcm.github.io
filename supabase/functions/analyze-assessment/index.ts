@@ -84,10 +84,11 @@ Deno.serve(async (req) => {
     const userId = userData.user.id;
     const body = await req.json();
     const subjectId = body.subject_id as string;
-    const scope = body.scope as "attempt" | "student" | "class";
+    const scope = body.scope as "attempt" | "student" | "class" | "exam";
     const attemptId = body.attempt_id as string | null;
+    const examId = (body.exam_id as string | null) || null;
     let studentId = (body.student_id as string | null) || null;
-    if (!subjectId || !["attempt", "student", "class"].includes(scope)) return json({ success: false, error: "Thiếu subject_id hoặc scope không hợp lệ." }, 400);
+    if (!subjectId || !["attempt", "student", "class", "exam"].includes(scope)) return json({ success: false, error: "Thiếu subject_id hoặc scope không hợp lệ." }, 400);
 
     const { data: profile } = await admin.from("profiles").select("id,role,full_name,mssv").eq("id", userId).single();
     const isAdmin = profile?.role === "admin";
@@ -96,17 +97,20 @@ Deno.serve(async (req) => {
     if (!isAdmin && !membership) return json({ success: false, error: "Bạn không thuộc học phần này." }, 403);
     const mayAnalyzeOthers = isAdmin || isTeacher || membership?.role === "teacher";
     if (scope === "class" && !mayAnalyzeOthers) return json({ success: false, error: "Chỉ giảng viên được phân tích cả lớp." }, 403);
+    if (scope === "exam" && !mayAnalyzeOthers) return json({ success: false, error: "Chỉ giảng viên được phân tích bài kiểm tra." }, 403);
     if (scope === "student" && !studentId) studentId = userId;
     if (scope === "student" && studentId !== userId && !mayAnalyzeOthers) return json({ success: false, error: "Không có quyền phân tích sinh viên khác." }, 403);
 
     const { data: exams, error: examError } = await admin.from("exams").select("id,title").eq("subject_id", subjectId);
     if (examError) throw examError;
     const examIds = (exams || []).map(x => x.id);
+    if (scope === "exam" && (!examId || !examIds.includes(examId))) return json({ success: false, error: "Không tìm thấy bài kiểm tra trong học phần." }, 404);
     let attempts: any[] = [];
     if (examIds.length) {
       let query = admin.from("exam_attempts").select("id,exam_id,student_id,attempt_number,score,submitted_at").in("exam_id", examIds).not("submitted_at", "is", null);
       if (scope === "attempt") query = query.eq("id", attemptId);
       if (scope === "student") query = query.eq("student_id", studentId);
+      if (scope === "exam") query = query.eq("exam_id", examId);
       const { data, error } = await query;
       if (error) throw error;
       attempts = data || [];
@@ -119,12 +123,12 @@ Deno.serve(async (req) => {
     if (!attempts.length) return json({ success: false, error: "Chưa có dữ liệu bài làm để phân tích." }, 400);
 
     const attemptIds = attempts.map(x => x.id);
-    const { data: answers, error: ansError } = await admin.from("student_answers").select("attempt_id,question_id,is_correct").in("attempt_id", attemptIds);
+    const { data: answers, error: ansError } = await admin.from("student_answers").select("attempt_id,question_id,is_correct,selected_option").in("attempt_id", attemptIds);
     if (ansError) throw ansError;
     // V9.1: dùng snapshot của từng lượt làm thay vì đọc metadata hiện tại trong ngân hàng câu hỏi.
     // Nhờ vậy nhận xét AI không thay đổi nếu giảng viên chỉnh câu/chương/chủ đề sau này.
     const { data: attemptQuestions, error: aqError } = await admin.from("attempt_questions")
-      .select("attempt_id,question_id,clo_code,chapter_name,topic_name")
+      .select("attempt_id,question_id,clo_code,chapter_name,topic_name,content,correct_answer")
       .in("attempt_id", attemptIds);
     if (aqError) throw aqError;
     const metaMap = new Map((attemptQuestions || []).map((x: any) => [`${x.attempt_id}|${x.question_id}`, x]));
@@ -140,19 +144,27 @@ Deno.serve(async (req) => {
     const cloMetrics = aggregate((q: any) => q.clo_code || null);
     const chapterMetrics = aggregate((q: any) => q.chapter_name || null);
     const topicMetrics = aggregate((q: any) => q.topic_name || null).sort((a,b)=>a.score-b.score).slice(0,8);
+    const questionMap = new Map<string, { content: string; clo: string | null; correct: number; total: number; choices: Record<string, number> }>();
+    for (const a of answers || []) {
+      const q = metaMap.get(`${(a as any).attempt_id}|${(a as any).question_id}`); if (!q) continue;
+      const id = String((a as any).question_id), item = questionMap.get(id) || { content: q.content || "", clo: q.clo_code || null, correct: 0, total: 0, choices: {} };
+      item.total++; if ((a as any).is_correct) item.correct++;
+      const choice = String((a as any).selected_option || "Không chọn"); item.choices[choice] = (item.choices[choice] || 0) + 1; questionMap.set(id, item);
+    }
+    const difficultQuestions = [...questionMap.values()].map(x => ({ content: x.content, clo: x.clo, correct_rate: x.total ? Math.round(x.correct * 1000 / x.total) / 10 : 0, responses: x.total, selected_options: x.choices })).sort((a,b)=>a.correct_rate-b.correct_rate).slice(0,8);
     const avgScore = Math.round(attempts.reduce((s, a) => s + Number(a.score || 0), 0) * 100 / attempts.length) / 100;
     let studentInfo: any = null;
     if (studentId) {
       const { data } = await admin.from("profiles").select("full_name,mssv").eq("id", studentId).maybeSingle(); studentInfo = data;
     }
-    const metrics = { scope, subject_id: subjectId, student: studentInfo, attempts: attempts.length, average_score: avgScore, clos: cloMetrics, chapters: chapterMetrics, topics: topicMetrics, latest_submission: attempts.map(a=>a.submitted_at).sort().at(-1) };
+    const metrics = { scope, subject_id: subjectId, exam_id: scope === "exam" ? examId : null, exam_title: scope === "exam" ? exams?.find(x => x.id === examId)?.title : null, student: studentInfo, attempts: attempts.length, average_score: avgScore, clos: cloMetrics, chapters: chapterMetrics, topics: topicMetrics, difficult_questions: scope === "exam" ? difficultQuestions : [], latest_submission: attempts.map(a=>a.submitted_at).sort().at(-1) };
     const fingerprint = await digest(JSON.stringify(metrics));
 
     let cacheQuery = admin.from("assessment_ai_feedback").select("analysis,generated_at").eq("subject_id", subjectId).eq("scope", scope).eq("source_fingerprint", fingerprint).limit(1);
     const { data: cached } = await cacheQuery;
     if (cached?.length) return json({ success: true, cached: true, analysis: cached[0].analysis, generated_at: cached[0].generated_at });
 
-    const scopeText = scope === "class" ? "cả lớp" : scope === "student" ? "một sinh viên qua nhiều bài kiểm tra" : "một lượt làm bài kiểm tra";
+    const scopeText = scope === "class" ? "cả lớp" : scope === "exam" ? "một bài kiểm tra cụ thể của cả lớp" : scope === "student" ? "một sinh viên qua nhiều bài kiểm tra" : "một lượt làm bài kiểm tra";
     const prompt = `Bạn là trợ lý hỗ trợ giảng viên đại học phân tích kết quả học tập theo CLO. Hãy phân tích ${scopeText} từ DỮ LIỆU THỐNG KÊ đã chấm tự động bên dưới. Không tự chấm lại, không suy đoán ngoài dữ liệu. Viết tiếng Việt ngắn gọn, cụ thể, tập trung CLO/chương/chủ đề cần cải thiện. Không dùng lời khen chung chung.\n\nDữ liệu:\n${JSON.stringify(metrics)}\n\nTrả về JSON đúng cấu trúc: {"summary":"2-4 câu", "strengths":["..."], "needs_improvement":["..."], "recommendations":["..."]}. Mỗi mảng tối đa 4 ý.`;
     const geminiCall = await callGemini(geminiKey, {
       contents: [{ role: "user", parts: [{ text: prompt }] }],
@@ -164,7 +176,7 @@ Deno.serve(async (req) => {
     try { analysis = JSON.parse(raw.replace(/^```json\s*/i, "").replace(/```$/i, "").trim()); }
     catch { analysis = { summary: raw || "Gemini không trả về nội dung hợp lệ.", strengths: [], needs_improvement: [], recommendations: [] }; }
 
-    await admin.from("assessment_ai_feedback").insert({ subject_id: subjectId, requested_by: userId, scope, student_id: studentId, attempt_id: scope === "attempt" ? attemptId : null, source_fingerprint: fingerprint, analysis });
+    await admin.from("assessment_ai_feedback").insert({ subject_id: subjectId, requested_by: userId, scope, student_id: studentId, attempt_id: scope === "attempt" ? attemptId : null, exam_id: scope === "exam" ? examId : null, source_fingerprint: fingerprint, analysis });
     return json({ success: true, cached: false, analysis, model: geminiCall.model });
   } catch (e) {
     console.error(e);
