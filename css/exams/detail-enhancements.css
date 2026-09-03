@@ -1,0 +1,20 @@
+/* AI-CLO PTITHCM V11.6.20 — assessment detail layout refinements. */
+.assessment-detail-meta{display:grid!important;grid-template-columns:minmax(0,1fr)!important;align-items:stretch!important;gap:14px!important}
+.assessment-detail-meta>div:first-child{display:grid;gap:5px}
+.assessment-detail-actions{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px!important;width:100%;justify-content:stretch!important}
+.assessment-detail-actions button{width:100%;min-width:0!important;min-height:48px;margin:0!important;padding:10px 12px!important;white-space:normal;line-height:1.2;font-weight:800}
+.assessment-detail-actions #examAiAnalyze.ai-btn{display:inline-flex;align-items:center;justify-content:center}
+.exam-ai-section.exam-ai-result-only{display:grid!important;gap:12px!important;align-items:stretch!important}
+.exam-ai-section.exam-ai-result-only[hidden]{display:none!important}
+.exam-ai-section.exam-ai-result-only>div:first-child{display:block}.exam-ai-section.exam-ai-result-only h3{margin:0}.exam-ai-section.exam-ai-result-only>button{display:none!important}.exam-ai-section.exam-ai-result-only #examAiResult{width:100%}
+.attempt-page-toolbar{grid-template-columns:minmax(260px,1fr) 180px 240px auto!important;align-items:center}
+.exam-attempt-table .attempt-student-col{min-width:220px;width:28%}
+.exam-attempt-table .attempt-date-col,.exam-attempt-table .attempt-date-cell{width:112px;min-width:112px;max-width:112px;text-align:center;white-space:nowrap}
+.exam-attempt-table .attempt-date-cell span,.exam-attempt-table .attempt-date-cell small{display:block}.exam-attempt-table .attempt-date-cell span{font-weight:750}.exam-attempt-table .attempt-date-cell small{margin-top:3px;color:var(--muted);font-size:11px}
+.exam-attempt-table .attempt-actions-col,.exam-attempt-table .attempt-actions-cell{min-width:300px}
+.exam-attempt-table .attempt-actions-cell{display:grid!important;grid-template-columns:minmax(62px,.7fr) minmax(62px,.7fr) minmax(132px,1.4fr)!important;gap:6px!important;align-items:center}
+.exam-attempt-table .attempt-actions-cell button{width:100%;min-width:0!important;margin:0!important;padding:8px 9px!important;white-space:nowrap;line-height:1.15}
+.exam-attempt-table .attempt-actions-cell [data-ai-attempt].ai-btn{display:inline-flex;align-items:center;justify-content:center}
+.exam-attempt-table th:not(.attempt-student-col):not(.attempt-actions-col),.exam-attempt-table td:not(.attempt-student-col):not(.attempt-actions-cell){font-variant-numeric:tabular-nums}
+@media(max-width:1180px){.assessment-detail-actions{grid-template-columns:repeat(3,minmax(0,1fr))}.attempt-page-toolbar{grid-template-columns:1fr 1fr!important}.attempt-page-toolbar input{grid-column:1/-1}.exam-attempt-table .attempt-student-col{min-width:200px}.exam-attempt-table .attempt-actions-col,.exam-attempt-table .attempt-actions-cell{min-width:275px}}
+@media(max-width:700px){.assessment-detail-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.attempt-page-toolbar{grid-template-columns:1fr!important}.attempt-page-toolbar input{grid-column:auto}.assessment-detail-actions button{min-height:44px}.exam-attempt-table .attempt-student-col{min-width:190px}.exam-attempt-table .attempt-actions-col,.exam-attempt-table .attempt-actions-cell{min-width:260px}.exam-attempt-table .attempt-actions-cell{grid-template-columns:64px 64px minmax(122px,1fr)!important}}
