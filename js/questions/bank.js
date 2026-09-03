@@ -36,7 +36,7 @@ backToQuestionList=async function(){
 questions=async function(c){
  if(!canTeach()){c.innerHTML='<div class="panel">Sinh viên không được truy cập ngân hàng câu hỏi.</div>';return}
  if(!state.subjectId){c.replaceChildren(empty());return}
- let sets;try{sets=await v96QuestionSets()}catch(ex){if(/question_scope|approval_status/i.test(ex.message||'')){c.innerHTML='<div class="panel migration-panel"><h3>Cần cập nhật Supabase V10.5</h3><p>Chạy <code>supabase/v10.5-upgrade.sql</code>, sau đó tải lại trang.</p></div>';return}throw ex}
+ let sets;try{sets=await v96QuestionSets()}catch(ex){if(/origin_type|is_official|verified_/i.test(ex.message||'')){c.innerHTML='<div class="panel migration-panel"><h3>Cần cập nhật nguồn câu hỏi</h3><p>Chạy <code>supabase/v11-question-origin.sql</code> trong Supabase SQL Editor, sau đó tải lại trang.</p></div>';return}if(/question_scope|approval_status/i.test(ex.message||'')){c.innerHTML='<div class="panel migration-panel"><h3>Cần cập nhật Supabase V10.5</h3><p>Chạy <code>supabase/v10.5-upgrade.sql</code>, sau đó tải lại trang.</p></div>';return}throw ex}
  let {items,ch,topics,clos}=sets,creators=[];try{let ids=[...new Set(items.map(x=>x.created_by).filter(Boolean))];if(ids.length)creators=await q('profiles','id,full_name,email',x=>x.in('id',ids).order('full_name'))}catch{}
  const practiceCount=items.filter(x=>v105QuestionInBank(x.question_scope,'practice')).length,secureCount=items.filter(x=>v105QuestionInBank(x.question_scope,'secure_exam')).length;
  c.innerHTML=`<div class="v105-bank-tabs" role="tablist" aria-label="Loại ngân hàng câu hỏi">
