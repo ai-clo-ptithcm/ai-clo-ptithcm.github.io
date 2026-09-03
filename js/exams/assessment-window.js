@@ -1,20 +1,28 @@
-/* AI-CLO PTITHCM V11.6.26 — direct create-assessment app window using the shared draggable/resizable controller. */
+/* AI-CLO PTITHCM V11.6.29 — create-assessment app window, fixed exam type and shared draggable/resizable controller. */
 (()=>{
 'use strict';
 let queued=false,observer=null,modalHookInstalled=false;
 
 function assessmentForm(){return document.querySelector('#modal #matrixAssessmentForm, #modal #assessmentForm')}
+function normalizeExamType(form){
+ const current=form.elements.namedItem('exam_type');
+ if(current&&current.tagName==='SELECT')current.closest('label')?.remove();
+ let hidden=form.querySelector('input[type="hidden"][name="exam_type"]');
+ if(!hidden){hidden=document.createElement('input');hidden.type='hidden';hidden.name='exam_type';form.append(hidden)}
+ hidden.value='chapter_test';
+}
 function enhanceAssessmentWindow(){
  const form=assessmentForm();
  if(!form)return null;
  const dialog=form.closest('#modal');if(!dialog?.open)return null;
  form.classList.add('assessment-window-form');
+ normalizeExamType(form);
  const title=dialog.querySelector('#modalTitle');if(title&&title.textContent!=='AI-CLO | Tạo bài kiểm tra')title.textContent='AI-CLO | Tạo bài kiểm tra';
  const description=form.elements.namedItem('description');if(description&&!description.dataset.aicloCompact){description.dataset.aicloCompact='1';description.setAttribute('rows','2')}
  const actions=form.querySelector('.form-actions');if(actions)actions.classList.add('assessment-window-footer');
  if(dialog.dataset.aicloAssessmentWindow==='1')return dialog;
  dialog.dataset.aicloAssessmentWindow='1';
- const body=dialog.querySelector('#modalBody');if(body)body.scrollTop=0;
+ const body=dialog.querySelector('#modalBody');if(body){body.scrollTop=0;body.scrollLeft=0}
  if(window.AICLO_APP_WINDOW?.open){
   window.AICLO_APP_WINDOW.open(dialog,{className:'assessment-window-modal',width:900,height:680});
  }else{
@@ -51,5 +59,5 @@ function init(){
  queueEnhance();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
-window.AICLO_ASSESSMENT_WINDOW=Object.freeze({version:'11.6.26',enhance:enhanceAssessmentWindow,open:enhanceAssessmentWindow});
+window.AICLO_ASSESSMENT_WINDOW=Object.freeze({version:'11.6.29',enhance:enhanceAssessmentWindow,open:enhanceAssessmentWindow});
 })();
