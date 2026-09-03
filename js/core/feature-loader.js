@@ -69,6 +69,17 @@ const lazyAiGenerate=async function(...args){
 };
 window.aiGenerateForm=lazyAiGenerate;
 
+async function loadDuplicateScan(){
+ await loadScript('js/questions/duplicate-scan.js?v=11.6.12');
+}
+const lazyDuplicateScan=async function(...args){
+ await loadDuplicateScan();
+ const fn=window.AICLO_DUPLICATE_SCAN?.open;
+ if(typeof fn!=='function')throw new Error('Không khởi tạo được chức năng kiểm tra câu hỏi trùng.');
+ return fn(...args);
+};
+window.openQuestionDuplicateScan=lazyDuplicateScan;
+
 async function ensureView(view){
  if(view==='exams'){
   if(canTeach())await loadFinalWorkflow();
@@ -107,6 +118,7 @@ window.AICLO_FEATURES=Object.freeze({
  ensureView,
  loadFinalWorkflow,
  loadAiReviewFlow,
+ loadDuplicateScan,
  isLoaded:src=>loaded.has(src),
  pending:()=>[...pending.keys()]
 });
