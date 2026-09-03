@@ -14,6 +14,7 @@ function similarity(a,b){
 }
 
 function scanDuplicates(items){
+ if(typeof window.openQuestionDuplicateScan==='function')return window.openQuestionDuplicateScan();
  const pairs=[];
  for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++){
   const score=similarity(items[i].content,items[j].content);
