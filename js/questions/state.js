@@ -59,9 +59,9 @@ const fullQuestionSets=window.v96QuestionSets;
 async function lightQuestionSets(){
  const sid=state.subjectId;
  const [items,ch,clos]=await Promise.all([
-  q('questions','id,subject_id,chapter_id,topic_id,clo_id,content,created_by,status,question_scope,approval_status,origin_type,ai_batch_id,is_official,verified_by,verified_at,created_at,updated_at',x=>x.eq('subject_id',sid).order('created_at',{ascending:false})),
-  q('chapters','*',x=>x.eq('subject_id',sid).order('order_index')),
-  q('clos','*',x=>x.eq('subject_id',sid).order('code'))
+  q('questions','id,subject_id,question_bank_id,display_code,chapter_id,topic_id,clo_id,content,created_by,status,question_scope,approval_status,origin_type,ai_batch_id,is_official,verified_by,verified_at,created_at,updated_at',x=>contentFilter(x,sid).order('created_at',{ascending:false})),
+  q('chapters','*',x=>contentFilter(x,sid).order('order_index')),
+  q('clos','*',x=>contentFilter(x,sid).order('code'))
  ]);
  const chapterIds=ch.map(x=>x.id).filter(Boolean);
  const topics=chapterIds.length?await q('topics','*',x=>x.in('chapter_id',chapterIds).order('order_index')):[];
