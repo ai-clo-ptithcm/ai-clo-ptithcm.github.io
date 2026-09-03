@@ -12,6 +12,8 @@ enterApp=function(){v95EnterAppBase();v95RefreshShell();document.body.classList.
 
 const v95SystemViews=new Set(['dashboard','subjects','questionBanks','notifications','activity','users']);
 const v95CourseViews=new Set(['dashboard','structure','questions','exams','results','users']);
+const v95NavHistory=[];
+let v95GoingBack=false,v95LastLocation=null;
 const v95RoleLabel=()=>role()==='admin'?'Quản trị viên':canTeach()?'Giảng viên':'Sinh viên';
 function v95NavItems(){
  if(state.space==='system')return [['dashboard','⌂','Tổng quan',true],['subjects','▣','Môn học',true],['notifications','♧','Thông báo',true],['activity','≡','Nhật ký',canTeach()],['users','♙','Người dùng',role()==='admin']];
@@ -21,8 +23,12 @@ function v95RefreshShell(){
  const nav=$('#nav');if(!nav)return;
  nav.innerHTML=v95NavItems().filter(x=>x[3]).map(([view,icon,label])=>`<button data-view="${view}" class="${state.view===view?'active':''}"><span class="nav-icon">${icon}</span><span${view==='users'?' id="usersNavLabel"':''}>${esc(label)}</span></button>`).join('');
  const course=activeSubject(),aside=$('.app>aside');aside?.classList.toggle('course-space',state.space==='course');
- let context=$('#courseContext');
- if(state.space==='course'&&course){if(!context){context=document.createElement('div');context.id='courseContext';context.className='course-context';$('.app>aside>.logo')?.after(context)}context.innerHTML=`<small>MÔN HỌC</small><b>${esc(course.name)}</b><span>${esc(course.semester)} · ${esc(course.academic_year)}</span>`}else context?.remove();
+ let context=$('#courseContext'),systemReturn=$('#courseSystemReturn');
+ if(state.space==='course'&&course){
+  if(!systemReturn){systemReturn=document.createElement('button');systemReturn.id='courseSystemReturn';systemReturn.className='course-system-return';systemReturn.type='button';systemReturn.innerHTML='<span>←</span><b>Về hệ thống</b>';$('.app>aside>.logo')?.after(systemReturn);systemReturn.onclick=()=>v95EnterSystem('dashboard')}
+  if(!context){context=document.createElement('div');context.id='courseContext';context.className='course-context';systemReturn.after(context)}
+  context.innerHTML=`<b>${esc(course.name)}</b><span>${esc(course.semester)} · ${esc(course.academic_year)}</span>`
+ }else{context?.remove();systemReturn?.remove()}
  $('#systemHomeBtn')?.classList.toggle('hidden',state.space!=='course');$('.subject-pick')?.classList.toggle('hidden',state.space!=='course');
  const pick=$('.subject-pick');if(pick&&course){let value=$('.subject-value',pick);if(!value){value=document.createElement('span');value.className='subject-value';pick.append(value)}value.innerHTML=`<b>${esc(course.name)}</b><small>${esc(course.semester)}</small>`}
 }
@@ -33,7 +39,9 @@ window.v95EnterCourse=v95EnterCourse;
 navigate=function(v){
  if(v==='notifications'){state.space='system';localStorage.setItem('aiclo_space','system')}
  if(state.space==='system'&&!v95SystemViews.has(v))v='dashboard';if(state.space==='course'&&!v95CourseViews.has(v))v='dashboard';if(v==='users'&&!canTeach()&&role()!=='admin')v='dashboard';
- closeDrawer();state.view=v;v95RefreshShell();$('aside')?.classList.remove('open');let t,s;
+ const target={space:state.space,view:v,subjectId:state.subjectId||null};
+ if(!v95GoingBack&&v95LastLocation&&(v95LastLocation.space!==target.space||v95LastLocation.view!==target.view||v95LastLocation.subjectId!==target.subjectId))v95NavHistory.push(v95LastLocation);
+ v95GoingBack=false;closeDrawer();state.view=v;v95RefreshShell();$('aside')?.classList.remove('open');let t,s;
  if(state.space==='system'){const globalTitles={dashboard:['Tổng quan hệ thống','Các môn học và hoạt động chung'],subjects:['Môn học','Danh sách các môn bạn được phép truy cập'],questionBanks:['Ngân hàng câu hỏi','Quản trị các ngân hàng câu hỏi độc lập'],notifications:titles.notifications||['Thông báo','Thông báo của toàn hệ thống'],activity:titles.activity||['Nhật ký','Hoạt động gần đây'],users:['Người dùng','Quản lý tài khoản và phân quyền']};[t,s]=globalTitles[v]||globalTitles.dashboard}else{const courseTitles={dashboard:['Tổng quan môn học','Theo dõi dữ liệu của học phần hiện tại'],structure:titles.structure,questions:titles.questions,exams:titles.exams,results:titles.results,users:['Danh sách lớp','Sinh viên thuộc học phần hiện tại']};[t,s]=courseTitles[v]||courseTitles.dashboard}
  $('#pageTitle').textContent=t;$('#pageSub').textContent=s;return render();
 };
@@ -56,6 +64,9 @@ if(window.AICLO_ASSESSMENT?.teacherClassList){const v95ClassList=window.AICLO_AS
 
 let v95RenderQueue=Promise.resolve(),v95LastRenderKey='';
 async function v95RenderNow(){let c=$('#content'),key=`${state.user?.id||''}:${state.space||''}:${state.subjectId||''}:${state.view||''}`,sameScreen=key===v95LastRenderKey&&c.children.length>0;if(!sameScreen)c.innerHTML='<div class="panel">Đang tải dữ liệu…</div>';else c.classList.add('refreshing-silently');try{let fn=state.view==='dashboard'?dashboard:state.view==='subjects'?subjects:state.view==='questionBanks'?window.systemQuestionBanks:state.view==='structure'?structure:state.view==='questions'?questions:state.view==='exams'?exams:state.view==='results'?results:state.view==='notifications'?notifications:state.view==='activity'?activity:state.view==='users'?users:dashboard;if(typeof fn!=='function')throw new Error('Chức năng Ngân hàng câu hỏi chưa tải xong.');await fn(c);v95LastRenderKey=key;v95RefreshShell()}catch(ex){if(!sameScreen)c.innerHTML=`<div class="panel"><b>Không thể tải dữ liệu</b><p>${esc(ex.message)}</p></div>`;else toast(ex?.message||'Không thể làm mới dữ liệu',true);err(ex)}finally{c.classList.remove('refreshing-silently')}}
+function v95GoBack(){const previous=v95NavHistory.pop();if(!previous)return v95EnterSystem('dashboard');v95GoingBack=true;state.space=previous.space;state.subjectId=previous.subjectId;localStorage.setItem('aiclo_space',previous.space);if(previous.subjectId)localStorage.setItem('aiclo_subject',previous.subjectId);fillSubjectSelect();v95RefreshShell();navigate(previous.view)}
+const v95RenderNowWithLocation=v95RenderNow;
+v95RenderNow=async function(){await v95RenderNowWithLocation();v95LastLocation={space:state.space,view:state.view,subjectId:state.subjectId||null}}
 render=function(){v95RenderQueue=v95RenderQueue.then(v95RenderNow,v95RenderNow);return v95RenderQueue};
 window.AICLO_NAVIGATION=Object.freeze({enterSystem:v95EnterSystem,enterCourse:v95EnterCourse,refresh:v95RefreshShell,questionAnalysis:v95QuestionAnalysis,composeMessage:v95ComposeMessage});
-document.addEventListener('DOMContentLoaded',()=>{$('#systemHomeBtn').onclick=()=>v95EnterSystem('dashboard');v95RefreshShell()});
+document.addEventListener('DOMContentLoaded',()=>{$('#systemHomeBtn').onclick=v95GoBack;v95RefreshShell()});
