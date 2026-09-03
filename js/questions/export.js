@@ -18,26 +18,28 @@ function setSheetLayout(sheet,widths){
  const range=window.XLSX.utils.decode_range(sheet['!ref']||'A1');
  if(range.e.r>=0)sheet['!autofilter']={ref:window.XLSX.utils.encode_range({s:{r:0,c:0},e:{r:range.e.r,c:range.e.c}})};
 }
-async function exportQuestionBank(){
+async function exportQuestionBank(target={}){
  if(role()!=='admin')return toast('Chỉ Admin được xuất toàn bộ ngân hàng câu hỏi.',true);
- if(!state.subjectId)return toast('Hãy chọn học phần trước.',true);
- const subject=activeSubject();
+ const requested=target?.bank||null,subject=requested?state.subjects.find(s=>s.question_bank_id===requested.id):activeSubject();
+ const bank=requested||subject?.question_banks||null,bankId=bank?.id||subject?.question_bank_id||null;
+ if(!bankId)return toast('Không xác định được ngân hàng câu hỏi.',true);
  const confirmed=await confirmAction(
   'Xuất toàn bộ ngân hàng câu hỏi?',
   'File Excel bao gồm cả câu luyện tập, đáp án và Ngân hàng đề thi - bảo mật. Hãy lưu trữ file ở nơi an toàn.',
   {confirmLabel:'Xuất Excel'}
  );
  if(!confirmed)return;
- const button=$('#exportQuestionBank');
+ const button=target?.button||$('#exportQuestionBank');
+ const originalButtonText=button?.textContent;
  if(button){button.disabled=true;button.textContent='Đang chuẩn bị Excel…'}
  try{
   const XLSXLib=window.XLSX||(window.AICLO_OFFICE_LIBS?.xlsx?await window.AICLO_OFFICE_LIBS.xlsx():null);
   if(!XLSXLib)throw new Error('Không tải được thư viện Excel.');
-  const sid=state.subjectId;
+  const sid=subject?.id||null,bankFilter=x=>x.eq('question_bank_id',bankId);
   const [questions,chapters,clos]=await Promise.all([
-   q('questions','*, question_options(*)',x=>contentFilter(x,sid).order('created_at',{ascending:true})),
-   q('chapters','*',x=>contentFilter(x,sid).order('order_index')),
-   q('clos','*',x=>contentFilter(x,sid).order('code'))
+   q('questions','*, question_options(*)',x=>bankFilter(x).order('created_at',{ascending:true})),
+   q('chapters','*',x=>bankFilter(x).order('order_index')),
+   q('clos','*',x=>bankFilter(x).order('code'))
   ]);
   const chapterIds=chapters.map(x=>x.id).filter(Boolean);
   const topics=chapterIds.length?await q('topics','*',x=>x.in('chapter_id',chapterIds).order('order_index')):[];
@@ -96,7 +98,9 @@ async function exportQuestionBank(){
   const practice=questions.filter(x=>['practice','both'].includes(x.question_scope)).length;
   const secure=questions.filter(x=>['secure_exam','both'].includes(x.question_scope)).length;
   const info=[
-   {'Thông tin':'Tên học phần','Giá trị':subject?.name||''},
+   {'Thông tin':'Ngân hàng câu hỏi','Giá trị':bank?.name||subject?.question_banks?.name||''},
+   {'Thông tin':'Mã ngân hàng','Giá trị':bank?.code||subject?.question_banks?.code||''},
+   {'Thông tin':'Học phần đại diện','Giá trị':subject?.name||'Không có'},
    {'Thông tin':'Học kỳ','Giá trị':subject?.semester||''},
    {'Thông tin':'Năm học','Giá trị':subject?.academic_year||''},
    {'Thông tin':'Mã học phần nội bộ','Giá trị':sid},
@@ -112,7 +116,8 @@ async function exportQuestionBank(){
    {'Thông tin':'Cảnh báo bảo mật','Giá trị':'File có thể chứa câu hỏi và đáp án của Ngân hàng đề thi - bảo mật. Chỉ lưu hành nội bộ.'}
   ];
   const workbook=XLSXLib.utils.book_new();
-  workbook.Props={Title:`Ngân hàng câu hỏi - ${subject?.name||''}`,Subject:'Sao lưu ngân hàng câu hỏi AI-CLO PTITHCM',Author:state.profile?.full_name||state.user?.email||'Admin',CreatedDate:new Date()};
+  const bankName=bank?.name||subject?.question_banks?.name||subject?.name||'Ngân hàng';
+  workbook.Props={Title:`Ngân hàng câu hỏi - ${bankName}`,Subject:'Sao lưu ngân hàng câu hỏi AI-CLO PTITHCM',Author:state.profile?.full_name||state.user?.email||'Admin',CreatedDate:new Date()};
   const questionSheet=XLSXLib.utils.json_to_sheet(rows),revisionSheet=XLSXLib.utils.json_to_sheet(revisionRows),infoSheet=XLSXLib.utils.json_to_sheet(info);
   setSheetLayout(questionSheet,[7,14,38,60,38,38,38,38,12,55,28,13,28,13,12,45,25,20,20,24,18,28,30,28,20,28,20,38,22,22]);
   setSheetLayout(revisionSheet,[7,14,38,14,28,22,90]);
@@ -120,12 +125,12 @@ async function exportQuestionBank(){
   XLSXLib.utils.book_append_sheet(workbook,questionSheet,'Cau_hoi');
   XLSXLib.utils.book_append_sheet(workbook,revisionSheet,'Lich_su');
   XLSXLib.utils.book_append_sheet(workbook,infoSheet,'Thong_tin');
-  const filename=`Ngan-hang-${safeFileName(subject?.name)}_${new Date().toISOString().slice(0,10)}.xlsx`;
+  const filename=`Ngan-hang-${safeFileName(bankName)}_${new Date().toISOString().slice(0,10)}.xlsx`;
   XLSXLib.writeFile(workbook,filename);
-  window.logActivity?.('export','question_bank',null,`Admin xuất toàn bộ ngân hàng ${subject?.name||''}: ${questions.length} câu, gồm ${secure} câu trong ngân hàng bảo mật`,'success',sid,{questions:questions.length,practice,secure,revisions:revisions.length});
+  window.logActivity?.('export','question_bank',bankId,`Admin xuất toàn bộ ngân hàng ${bankName}: ${questions.length} câu, gồm ${secure} câu trong ngân hàng bảo mật`,'success',sid,{question_bank_id:bankId,questions:questions.length,practice,secure,revisions:revisions.length});
   toast(`Đã xuất ${questions.length} câu hỏi ra Excel`);
  }catch(error){err(error)}
- finally{if(button){button.disabled=false;button.textContent='↓ Xuất ngân hàng Excel'}}
+ finally{if(button){button.disabled=false;button.textContent=originalButtonText||'↓ Xuất ngân hàng Excel'}}
 }
 
 const previousQuestions=window.questions;
@@ -136,8 +141,8 @@ window.questions=async function(c){
  const button=document.createElement('button');
  button.id='exportQuestionBank';button.type='button';button.className='secondary';button.textContent='↓ Xuất ngân hàng Excel';
  const firstAction=$('#scanDuplicates',actions);firstAction?actions.insertBefore(button,firstAction):actions.appendChild(button);
- button.onclick=exportQuestionBank;
+ button.onclick=()=>exportQuestionBank({button});
 };
 
-window.AICLO_QUESTION_EXPORT=Object.freeze({exportAll:exportQuestionBank});
+window.AICLO_QUESTION_EXPORT=Object.freeze({exportAll:exportQuestionBank,exportBank:(bank,button)=>exportQuestionBank({bank,button})});
 })();
