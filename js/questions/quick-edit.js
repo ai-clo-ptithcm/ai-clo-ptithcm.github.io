@@ -1,9 +1,10 @@
-/* AI-CLO PTITHCM V11.6.15 — draggable quick editor kept inside the visible viewport. */
+/* AI-CLO PTITHCM V11.6.16 — compact draggable/resizable quick editor. */
 (()=>{
 'use strict';
 
 let enhanceQueued=false,activePointer=null;
 const optionKeys=['A','B','C','D'];
+const RESIZE_EDGES=['n','e','s','w','ne','nw','se','sw'];
 const duplicateStateKey=()=>`ai-clo:v11612:${state.user?.id||'user'}:${state.subjectId||'subject'}:duplicate-scan`;
 const readJson=(key,fallback=null)=>{try{return JSON.parse(sessionStorage.getItem(key)||'null')??fallback}catch{return fallback}};
 const writeJson=(key,value)=>{try{sessionStorage.setItem(key,JSON.stringify(value))}catch{}};
@@ -28,58 +29,111 @@ function modalMarkup(question){
  return `<form id="quickQuestionForm" class="quick-question-form">
   <label class="field wide"><span>Nội dung câu hỏi</span><textarea name="content" rows="4" required>${esc(question.content||'')}</textarea></label>
   <div class="quick-answer-grid">${optionKeys.map(k=>`<label class="field"><span>Phương án ${k}</span><textarea name="opt_${k}" rows="2" required>${esc(opts[k]||'')}</textarea></label>`).join('')}</div>
-  <label class="field quick-correct-field"><span>Đáp án đúng</span><select name="correct_answer">${optionKeys.map(k=>`<option value="${k}" ${correct===k?'selected':''}>${k}</option>`).join('')}</select></label>
   <div id="quickQuestionError" class="quick-question-error" hidden></div>
-  <div class="form-actions quick-question-actions"><button id="cancelQuickQuestion" type="button" class="secondary">Hủy</button><button id="saveQuickQuestion" class="primary">Lưu</button></div>
+  <div class="quick-footer-row">
+   <label class="field quick-correct-field"><span>Đáp án đúng</span><select name="correct_answer">${optionKeys.map(k=>`<option value="${k}" ${correct===k?'selected':''}>${k}</option>`).join('')}</select></label>
+   <div class="quick-question-actions"><button id="cancelQuickQuestion" type="button" class="secondary">Hủy</button><button id="saveQuickQuestion" class="primary">Lưu</button></div>
+  </div>
  </form>`;
 }
 
-function resetModalPosition(dialog){
- dialog.style.left='50%';dialog.style.top='50%';dialog.style.transform='translate(-50%,-50%)';
- dialog.style.right='auto';dialog.style.bottom='auto';
-}
 function clamp(value,min,max){return Math.max(min,Math.min(max,value))}
+function setGeometry(dialog,{left,top,width,height}){
+ dialog.style.left=`${Math.round(left)}px`;
+ dialog.style.top=`${Math.round(top)}px`;
+ dialog.style.width=`${Math.round(width)}px`;
+ dialog.style.height=`${Math.round(height)}px`;
+ dialog.style.right='auto';dialog.style.bottom='auto';dialog.style.transform='none';
+}
+function resetModalGeometry(dialog){
+ if(matchMedia('(max-width:700px)').matches){
+  dialog.style.left='';dialog.style.top='';dialog.style.width='';dialog.style.height='';dialog.style.right='';dialog.style.bottom='';dialog.style.transform='';
+  return;
+ }
+ const pad=16,width=Math.min(720,Math.max(520,innerWidth-pad*2)),height=Math.min(600,Math.max(410,innerHeight-pad*2));
+ setGeometry(dialog,{left:(innerWidth-width)/2,top:(innerHeight-height)/2,width,height});
+}
 function keepModalInViewport(dialog){
  if(!dialog?.open||matchMedia('(max-width:700px)').matches)return;
  const rect=dialog.getBoundingClientRect(),pad=8;
- const left=clamp(rect.left,pad,Math.max(pad,innerWidth-rect.width-pad));
- const top=clamp(rect.top,pad,Math.max(pad,innerHeight-rect.height-pad));
- if(Math.abs(left-rect.left)<.5&&Math.abs(top-rect.top)<.5)return;
- dialog.style.left=`${left}px`;dialog.style.top=`${top}px`;dialog.style.transform='none';
+ const maxWidth=Math.max(520,innerWidth-pad*2),maxHeight=Math.max(410,innerHeight-pad*2);
+ const width=Math.min(rect.width,maxWidth),height=Math.min(rect.height,maxHeight);
+ const left=clamp(rect.left,pad,Math.max(pad,innerWidth-width-pad));
+ const top=clamp(rect.top,pad,Math.max(pad,innerHeight-height-pad));
+ if(Math.abs(left-rect.left)<.5&&Math.abs(top-rect.top)<.5&&Math.abs(width-rect.width)<.5&&Math.abs(height-rect.height)<.5)return;
+ setGeometry(dialog,{left,top,width,height});
 }
-function installDrag(dialog){
+function addResizeHandles(dialog){
+ RESIZE_EDGES.forEach(edge=>{
+  if(dialog.querySelector(`[data-quick-resize="${edge}"]`))return;
+  const handle=document.createElement('span');
+  handle.className=`quick-resize-handle quick-resize-${edge}`;
+  handle.dataset.quickResize=edge;
+  handle.setAttribute('aria-hidden','true');
+  dialog.appendChild(handle);
+ });
+}
+function removeResizeHandles(dialog){dialog.querySelectorAll('[data-quick-resize]').forEach(x=>x.remove())}
+function installWindowInteractions(dialog){
  const head=dialog.querySelector('.modal-head');if(!head)return;
  let resizeFrame=0;
- const onDown=event=>{
+ addResizeHandles(dialog);
+
+ const finishPointer=(event,target)=>{
+  if(!activePointer||activePointer.id!==event.pointerId)return;
+  activePointer=null;head.classList.remove('dragging');
+  try{target?.releasePointerCapture?.(event.pointerId)}catch{}
+ };
+ const onHeadDown=event=>{
   if(matchMedia('(max-width:700px)').matches||event.button!==0||event.target.closest('button,input,select,textarea,a'))return;
   const rect=dialog.getBoundingClientRect();
-  activePointer={id:event.pointerId,dx:event.clientX-rect.left,dy:event.clientY-rect.top};
-  dialog.style.left=`${rect.left}px`;dialog.style.top=`${rect.top}px`;dialog.style.transform='none';
+  activePointer={mode:'move',id:event.pointerId,dx:event.clientX-rect.left,dy:event.clientY-rect.top};
+  setGeometry(dialog,{left:rect.left,top:rect.top,width:rect.width,height:rect.height});
   head.classList.add('dragging');head.setPointerCapture?.(event.pointerId);event.preventDefault();
  };
- const onMove=event=>{
-  if(!activePointer||activePointer.id!==event.pointerId)return;
+ const onHeadMove=event=>{
+  if(!activePointer||activePointer.mode!=='move'||activePointer.id!==event.pointerId)return;
   const rect=dialog.getBoundingClientRect(),pad=8;
   const left=clamp(event.clientX-activePointer.dx,pad,Math.max(pad,innerWidth-rect.width-pad));
   const top=clamp(event.clientY-activePointer.dy,pad,Math.max(pad,innerHeight-rect.height-pad));
-  dialog.style.left=`${left}px`;dialog.style.top=`${top}px`;dialog.style.transform='none';
+  setGeometry(dialog,{left,top,width:rect.width,height:rect.height});
  };
- const onUp=event=>{
-  if(!activePointer||activePointer.id!==event.pointerId)return;
-  activePointer=null;head.classList.remove('dragging');try{head.releasePointerCapture?.(event.pointerId)}catch{}
+ const onHeadUp=event=>finishPointer(event,head);
+
+ const onResizeDown=event=>{
+  const handle=event.currentTarget;
+  if(matchMedia('(max-width:700px)').matches||event.button!==0)return;
+  const rect=dialog.getBoundingClientRect();
+  activePointer={mode:'resize',id:event.pointerId,edge:handle.dataset.quickResize,startX:event.clientX,startY:event.clientY,left:rect.left,top:rect.top,width:rect.width,height:rect.height,right:rect.right,bottom:rect.bottom};
+  setGeometry(dialog,{left:rect.left,top:rect.top,width:rect.width,height:rect.height});
+  handle.setPointerCapture?.(event.pointerId);event.preventDefault();event.stopPropagation();
  };
- const onResize=()=>{
-  cancelAnimationFrame(resizeFrame);
-  resizeFrame=requestAnimationFrame(()=>keepModalInViewport(dialog));
+ const onResizeMove=event=>{
+  if(!activePointer||activePointer.mode!=='resize'||activePointer.id!==event.pointerId)return;
+  const p=activePointer,edge=p.edge,pad=8,minW=520,minH=410,dx=event.clientX-p.startX,dy=event.clientY-p.startY;
+  let left=p.left,top=p.top,width=p.width,height=p.height;
+  if(edge.includes('e'))width=clamp(p.width+dx,minW,Math.max(minW,innerWidth-pad-p.left));
+  if(edge.includes('s'))height=clamp(p.height+dy,minH,Math.max(minH,innerHeight-pad-p.top));
+  if(edge.includes('w')){left=clamp(p.left+dx,pad,p.right-minW);width=p.right-left}
+  if(edge.includes('n')){top=clamp(p.top+dy,pad,p.bottom-minH);height=p.bottom-top}
+  setGeometry(dialog,{left,top,width,height});
  };
- head.addEventListener('pointerdown',onDown);head.addEventListener('pointermove',onMove);head.addEventListener('pointerup',onUp);head.addEventListener('pointercancel',onUp);
- window.addEventListener('resize',onResize);window.visualViewport?.addEventListener('resize',onResize);
+ const onResizeUp=event=>finishPointer(event,event.currentTarget);
+
+ head.addEventListener('pointerdown',onHeadDown);head.addEventListener('pointermove',onHeadMove);head.addEventListener('pointerup',onHeadUp);head.addEventListener('pointercancel',onHeadUp);
+ const handles=[...dialog.querySelectorAll('[data-quick-resize]')];
+ handles.forEach(handle=>{handle.addEventListener('pointerdown',onResizeDown);handle.addEventListener('pointermove',onResizeMove);handle.addEventListener('pointerup',onResizeUp);handle.addEventListener('pointercancel',onResizeUp)});
+ const onViewportResize=()=>{cancelAnimationFrame(resizeFrame);resizeFrame=requestAnimationFrame(()=>keepModalInViewport(dialog))};
+ window.addEventListener('resize',onViewportResize);window.visualViewport?.addEventListener('resize',onViewportResize);
  requestAnimationFrame(()=>keepModalInViewport(dialog));
+
  const cleanup=()=>{
   activePointer=null;cancelAnimationFrame(resizeFrame);head.classList.remove('dragging');
-  head.removeEventListener('pointerdown',onDown);head.removeEventListener('pointermove',onMove);head.removeEventListener('pointerup',onUp);head.removeEventListener('pointercancel',onUp);
-  window.removeEventListener('resize',onResize);window.visualViewport?.removeEventListener('resize',onResize);
-  dialog.classList.remove('quick-edit-modal');dialog.style.left='';dialog.style.top='';dialog.style.right='';dialog.style.bottom='';dialog.style.transform='';
+  head.removeEventListener('pointerdown',onHeadDown);head.removeEventListener('pointermove',onHeadMove);head.removeEventListener('pointerup',onHeadUp);head.removeEventListener('pointercancel',onHeadUp);
+  handles.forEach(handle=>{handle.removeEventListener('pointerdown',onResizeDown);handle.removeEventListener('pointermove',onResizeMove);handle.removeEventListener('pointerup',onResizeUp);handle.removeEventListener('pointercancel',onResizeUp)});
+  window.removeEventListener('resize',onViewportResize);window.visualViewport?.removeEventListener('resize',onViewportResize);
+  removeResizeHandles(dialog);dialog.classList.remove('quick-edit-modal');
+  ['left','top','right','bottom','width','height','transform'].forEach(prop=>dialog.style[prop]='');
  };
  dialog.addEventListener('close',cleanup,{once:true});
 }
@@ -137,8 +191,8 @@ async function openQuick(id,{source='bank',pairId=null,onSaved=null}={}){
   if(!v96CanManage(question))return toast('Chỉ người nhập hoặc Admin được sửa câu hỏi.',true);
   captureQuestionFilters?.();
   const initial={content:String(question.content||'').trim(),correct_answer:String(question.correct_answer||'A').toUpperCase(),options:optionMap(question)};
-  modal(`↕ Sửa nhanh · ${questionCode(question)}`,modalMarkup(question));
-  const dialog=$('#modal');dialog.classList.add('quick-edit-modal');resetModalPosition(dialog);installDrag(dialog);
+  modal(`AI-CLO | Sửa nhanh · ${questionCode(question)}`,modalMarkup(question));
+  const dialog=$('#modal');dialog.classList.add('quick-edit-modal');resetModalGeometry(dialog);installWindowInteractions(dialog);
   const form=$('#quickQuestionForm'),cancel=$('#cancelQuickQuestion'),save=$('#saveQuickQuestion'),errorBox=$('#quickQuestionError');
   cancel.onclick=closeModal;
   form.onsubmit=async event=>{
