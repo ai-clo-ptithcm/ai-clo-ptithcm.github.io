@@ -7,7 +7,7 @@
 .exam-blueprint-form .matrix-builder-table .matrix-topic-col,
 .exam-blueprint-form .matrix-builder-table .matrix-topic-name,
 .v102-matrix th:first-child,
-.v102-matrix td:first-child{width:40%;min-width:0;text-align:left}
+.v102-matrix td:first-child{width:38%;min-width:0;text-align:left}
 .exam-blueprint-form .matrix-builder-table th:not(:first-child):not(:last-child),
 .exam-blueprint-form .matrix-builder-table td:not(:first-child):not(:last-child),
 .v102-matrix th:not(:first-child):not(:last-child),
@@ -15,7 +15,7 @@
 .exam-blueprint-form .matrix-builder-table th:last-child,
 .exam-blueprint-form .matrix-builder-table td:last-child,
 .v102-matrix th:last-child,
-.v102-matrix td:last-child{width:9%;text-align:center}
+.v102-matrix td:last-child{width:11%;text-align:center}
 .matrix-topic-inline{display:block;line-height:1.35;font-weight:700;white-space:normal;overflow-wrap:anywhere}
 .matrix-cell-compact{display:flex;align-items:center;justify-content:center;gap:6px;min-width:0}
 .matrix-cell-compact input{width:58px!important;min-width:52px!important;margin:0!important;padding:7px 5px!important;text-align:center}
