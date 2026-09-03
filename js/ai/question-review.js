@@ -19,9 +19,10 @@ advanceReview=async function(batch,drafts,pos){
  let pending=drafts.findIndex((x,i)=>i>pos&&x.review_status==='pending');
  if(pending<0)pending=drafts.findIndex(x=>x.review_status==='pending');
  if(pending>=0)return showDraft(batch,drafts,drafts[pending],pending);
+ window.AICLO_AI_REVIEW_STATE?.clear?.();
  const {error}=await db.from('ai_generation_batches').update({status:'completed',completed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',batch.id);
  if(error)return err(error);
- toast('Đã duyệt xong phiên câu hỏi');
+ toast(`Đã duyệt xong ${drafts.length}/${drafts.length} câu`);
  backToQuestionList();
 };
 
