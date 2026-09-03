@@ -1,14 +1,17 @@
-/* AI-CLO PTITHCM V11.6.6 — structured Add question workspace. */
+/* AI-CLO PTITHCM V11.6.17 — structured create/edit question workspace. */
 (()=>{
 'use strict';
 
 let queued=false;
 
-function addQuestionForm(){
+function questionFormContext(){
  const form=document.querySelector('#qForm');
  if(!form)return null;
- const title=String(document.querySelector('#pageTitle')?.textContent||document.querySelector('.workspace-head h3')?.textContent||'').trim().toLowerCase();
- return title.includes('thêm câu hỏi')?form:null;
+ const workspace=form.closest('.question-workspace');
+ const title=String(workspace?.querySelector('.workspace-head h3')?.textContent||'').trim().toLowerCase();
+ if(title.includes('thêm câu hỏi'))return {form,mode:'create'};
+ if(title.includes('sửa câu hỏi'))return {form,mode:'edit'};
+ return null;
 }
 
 function forceCurrentBankDefault(form){
@@ -67,34 +70,41 @@ function moveFields(form){
  const composeBody=compose.querySelector('.question-create-section-body');
  composeBody.append(content,options);
  const answerRow=document.createElement('div');
- answerRow.className='question-create-answer-row';answerRow.append(correct);composeBody.append(answerRow,explanation);
+ answerRow.className='question-create-answer-row';
+ answerRow.append(correct);
+ composeBody.append(answerRow,explanation);
 
  const classify=section('Phân loại câu hỏi','Gán câu hỏi vào đúng cấu trúc học phần.','question-create-classify');
  const classifyBody=classify.querySelector('.question-create-section-body');
- const grid=document.createElement('div');grid.className='question-create-classify-grid';grid.append(chapter,topic,clo,approval);classifyBody.append(grid);
+ const grid=document.createElement('div');
+ grid.className='question-create-classify-grid';
+ grid.append(chapter,topic,clo,approval);
+ classifyBody.append(grid);
 
  scope.classList.add('question-create-scope');
  actions.classList.add('question-create-actions');
 
- const mode=form.querySelector('#questionCreateMode');
- mode.insertAdjacentElement('afterend',compose);
- compose.insertAdjacentElement('afterend',classify);
- classify.insertAdjacentElement('afterend',scope);
- scope.insertAdjacentElement('afterend',actions);
+ form.append(compose,classify,scope,actions);
  return true;
 }
 
 function enhance(){
- const form=addQuestionForm();
- if(!form||form.dataset.aicloCreateLayout==='1')return;
- forceCurrentBankDefault(form);
- buildModeSwitch(form);
+ const context=questionFormContext();
+ if(!context)return;
+ const {form,mode}=context;
+ if(form.dataset.aicloCreateLayout==='1')return;
+ if(mode==='create'){
+  forceCurrentBankDefault(form);
+  buildModeSwitch(form);
+ }
  if(!moveFields(form))return;
  form.dataset.aicloCreateLayout='1';
+ form.dataset.aicloQuestionFormMode=mode;
 }
 
 function queueEnhance(){
- if(queued)return;queued=true;
+ if(queued)return;
+ queued=true;
  requestAnimationFrame(()=>{queued=false;enhance()});
 }
 
