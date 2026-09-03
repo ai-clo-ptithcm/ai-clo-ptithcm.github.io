@@ -1,5 +1,5 @@
 /* AI-CLO PTITHCM — on-demand loader for heavy feature modules. */
-(() => {
+(()=>{
 'use strict';
 
 const pending=new Map();
@@ -48,8 +48,12 @@ const lazyCloForm=async function(...args){
 };
 window.v102CloForm=lazyCloForm;
 
+async function loadAiReviewFlow(){
+ await loadMany(['js/ai/question-review.js?v=11.6.8','js/ai/review-flow.js?v=11.6.8']);
+}
+
 const lazyAiHistory=async function(...args){
- await loadScript('js/ai/question-review.js?v=11.4.2');
+ await loadAiReviewFlow();
  const fn=window.aiHistory;
  if(typeof fn!=='function'||fn===lazyAiHistory)throw new Error('Không khởi tạo được lịch sử AI.');
  return fn(...args);
@@ -57,7 +61,8 @@ const lazyAiHistory=async function(...args){
 window.aiHistory=lazyAiHistory;
 
 const lazyAiGenerate=async function(...args){
- await loadMany(['js/ai/question-review.js?v=11.4.2','js/ai/generator.js']);
+ await loadAiReviewFlow();
+ await loadScript('js/ai/generator.js?v=11.6.8');
  const fn=window.aiGenerateForm;
  if(typeof fn!=='function'||fn===lazyAiGenerate)throw new Error('Không khởi tạo được chức năng tạo câu hỏi AI.');
  return fn(...args);
@@ -101,6 +106,7 @@ window.AICLO_FEATURES=Object.freeze({
  loadMany,
  ensureView,
  loadFinalWorkflow,
+ loadAiReviewFlow,
  isLoaded:src=>loaded.has(src),
  pending:()=>[...pending.keys()]
 });
