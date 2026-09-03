@@ -2,6 +2,15 @@
 (() => {
 'use strict';
 
+function ensureBulkAssets(){
+ if(!document.querySelector('link[data-aiclo-bulk-actions]')){
+  const link=document.createElement('link');link.rel='stylesheet';link.href='css/questions/bulk-actions.css?v=11.6.19';link.dataset.aicloBulkActions='1';document.head.append(link);
+ }
+ if(!document.querySelector('script[data-aiclo-bulk-actions]')){
+  const script=document.createElement('script');script.src='js/questions/bulk-actions.js?v=11.6.19';script.defer=true;script.dataset.aicloBulkActions='1';document.head.append(script);
+ }
+}
+
 async function usedQuestionIds(ids){
  const used=new Set();
  if(!ids.length)return used;
@@ -42,7 +51,7 @@ async function runBulkDelete(btn){
    :`Xóa vĩnh viễn ${allowed.length} câu đã chọn và toàn bộ phương án? Thao tác không thể hoàn tác.`;
   if(!await confirmAction('Xóa nhiều câu hỏi',message,{confirmLabel:`Xóa ${allowed.length} câu`,danger:true}))return;
   const r=await deleteUnusedQuestions(allowed);
-  window.logActivity?.('delete','question',null,`Xóa hàng loạt ${r.deleted} câu hỏi`, 'success', state.subjectId,{deleted:r.deleted,failed:r.failed,kept_used:used.size});
+  window.logActivity?.('delete','question',null,`Xóa hàng loạt ${r.deleted} câu hỏi`,'success',state.subjectId,{deleted:r.deleted,failed:r.failed,kept_used:used.size});
   window.AICLO_QUESTION_BULK_SELECTION?.clear?.();
   toast(r.failed?`Đã xóa ${r.deleted} câu; ${r.failed} câu không xóa được.`:`Đã xóa ${r.deleted} câu hỏi`);
   await render();
@@ -54,5 +63,6 @@ document.addEventListener('click',event=>{
  event.preventDefault();event.stopPropagation();runBulkDelete(btn);
 },true);
 
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ensureBulkAssets,{once:true});else ensureBulkAssets();
 window.AICLO_QUESTION_BULK_DELETE=Object.freeze({run:runBulkDelete});
 })();
