@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V11.6.17 — structured create/edit question workspace. */
+/* AI-CLO PTITHCM V11.6.18 — compact structured create/edit question workspace. */
 (()=>{
 'use strict';
 
@@ -21,10 +21,17 @@ function forceCurrentBankDefault(form){
  if(radio&&!radio.checked)radio.checked=true;
 }
 
-function section(title,desc,className){
+function titledSection(title,className){
  const el=document.createElement('section');
  el.className=`question-create-section wide ${className||''}`.trim();
- el.innerHTML=`<div class="question-create-section-head"><b>${title}</b>${desc?`<small>${desc}</small>`:''}</div><div class="question-create-section-body"></div>`;
+ el.innerHTML=`<div class="question-create-section-head"><b>${title}</b></div><div class="question-create-section-body"></div>`;
+ return el;
+}
+
+function plainSection(className){
+ const el=document.createElement('section');
+ el.className=`question-create-section wide ${className||''}`.trim();
+ el.innerHTML='<div class="question-create-section-body"></div>';
  return el;
 }
 
@@ -53,6 +60,25 @@ function buildModeSwitch(form){
  return mode;
 }
 
+function compactScope(scope){
+ if(!scope)return;
+ scope.classList.add('question-create-scope');
+ scope.querySelectorAll('.v105-scope-option').forEach(label=>{
+  const hint=label.querySelector('small')?.textContent?.trim();
+  if(hint&&label.title!==hint)label.title=hint;
+ });
+}
+
+function arrangeMeta(form){
+ const meta=form.querySelector('.question-create-meta-row');
+ if(!meta)return;
+ const origin=form.querySelector('.question-origin-field');
+ const scope=form.querySelector('.v105-scope-chooser');
+ if(origin&&origin.parentElement!==meta)meta.insertBefore(origin,meta.firstChild);
+ if(scope&&scope.parentElement!==meta)meta.append(scope);
+ compactScope(scope);
+}
+
 function moveFields(form){
  const content=form.querySelector('textarea[name="content"]')?.closest('label');
  const options=form.querySelector('.option-grid');
@@ -62,11 +88,12 @@ function moveFields(form){
  const topic=form.querySelector('select[name="topic_id"]')?.closest('label');
  const clo=form.querySelector('select[name="clo_id"]')?.closest('label');
  const approval=form.querySelector('select[name="approval_status"]')?.closest('label');
+ const origin=form.querySelector('.question-origin-field');
  const scope=form.querySelector('.v105-scope-chooser');
  const actions=form.querySelector('.form-actions');
  if(!content||!options||!correct||!explanation||!chapter||!topic||!clo||!approval||!scope||!actions)return false;
 
- const compose=section('Soạn câu hỏi','Nhập nội dung, các phương án, đáp án đúng và lời giải theo một mạch.','question-create-compose');
+ const compose=plainSection('question-create-compose');
  const composeBody=compose.querySelector('.question-create-section-body');
  composeBody.append(content,options);
  const answerRow=document.createElement('div');
@@ -74,17 +101,21 @@ function moveFields(form){
  answerRow.append(correct);
  composeBody.append(answerRow,explanation);
 
- const classify=section('Phân loại câu hỏi','Gán câu hỏi vào đúng cấu trúc học phần.','question-create-classify');
+ const classify=titledSection('Phân loại câu hỏi','question-create-classify');
  const classifyBody=classify.querySelector('.question-create-section-body');
  const grid=document.createElement('div');
  grid.className='question-create-classify-grid';
  grid.append(chapter,topic,clo,approval);
  classifyBody.append(grid);
 
- scope.classList.add('question-create-scope');
- actions.classList.add('question-create-actions');
+ const meta=document.createElement('div');
+ meta.className='question-create-meta-row wide';
+ if(origin)meta.append(origin);
+ compactScope(scope);
+ meta.append(scope);
 
- form.append(compose,classify,scope,actions);
+ actions.classList.add('question-create-actions');
+ form.append(compose,classify,meta,actions);
  return true;
 }
 
@@ -92,14 +123,16 @@ function enhance(){
  const context=questionFormContext();
  if(!context)return;
  const {form,mode}=context;
- if(form.dataset.aicloCreateLayout==='1')return;
- if(mode==='create'){
-  forceCurrentBankDefault(form);
-  buildModeSwitch(form);
+ if(form.dataset.aicloCreateLayout!=='1'){
+  if(mode==='create'){
+   forceCurrentBankDefault(form);
+   buildModeSwitch(form);
+  }
+  if(!moveFields(form))return;
+  form.dataset.aicloCreateLayout='1';
+  form.dataset.aicloQuestionFormMode=mode;
  }
- if(!moveFields(form))return;
- form.dataset.aicloCreateLayout='1';
- form.dataset.aicloQuestionFormMode=mode;
+ arrangeMeta(form);
 }
 
 function queueEnhance(){
@@ -113,4 +146,6 @@ document.addEventListener('DOMContentLoaded',()=>{
  const host=document.querySelector('#content');
  if(host)new MutationObserver(queueEnhance).observe(host,{childList:true,subtree:true});
 });
+
+window.AICLO_QUESTION_FORM_LAYOUT=Object.freeze({enhance});
 })();
