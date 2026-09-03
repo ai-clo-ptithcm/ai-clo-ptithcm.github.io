@@ -18,8 +18,8 @@ async function loadProfileData(student,{force=false}={}){
  const attemptIds=attempts.map(x=>x.id),[snapshots,answers,chapters,clos]=await Promise.all([
   attemptIds.length?q('attempt_questions','attempt_id,question_id,clo_code,chapter_name,topic_name',x=>x.in('attempt_id',attemptIds)):[],
   attemptIds.length?q('student_answers','attempt_id,question_id,is_correct',x=>x.in('attempt_id',attemptIds)):[],
-  q('chapters','id,name,order_index',x=>x.eq('subject_id',state.subjectId).order('order_index')),
-  q('clos','id,code',x=>x.eq('subject_id',state.subjectId).order('code'))
+  q('chapters','id,name,order_index',x=>contentFilter(x).order('order_index')),
+  q('clos','id,code',x=>contentFilter(x).order('code'))
  ]);
  let feedback=[];
  try{
