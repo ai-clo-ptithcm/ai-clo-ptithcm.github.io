@@ -1,36 +1,25 @@
-/* AI-CLO PTITHCM V11.6.26 · Ma trận Mục × CLO */
+/* AI-CLO PTITHCM V11.6.27 · Ma trận Mục × CLO */
 .exam-matrix-modal{width:min(1180px,96vw);max-width:1180px}
 .exam-matrix-modal #modalBody{max-height:calc(92vh - 68px);overflow:auto}
 .exam-blueprint-form{align-items:start}
-.matrix-builder-panel{border:1px solid var(--line,#dfe5ec);border-radius:16px;background:var(--panel,#fff);padding:16px;min-width:0}
-.matrix-builder-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px}
-.matrix-builder-head>div{display:flex;flex-direction:column;gap:4px}
-.matrix-builder-head b{font-size:1rem}
-.matrix-builder-head span{font-size:.86rem;color:var(--muted,#667085);line-height:1.45}
+.matrix-builder-panel{border:1px solid var(--line,#dfe5ec);border-radius:16px;background:var(--panel,#fff);padding:14px;min-width:0}
+.matrix-builder-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:10px}
+.matrix-builder-head>div{display:flex;flex-direction:column;gap:3px}
+.matrix-builder-head b{font-size:.96rem}
+.matrix-builder-head span{font-size:.82rem;color:var(--muted,#667085);line-height:1.4}
 .matrix-builder-wrap{border:1px solid var(--line,#e5e7eb);border-radius:12px;overflow:auto;background:#fff}
-.matrix-builder-table{width:100%;min-width:680px;border-collapse:separate;border-spacing:0}
+.matrix-builder-table{width:100%;border-collapse:separate;border-spacing:0}
 .matrix-builder-table th,.matrix-builder-table td{vertical-align:middle;text-align:center}
-.matrix-builder-table .matrix-topic-col,.matrix-builder-table .matrix-topic-name{text-align:left;min-width:210px}
+.matrix-builder-table .matrix-topic-col,.matrix-builder-table .matrix-topic-name{text-align:left}
 .matrix-topic-name{display:table-cell!important}
-.matrix-topic-name small{display:block;color:var(--muted,#667085);font-size:.72rem;margin-bottom:2px}
-.matrix-topic-name b{display:block;font-weight:650;line-height:1.35}
-.matrix-edit-cell{min-width:105px}
-.matrix-edit-cell input{width:68px;min-width:68px;text-align:center;margin:0 auto 4px;padding:8px 6px;font-weight:700}
-.matrix-edit-cell small{display:block;font-size:.72rem;color:var(--muted,#667085);white-space:nowrap}
-.matrix-empty-cell{background:rgba(148,163,184,.07)}
-.matrix-empty-cell input{opacity:.45}
 .matrix-row-total,.matrix-clo-total,#matrixGrandTotal{font-variant-numeric:tabular-nums}
-#matrixGrandTotal{white-space:nowrap}
 .matrix-builder-table tfoot th{background:rgba(15,23,42,.045);font-weight:750}
 .matrix-builder-table tfoot th:first-child{text-align:left}
 .matrix-builder-table tbody tr:hover td{background:rgba(239,68,68,.025)}
-.matrix-builder-table tbody tr:hover .matrix-empty-cell{background:rgba(148,163,184,.1)}
-.matrix-check-note{display:block;margin-top:8px;color:var(--muted,#667085)}
-#matrixExamTotal{font-weight:750;font-variant-numeric:tabular-nums;background:#fff}
-#matrixExamTotal:invalid{border-color:#efb4ba;background:#fff8f8}
-.exam-blueprint-form .assessment-preview{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center}
+.matrix-check-note{display:block;margin-top:7px;color:var(--muted,#667085)}
+.exam-blueprint-form .assessment-preview{display:flex;flex-wrap:wrap;gap:5px 14px;align-items:center}
 .exam-blueprint-form .assessment-preview>b{width:100%}
-.exam-blueprint-form .bank-check{margin-top:12px}
+.exam-blueprint-form .bank-check{margin-top:10px}
 
 @media(max-width:760px){
  .exam-matrix-modal{width:98vw;margin:1vh auto}
@@ -38,8 +27,4 @@
  .matrix-builder-panel{padding:10px;border-radius:12px}
  .matrix-builder-head{flex-direction:column}
  .matrix-builder-head button{width:100%}
- .matrix-builder-table{min-width:620px}
- .matrix-builder-table .matrix-topic-col,.matrix-builder-table .matrix-topic-name{min-width:180px}
- .matrix-edit-cell{min-width:92px}
- .matrix-edit-cell input{width:62px;min-width:62px}
 }
