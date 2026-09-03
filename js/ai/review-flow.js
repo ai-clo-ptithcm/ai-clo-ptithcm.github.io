@@ -76,10 +76,7 @@ async function reviewBatchV1168(batchId,index=0,options={}){
   rememberScope(batchId,scope);
   let pos=drafts.findIndex((d,i)=>i>=Number(index||0)&&d.review_status==='pending');
   if(pos<0)pos=drafts.findIndex(d=>d.review_status==='pending');
-  if(pos<0){
-   toast('Phiên AI này đã được duyệt xong');
-   return backToQuestionList();
-  }
+  if(pos<0){toast('Phiên AI này đã được duyệt xong');return backToQuestionList()}
   showDraftV1168(batch,drafts,drafts[pos],pos,{questionScope:scope});
  }catch(error){err(error)}
 }
@@ -99,6 +96,9 @@ function showDraftV1168(batch,drafts,d,pos,options={}){
  rememberScope(batch.id,scope);
  const approved=drafts.filter(x=>x.review_status==='approved').length;
  const rejected=drafts.filter(x=>x.review_status==='rejected').length;
+ let prevPos=-1,nextPos=-1;
+ for(let i=pos-1;i>=0;i--){if(drafts[i].review_status==='pending'){prevPos=i;break}}
+ for(let i=pos+1;i<drafts.length;i++){if(drafts[i].review_status==='pending'){nextPos=i;break}}
  modal('Duyệt câu hỏi AI',`<div class="review-wrap ai-review-v1168">
   <div class="review-progress"><b>Câu ${pos+1}/${drafts.length}</b><span>Đã lưu: ${approved} · Bỏ qua: ${rejected} · Chờ duyệt: ${drafts.length-approved-rejected}</span></div>
   <div class="review-tags"><span class="badge red">${esc(batch.clos?.code||'')}</span><span class="badge">${esc(batch.chapters?.name||'')}</span><span class="badge ai-review-scope">${esc(scopeLabel(scope))}</span></div>
@@ -108,11 +108,11 @@ function showDraftV1168(batch,drafts,d,pos,options={}){
   <label class="field">Đáp án đúng<select id="draftCorrect">${['A','B','C','D'].map(k=>`<option ${d.correct_answer===k?'selected':''}>${k}</option>`).join('')}</select></label>
   <label class="field">Lời giải<textarea id="draftExplanation">${esc(d.explanation||'')}</textarea></label>
   <section class="ai-similar-panel"><div class="ai-similar-head"><div><h4>Kiểm tra câu tương tự</h4><p id="aiSimilarityStatus">Đang kiểm tra…</p></div><button id="recheckAiDuplicate" class="secondary" type="button">Kiểm tra lại</button></div><div id="aiSimilarResults"><p class="ai-similar-empty checking">Đang kiểm tra câu tương tự…</p></div></section>
-  <div class="review-actions"><button class="secondary" id="prevDraft" ${pos===0?'disabled':''}>← Trước</button><button class="danger" id="rejectDraft">Bỏ qua</button><button class="primary" id="approveDraft">Xác nhận và lưu</button><button class="secondary" id="nextDraft" ${pos===drafts.length-1?'disabled':''}>Sau →</button></div>
+  <div class="review-actions"><button class="secondary" id="prevDraft" ${prevPos<0?'disabled':''}>← Trước</button><button class="danger" id="rejectDraft">Bỏ qua</button><button class="primary" id="approveDraft">Xác nhận và lưu</button><button class="secondary" id="nextDraft" ${nextPos<0?'disabled':''}>Sau →</button></div>
  </div>`);
 
- $('#prevDraft').onclick=()=>showDraftV1168(batch,drafts,drafts[pos-1],pos-1,{questionScope:scope});
- $('#nextDraft').onclick=()=>showDraftV1168(batch,drafts,drafts[pos+1],pos+1,{questionScope:scope});
+ if(prevPos>=0)$('#prevDraft').onclick=()=>showDraftV1168(batch,drafts,drafts[prevPos],prevPos,{questionScope:scope});
+ if(nextPos>=0)$('#nextDraft').onclick=()=>showDraftV1168(batch,drafts,drafts[nextPos],nextPos,{questionScope:scope});
  $('#recheckAiDuplicate').onclick=()=>runSimilarityCheck(batch,d);
  $('#draftContent').addEventListener('input',()=>{
   const input=$('#draftContent'),status=$('#aiSimilarityStatus');
@@ -150,23 +150,7 @@ function showDraftV1168(batch,drafts,d,pos,options={}){
     }
    }
 
-   const qrow={
-    subject_id:batch.subject_id,
-    chapter_id:batch.chapter_id,
-    topic_id:d.topic_id||batch.topic_id,
-    clo_id:batch.clo_id,
-    content,
-    explanation,
-    correct_answer:correct,
-    created_by:state.user.id,
-    status:'active',
-    question_scope:scope,
-    approval_status:'approved',
-    approved_by:state.user.id,
-    approved_at:new Date().toISOString(),
-    origin_type:'gemini',
-    ai_batch_id:batch.id
-   };
+   const qrow={subject_id:batch.subject_id,chapter_id:batch.chapter_id,topic_id:d.topic_id||batch.topic_id,clo_id:batch.clo_id,content,explanation,correct_answer:correct,created_by:state.user.id,status:'active',question_scope:scope,approval_status:'approved',approved_by:state.user.id,approved_at:new Date().toISOString(),origin_type:'gemini',ai_batch_id:batch.id};
    const {data:question,error:qerr}=await db.from('questions').insert(qrow).select().single();
    if(qerr)throw qerr;
    const optionPayload=optionsRows.map(x=>({question_id:question.id,...x}));
