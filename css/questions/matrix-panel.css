@@ -1,0 +1,38 @@
+/* AI-CLO PTITHCM V11.6.1 — compact bank intro + Chapter/Topic × CLO matrix */
+.v105-bank-tabs.v1161-bank-tabs-compact{margin-bottom:8px!important}
+.v105-bank-note.v1161-bank-note-compact{min-height:0!important;margin:0 0 10px!important;padding:8px 12px!important;gap:8px!important;border-radius:10px!important;line-height:1.35!important}
+.v105-bank-note.v1161-bank-note-compact b,.v105-bank-note.v1161-bank-note-compact span{margin:0!important;line-height:1.35!important}
+#questionBankMatrix{white-space:nowrap}
+
+.qbank-matrix-panel{display:grid;gap:14px}
+.qbank-matrix-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.qbank-matrix-summary>div{padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.qbank-matrix-summary small,.qbank-matrix-summary b{display:block}
+.qbank-matrix-summary small{color:var(--muted);font-size:11px;font-weight:700}
+.qbank-matrix-summary b{margin-top:4px;font-size:18px;color:var(--ink)}
+.qbank-matrix-note{margin:0;padding:10px 12px;border-radius:10px;background:#f7f8fa;color:var(--muted);line-height:1.45}
+.qbank-matrix-wrap{border:1px solid var(--line);border-radius:12px;background:#fff;overflow:auto}
+.qbank-matrix-table{width:100%;min-width:680px;border-collapse:collapse;table-layout:auto}
+.qbank-matrix-table th,.qbank-matrix-table td{padding:10px 12px;border-bottom:1px solid #e9edf2;text-align:center;vertical-align:middle}
+.qbank-matrix-table th:first-child,.qbank-matrix-table td:first-child{text-align:left;min-width:280px}
+.qbank-matrix-table thead th{position:sticky;top:0;z-index:2;background:#fff;color:#344054;font-size:12px;text-transform:uppercase;letter-spacing:.02em}
+.qbank-matrix-table .qbank-chapter-row td{background:#f7f8fa}
+.qbank-matrix-table .qbank-chapter-row td:first-child{display:grid;gap:2px}
+.qbank-matrix-table .qbank-chapter-row small{color:var(--muted);font-size:11px}
+.qbank-matrix-table .qbank-topic-row td:first-child{padding-left:28px;color:#475467}
+.qbank-matrix-table tfoot th{background:#fff4f6;color:var(--red);font-weight:900;border-bottom:0}
+.qbank-matrix-loading,.qbank-matrix-empty{padding:18px;border:1px dashed var(--line);border-radius:12px;background:#fafbfc;color:var(--muted)}
+.qbank-matrix-warning{margin:0;padding:10px 12px;border-radius:10px;background:#fff4f6;color:#9f2435;font-size:12px;line-height:1.45}
+
+@media(max-width:900px){
+ .qbank-matrix-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:620px){
+ .v105-bank-note.v1161-bank-note-compact{padding:7px 10px!important;margin-bottom:8px!important;gap:2px!important}
+ .qbank-matrix-summary{grid-template-columns:1fr 1fr;gap:7px}
+ .qbank-matrix-summary>div{padding:10px}
+ .qbank-matrix-summary b{font-size:16px}
+ .qbank-matrix-table{min-width:600px;font-size:12px}
+ .qbank-matrix-table th,.qbank-matrix-table td{padding:8px}
+ .qbank-matrix-table th:first-child,.qbank-matrix-table td:first-child{min-width:210px}
+}
