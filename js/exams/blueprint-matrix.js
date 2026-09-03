@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V11.6
+/* AI-CLO PTITHCM V11.6.26
    Ma trận cấu hình Mục (chủ đề) × CLO khi tạo bài kiểm tra trực tuyến.
    Không thay đổi schema: exam_questions là bộ câu mẫu/blueprint; backend V10.10
    dùng chính bộ mẫu này để giữ ma trận cho student_fixed và attempt_random. */
@@ -78,7 +78,7 @@ async function openMatrixExamForm(){
         <select name="chapter_id" id="matrixExamChapter" required>${sets.chapters.map(v=>`<option value="${v.id}">${esc(v.order_index)}. ${esc(v.name)}</option>`).join('')}</select>
       </label>
       <div class="field assessment-bank-fixed"><span>Nguồn câu hỏi</span><b>Ngân hàng luyện tập - kiểm tra</b><small>Ngân hàng đề thi bảo mật không được dùng cho bài kiểm tra trực tuyến.</small></div>
-      <label class="field">Tổng số câu<input id="matrixExamTotal" type="number" value="0" readonly tabindex="-1"></label>
+      <label class="field">Tổng số câu<input id="matrixExamTotal" name="total_questions" type="number" min="1" max="200" value="10" required></label>
       <label class="field">Thời gian (phút)<input name="duration_minutes" type="number" min="1" max="300" value="30" required></label>
       <label class="field wide">Cách rút câu
         <select name="question_mode" id="matrixQuestionMode">
@@ -91,7 +91,7 @@ async function openMatrixExamForm(){
 
       <section class="wide matrix-builder-panel">
         <div class="matrix-builder-head">
-          <div><b>Ma trận câu hỏi · Mục × CLO</b><span>Nhập số câu cần rút ở từng ô. Tổng hàng, tổng cột và tổng toàn bài được tính tự động.</span></div>
+          <div><b>Ma trận câu hỏi · Mục × CLO</b><span>Phân bổ số câu vào từng ô sao cho tổng ma trận bằng Tổng số câu đã chọn.</span></div>
           <button id="matrixClear" class="secondary" type="button">Xóa phân bổ</button>
         </div>
         <div id="matrixBuilder"></div>
@@ -119,6 +119,7 @@ async function openMatrixExamForm(){
   dialog?.addEventListener('close',()=>dialog.classList.remove('exam-matrix-modal'),{once:true});
 
   const currentChapter=()=>document.querySelector('#matrixExamChapter')?.value||'';
+  const targetTotal=()=>Math.min(200,asInt(document.querySelector('#matrixExamTotal')?.value));
   const chapterTopics=ch=>sets.topics.filter(t=>String(t.chapter_id)===String(ch));
   const cellAvailable=(ch,tp,clo)=>sets.questions.filter(qx=>String(qx.chapter_id)===String(ch)&&String(qx.topic_id||'')===String(tp||'')&&String(qx.clo_id)===String(clo)).length;
 
@@ -141,7 +142,7 @@ async function openMatrixExamForm(){
     const html=`<div class="table-wrap matrix-builder-wrap"><table class="exam-matrix matrix-builder-table">
       <thead><tr><th class="matrix-topic-col">Mục (chủ đề)</th>${sets.clos.map(c=>`<th>${esc(c.code)}</th>`).join('')}<th>Tổng</th></tr></thead>
       <tbody>${rows.map(tp=>`<tr data-matrix-row="${tp.id||'__none__'}"><td class="matrix-topic-name"><small>${esc(tp.order)}</small><b>${esc(tp.name)}</b></td>${sets.clos.map(clo=>{const available=cellAvailable(ch,tp.id,clo.id),value=saved[cellKey(tp.id,clo.id)]||0;return `<td class="matrix-edit-cell ${available?'':'matrix-empty-cell'}"><input class="matrix-cell-input" data-topic="${tp.id}" data-clo="${clo.id}" data-clo-code="${esc(clo.code)}" type="number" min="0" max="${available}" value="${Math.min(value,available)}" ${available?'':'disabled'}><small>có ${available}</small></td>`}).join('')}<td class="matrix-row-total"><b>0</b></td></tr>`).join('')||`<tr><td colspan="${sets.clos.length+2}" class="empty">Chương này chưa có mục/chủ đề.</td></tr>`}</tbody>
-      <tfoot><tr><th>Tổng</th>${sets.clos.map(c=>`<th class="matrix-clo-total" data-clo-total="${c.id}">0</th>`).join('')}<th id="matrixGrandTotal">0</th></tr></tfoot>
+      <tfoot><tr><th>Tổng</th>${sets.clos.map(c=>`<th class="matrix-clo-total" data-clo-total="${c.id}">0</th>`).join('')}<th id="matrixGrandTotal">0/10</th></tr></tfoot>
     </table></div>`;
     document.querySelector('#matrixBuilder').innerHTML=html;
     document.querySelectorAll('.matrix-cell-input').forEach(i=>i.addEventListener('input',()=>{let n=asInt(i.value),max=asInt(i.max);if(n>max)n=max;i.value=n;recalculate()}));
@@ -158,24 +159,30 @@ async function openMatrixExamForm(){
   }
 
   function recalculate(){
-    const cells=readMatrix(),total=cells.reduce((s,x)=>s+x.need,0),ch=currentChapter();
-    document.querySelector('#matrixExamTotal').value=total;
+    const cells=readMatrix(),allocated=cells.reduce((s,x)=>s+x.need,0),target=targetTotal(),ch=currentChapter();
     const rowTotals=new Map();
     const cloTotals=new Map(sets.clos.map(c=>[String(c.id),0]));
     for(const cell of cells){const rk=cell.topicId||'__none__';rowTotals.set(rk,(rowTotals.get(rk)||0)+cell.need);cloTotals.set(String(cell.cloId),(cloTotals.get(String(cell.cloId))||0)+cell.need)}
     document.querySelectorAll('[data-matrix-row]').forEach(tr=>{const b=tr.querySelector('.matrix-row-total b');if(b)b.textContent=rowTotals.get(tr.dataset.matrixRow)||0});
     document.querySelectorAll('[data-clo-total]').forEach(x=>x.textContent=cloTotals.get(String(x.dataset.cloTotal))||0);
-    const grand=document.querySelector('#matrixGrandTotal');if(grand)grand.textContent=total;
-    const bad=cells.filter(x=>x.need>x.available),used=cells.filter(x=>x.need>0),ok=total>0&&!bad.length;
-    document.querySelector('#matrixBankCheck').innerHTML=`<div class="bank-check-head ${ok?'ok':'warn'}"><b>${ok?'✓ Ma trận hợp lệ':'! Cần hoàn thiện ma trận'}</b><span>${total} câu · ${used.length} ô đang sử dụng</span></div>${bad.length?`<div class="bank-check-items">${bad.map(x=>`<span class="bad">${esc(x.topicName)} × ${esc(x.cloCode)}: cần ${x.need} / có ${x.available}</span>`).join('')}</div>`:total?'<small class="matrix-check-note">Mỗi ô đều có đủ câu trong ngân hàng luyện tập.</small>':'<small class="matrix-check-note">Nhập ít nhất 1 câu vào ma trận để tạo bài.</small>'}`;
+    const grand=document.querySelector('#matrixGrandTotal');if(grand)grand.textContent=`${allocated}/${target||0}`;
+    const bad=cells.filter(x=>x.need>x.available),used=cells.filter(x=>x.need>0),difference=target-allocated,ok=target>0&&allocated===target&&!bad.length;
+    let note='';
+    if(bad.length)note=`<div class="bank-check-items">${bad.map(x=>`<span class="bad">${esc(x.topicName)} × ${esc(x.cloCode)}: cần ${x.need} / có ${x.available}</span>`).join('')}</div>`;
+    else if(!target)note='<small class="matrix-check-note">Nhập Tổng số câu từ 1 đến 200.</small>';
+    else if(difference>0)note=`<small class="matrix-check-note">Còn ${difference} câu chưa phân bổ vào ma trận.</small>`;
+    else if(difference<0)note=`<small class="matrix-check-note matrix-over-note">Ma trận đang vượt ${Math.abs(difference)} câu so với Tổng số câu.</small>`;
+    else note='<small class="matrix-check-note">Đã phân bổ đủ và mỗi ô đều có đủ câu trong ngân hàng luyện tập.</small>';
+    document.querySelector('#matrixBankCheck').innerHTML=`<div class="bank-check-head ${ok?'ok':'warn'}"><b>${ok?'✓ Ma trận hợp lệ':'! Cần hoàn thiện ma trận'}</b><span>Đã phân bổ ${allocated}/${target||0} câu · ${used.length} ô đang sử dụng</span></div>${note}`;
     const chapter=byId(sets.chapters,ch),mode=document.querySelector('#matrixQuestionMode').value;
-    document.querySelector('#matrixAssessmentPreview').innerHTML=`<b>Xem trước cấu trúc</b><span>${esc(chapter?.name||'')} · ${total} câu</span><span>${sets.clos.map(c=>`${esc(c.code)}: ${cloTotals.get(String(c.id))||0}`).join(' · ')}</span><span>${esc(MODE_LABEL[mode])}: ${esc(MODE_HELP[mode])}</span>`;
+    document.querySelector('#matrixAssessmentPreview').innerHTML=`<b>Xem trước cấu trúc</b><span>${esc(chapter?.name||'')} · ${allocated}/${target||0} câu</span><span>${sets.clos.map(c=>`${esc(c.code)}: ${cloTotals.get(String(c.id))||0}`).join(' · ')}</span><span>${esc(MODE_LABEL[mode])}: ${esc(MODE_HELP[mode])}</span>`;
     document.querySelector('#matrixQuestionModeHelp').textContent=MODE_HELP[mode];
     snapshotCurrent();
-    return {ok,total,cells,cloTotals,mode,ch};
+    return {ok,total:target,allocated,cells,cloTotals,mode,ch};
   }
 
   document.querySelector('#matrixExamChapter').addEventListener('change',()=>{drawMatrix()});
+  document.querySelector('#matrixExamTotal').addEventListener('input',e=>{if(asInt(e.target.value)>200)e.target.value=200;recalculate()});
   document.querySelector('#matrixQuestionMode').addEventListener('change',recalculate);
   document.querySelector('#matrixClear').addEventListener('click',()=>{document.querySelectorAll('.matrix-cell-input').forEach(i=>i.value=0);recalculate()});
   document.querySelector('#matrixCancel').addEventListener('click',()=>dialog?.close());
@@ -184,7 +191,9 @@ async function openMatrixExamForm(){
   document.querySelector('#matrixAssessmentForm').addEventListener('submit',async e=>{
     e.preventDefault();
     const check=recalculate();
-    if(!check.ok)return toast('Ma trận Mục × CLO chưa hợp lệ hoặc chưa có câu',true);
+    if(!check.total)return toast('Nhập Tổng số câu từ 1 đến 200',true);
+    if(check.allocated!==check.total)return toast(`Cần phân bổ đủ ${check.total} câu trong ma trận (hiện ${check.allocated}/${check.total})`,true);
+    if(!check.ok)return toast('Ma trận Mục × CLO chưa hợp lệ hoặc ngân hàng chưa đủ câu',true);
     if(check.total>200)return toast('Bài kiểm tra tối đa 200 câu',true);
     const v=Object.fromEntries(new FormData(e.target));
     if(v.opens_at&&v.closes_at&&new Date(v.closes_at)<=new Date(v.opens_at))return toast('Thời gian đóng phải sau thời gian mở',true);
