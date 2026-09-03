@@ -5,6 +5,7 @@
 const oldUsers=window.users;
 const teacherRoles=['teacher','lecturer','giangvien'];
 const roleLabel=r=>r==='admin'?'Admin':teacherRoles.includes(r)?'Giảng viên':'Sinh viên';
+const memberTime=value=>{if(!value)return'Chưa từng đăng nhập';const seconds=Math.max(0,(Date.now()-new Date(value).getTime())/1000);if(seconds<90)return'Vừa xong';if(seconds<3600)return`${Math.floor(seconds/60)} phút trước`;if(seconds<86400)return`${Math.floor(seconds/3600)} giờ trước`;if(seconds<172800)return'Hôm qua';if(seconds<2592000)return`${Math.floor(seconds/86400)} ngày trước`;return new Date(value).toLocaleString('vi-VN')};
 
 async function openClassMembershipManager(members,memberType='students'){
  const subject=activeSubject();
@@ -51,7 +52,7 @@ window.users=async function(c){
  const subject=activeSubject();
  const members=await q('subject_members','id,user_id,subject_id,role',x=>x.eq('subject_id',state.subjectId));
  const memberIds=[...new Set(members.map(m=>m.user_id).filter(Boolean))];
- const profiles=memberIds.length?await q('profiles','id,full_name,email,mssv,role,is_active',x=>x.in('id',memberIds).order('full_name')):[];
+ const profiles=memberIds.length?await q('profiles','id,full_name,email,mssv,role,is_active,last_login_at',x=>x.in('id',memberIds).order('full_name')):[];
  const memberIdsSet=new Set(memberIds);
  const classProfiles=profiles.filter(p=>memberIdsSet.has(p.id)&&p.role==='student');
  const membership=new Map(members.map(m=>[m.user_id,m]));
@@ -73,12 +74,12 @@ window.users=async function(c){
    <select id="classMemberStatus"><option value="all">Tất cả trạng thái</option><option value="active">Đang hoạt động</option><option value="locked">Đã khóa</option></select>
    <button id="manageCurrentClass" class="primary">+ Thêm / bớt sinh viên</button>
   </div>
-  <div class="panel table-wrap v1053-class-table"><table><thead><tr><th>Họ tên</th><th>Email / MSSV</th><th>Trạng thái</th><th></th></tr></thead><tbody id="classMemberRows"></tbody></table></div>`;
+  <div class="panel table-wrap v1053-class-table"><table><thead><tr><th>Họ tên</th><th>Email / MSSV</th><th>Đăng nhập gần nhất</th><th>Trạng thái</th><th></th></tr></thead><tbody id="classMemberRows"></tbody></table></div>`;
 
  const draw=()=>{
   const s=$('#classMemberSearch').value.toLowerCase(),sf=$('#classMemberStatus').value;
   const list=classProfiles.filter(p=>[p.full_name,p.email,p.mssv].some(v=>String(v||'').toLowerCase().includes(s))).filter(p=>sf==='all'||(sf==='active'?p.is_active!==false:p.is_active===false));
-  $('#classMemberRows').innerHTML=list.map(p=>`<tr class="${p.is_active===false?'account-locked':''}"><td><b>${esc(p.full_name)}</b></td><td>${esc(p.email)}<br><small>${esc(p.mssv||'')}</small></td><td><span class="badge ${p.is_active===false?'red':'green'}">${p.is_active===false?'Đã khóa':'Hoạt động'}</span></td><td class="row-actions"><button class="danger" data-remove-class-member="${membership.get(p.id)?.id||''}">Gỡ</button></td></tr>`).join('')||'<tr><td colspan="4" class="empty">Không có sinh viên phù hợp.</td></tr>';
+  $('#classMemberRows').innerHTML=list.map(p=>`<tr class="${p.is_active===false?'account-locked':''}"><td><b>${esc(p.full_name)}</b></td><td>${esc(p.email)}<br><small>${esc(p.mssv||'')}</small></td><td>${esc(memberTime(p.last_login_at))}</td><td><span class="badge ${p.is_active===false?'red':'green'}">${p.is_active===false?'Đã khóa':'Hoạt động'}</span></td><td class="row-actions"><button class="danger" data-remove-class-member="${membership.get(p.id)?.id||''}">Gỡ</button></td></tr>`).join('')||'<tr><td colspan="5" class="empty">Không có sinh viên phù hợp.</td></tr>';
  };
  draw();
  $('#classMemberSearch').oninput=draw;$('#classMemberStatus').onchange=draw;
