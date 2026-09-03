@@ -39,7 +39,7 @@ async function loadTeacherBase(sid){
  return memo(`results:base:${sid}`,BASE_TTL,async()=>{
   const [exams,clos,members]=await Promise.all([
    q('exams','id,title',x=>x.eq('subject_id',sid)),
-   q('clos','id,code',x=>x.eq('subject_id',sid).order('code')),
+   q('clos','id,code',x=>contentFilter(x,sid).order('code')),
    q('subject_members','user_id,role',x=>x.eq('subject_id',sid).eq('role','student'))
   ]);
   const examIds=exams.map(x=>x.id);
