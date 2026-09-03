@@ -62,7 +62,7 @@ window.aiHistory=lazyAiHistory;
 
 const lazyAiGenerate=async function(...args){
  await loadAiReviewFlow();
- await loadScript('js/ai/generator.js?v=11.6.8');
+ await loadScript('js/ai/generator.js?v=11.6.9');
  const fn=window.aiGenerateForm;
  if(typeof fn!=='function'||fn===lazyAiGenerate)throw new Error('Không khởi tạo được chức năng tạo câu hỏi AI.');
  return fn(...args);
