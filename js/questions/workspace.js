@@ -1,10 +1,11 @@
-/* AI-CLO PTITHCM V11.6.9 — restore active question/AI workspaces, not only draft values. */
+/* AI-CLO PTITHCM V11.6.10 — restore active question/AI workspaces and in-page AI review. */
 (() => {
 'use strict';
 
 const baseKey=()=>`ai-clo:v1053:${state.user?.id||'user'}:${state.subjectId||'subject'}`;
 const workspaceKey=()=>`${baseKey()}:question-workspace`;
 const draftKey=id=>`${baseKey()}:question-draft:${id||'new'}`;
+const reviewKey=()=>`ai-clo:v11:${state.user?.id||'user'}:${state.subjectId||'subject'}:ai-review`;
 let restoring=false;
 
 const read=key=>{try{return JSON.parse(sessionStorage.getItem(key)||'null')}catch{return null}};
@@ -12,6 +13,7 @@ const write=(key,value)=>{try{sessionStorage.setItem(key,JSON.stringify(value))}
 const drop=key=>{try{sessionStorage.removeItem(key)}catch{}};
 const hasDraft=id=>{try{return !!sessionStorage.getItem(draftKey(id))}catch{return false}};
 const activeBank=()=>window.AICLO_V105?.activeBank?.()||'practice';
+const reviewToRestore=()=>{const r=read(reviewKey());return r?.batchId&&r?.subjectId===state.subjectId?r:null};
 
 function rememberEditor(id){
  write(workspaceKey(),{kind:'question-form',id:id||'new',bank:activeBank(),updated_at:Date.now()});
@@ -39,10 +41,10 @@ function restoreBank(bank){
  if(tab&&!tab.classList.contains('active'))tab.click();
 }
 
-/* Nếu trình duyệt reload/discard tab trong lúc đang soạn, vào lại đúng Ngân hàng câu hỏi. */
+/* Nếu trình duyệt reload/discard tab trong lúc đang soạn hoặc duyệt AI, vào lại Ngân hàng câu hỏi. */
 const oldEnterApp=window.enterApp;
 window.enterApp=function(){
- if(workspaceToRestore())state.view='questions';
+ if(workspaceToRestore()||reviewToRestore())state.view='questions';
  return oldEnterApp();
 };
 
@@ -77,10 +79,15 @@ window.v96QuestionForm=async function(x={},sets){
  };
 };
 
-/* Quay lại Ngân hàng: tự mở đúng form câu hỏi hoặc Tạo bằng AI còn dang dở. */
+/* Quay lại Ngân hàng: preload review-flow nếu còn phiên duyệt, rồi khôi phục đúng trang con/form đang làm. */
 const oldQuestions=window.questions;
 window.questions=async function(c){
+ const activeReview=reviewToRestore();
+ if(activeReview){
+  try{await window.AICLO_FEATURES?.loadAiReviewFlow?.()}catch(ex){console.warn('Không tải được luồng duyệt AI để khôi phục',ex)}
+ }
  await oldQuestions(c);
+ if(activeReview)return; // state.js đã gọi showDraft sau khi review-flow mới được preload.
  if(restoring)return;
  const w=workspaceToRestore();if(!w)return;
  restoring=true;
@@ -98,7 +105,7 @@ window.questions=async function(c){
   }
   await window.v96QuestionForm(item,sets);
  }catch(ex){
-  console.warn('V11.6.9 restore question workspace',ex);
+  console.warn('V11.6.10 restore question workspace',ex);
  }finally{restoring=false}
 };
 
@@ -107,6 +114,7 @@ window.AICLO_QUESTION_WORKSPACE=Object.freeze({
  forgetAi:()=>forgetKind('ai-form'),
  rememberQuestion:rememberEditor,
  forgetQuestion:()=>forgetKind('question-form'),
- current:workspaceToRestore
+ current:workspaceToRestore,
+ review:reviewToRestore
 });
 })();
