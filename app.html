@@ -51,6 +51,8 @@
 
   <dialog id="confirmDialog" class="confirm-dialog"><div class="confirm-card"><div class="confirm-icon">!</div><h3 id="confirmTitle">Xác nhận thao tác</h3><p id="confirmMessage"></p><div class="confirm-actions"><button id="confirmCancel" class="secondary" type="button">Hủy</button><button id="confirmOk" class="primary" type="button">Xác nhận</button></div></div></dialog>
 
+  <!-- V11.2.2 reloads the final dashboard layer after legacy cached bundles. -->
+  <script defer src="js/core/system-performance.js?v=11.2.2"></script>
   <script defer src="js/ui/form-persistence.js"></script>
   <dialog id="modal"><form method="dialog" class="modal-head"><h3 id="modalTitle"></h3><button value="cancel" aria-label="Đóng">×</button></form><div id="modalBody"></div></dialog>
   <template id="emptyTpl"><div class="empty"><b>Chưa có dữ liệu</b><span>Hãy tạo bản ghi đầu tiên để bắt đầu.</span></div></template>
