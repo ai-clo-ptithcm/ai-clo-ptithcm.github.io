@@ -15,10 +15,10 @@ async function countRows(table,build){
 async function loadOverviewCounts(sid,force=false){
  const loader=async()=>{
   const [chapterCount,cloCount,questionCount,activeQuestionCount,examCount]=await Promise.all([
-   countRows('chapters',x=>x.eq('subject_id',sid)),
-   countRows('clos',x=>x.eq('subject_id',sid)),
-   countRows('questions',x=>x.eq('subject_id',sid)),
-   countRows('questions',x=>x.eq('subject_id',sid).eq('status','active')),
+   countRows('chapters',x=>contentFilter(x,sid)),
+   countRows('clos',x=>contentFilter(x,sid)),
+   countRows('questions',x=>contentFilter(x,sid)),
+   countRows('questions',x=>contentFilter(x,sid).eq('status','active')),
    countRows('exams',x=>x.eq('subject_id',sid))
   ]);
   return {chapterCount,cloCount,questionCount,activeQuestionCount,examCount};
@@ -40,7 +40,7 @@ window.dashboard=async function(c){
  if(!sid||!subject){c.replaceChildren(empty());return}
  const {chapterCount,cloCount,questionCount,activeQuestionCount,examCount}=await loadOverviewCounts(sid);
  if($('#pageTitle'))$('#pageTitle').textContent='Tổng quan môn học';
- if($('#pageSub'))$('#pageSub').textContent=`Thống kê riêng của ${subject.name} · ${subject.semester||''} · ${subject.academic_year||''}`;
+ if($('#pageSub'))$('#pageSub').textContent=`${subject.name} · ${subject.semester||''} · ${subject.academic_year||''} · Ngân hàng: ${subject.question_banks?.name||'chưa gán'}`;
  c.innerHTML=`<div class="stats">
    <div class="stat"><small>Chương</small><b>${chapterCount}</b></div>
    <div class="stat"><small>Câu hỏi</small><i>?</i><b>${questionCount}</b></div>
@@ -49,7 +49,7 @@ window.dashboard=async function(c){
   </div>
   <div class="grid2">
    <section class="panel"><div class="panel-head"><h3>Tiến độ học phần</h3></div>${metric('Cấu trúc chương',chapterCount,Math.min(100,chapterCount*20))}${metric('Ngân hàng câu hỏi',questionCount,Math.min(100,questionCount*2))}${metric('Bài kiểm tra đã tạo',examCount,Math.min(100,examCount*20))}</section>
-   <section class="panel"><div class="panel-head"><h3>Học phần hiện tại</h3></div><h2>${esc(subject.name)}</h2><p>${esc(subject.semester||'')} · ${esc(subject.academic_year||'')}</p><p><span class="badge green">${activeQuestionCount} câu đang hoạt động</span></p><p class="hint">Các số liệu trên chỉ thuộc học phần này. Hệ thống dùng lại dữ liệu vừa tải để chuyển mục nhanh hơn.</p></section>
+   <section class="panel"><div class="panel-head"><h3>Học phần hiện tại</h3></div><h2>${esc(subject.name)}</h2><p>${esc(subject.semester||'')} · ${esc(subject.academic_year||'')}</p><p><b>Ngân hàng câu hỏi:</b> ${esc(subject.question_banks?.name||'Chưa gán')}</p><p><span class="badge green">${activeQuestionCount} câu đang hoạt động</span></p><p class="hint">Chương, CLO và câu hỏi lấy từ ngân hàng đã gán; bài kiểm tra và kết quả vẫn thuộc riêng học phần này.</p></section>
   </div>`;
 };
 
