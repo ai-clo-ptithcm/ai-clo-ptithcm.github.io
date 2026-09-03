@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V11 — question provenance and Academy verification. */
+/* AI-CLO PTITHCM V11.6.18 — question provenance and Academy verification. */
 (() => {
 'use strict';
 const label=value=>value==='gemini'?'✦ Gemini hỗ trợ':value==='academy'?'🏛 Câu hỏi Học viện':'✍️ Giảng viên biên soạn';
@@ -7,9 +7,19 @@ const status=x=>x.origin_type==='academy'?(x.is_official?'Đã được Admin x�
 function bindOriginField(form,x){
  const target=form.querySelector('.v105-scope-chooser')||form.querySelector('.option-grid');if(!target)return;
  const current=x.origin_type||'lecturer',locked=current==='gemini'&&role()!=='admin';
- const field=document.createElement('label');field.className='field wide question-origin-field';field.innerHTML=`<span>Nguồn câu hỏi</span><select name="origin_type" ${locked?'disabled':''}><option value="lecturer">Giảng viên biên soạn</option><option value="academy">Đề xuất là câu hỏi Học viện</option>${current==='gemini'?'<option value="gemini">Gemini hỗ trợ</option>':''}</select><small>${current==='academy'&&!x.is_official?'Câu sẽ chờ Admin xác nhận và chỉ nằm trong Ngân hàng đề thi – bảo mật.':'Người nhập được ghi riêng theo tài khoản đang thao tác.'}</small>${locked?'<input type="hidden" name="origin_type" value="gemini">':''}`;
+ const field=document.createElement('label');field.className='field question-origin-field';field.innerHTML=`<span>Nguồn câu hỏi</span><select name="origin_type" ${locked?'disabled':''}><option value="lecturer">Giảng viên biên soạn</option><option value="academy">Câu hỏi Học viện (đề xuất)</option>${current==='gemini'?'<option value="gemini">Gemini hỗ trợ</option>':''}</select><small class="question-origin-note" hidden></small>${locked?'<input type="hidden" name="origin_type" value="gemini">':''}`;
  target.insertAdjacentElement('beforebegin',field);field.querySelector('select').value=current;
- const apply=()=>{const value=field.querySelector('select').value,secure=form.querySelector('input[name="question_scope"][value="secure_exam"]'),approval=form.elements.namedItem('approval_status');if(value==='academy'){if(secure){secure.checked=true;secure.dispatchEvent(new Event('change'))}if(approval)approval.value='pending';field.querySelector('small').textContent='Câu sẽ chờ Admin xác nhận và chỉ nằm trong Ngân hàng đề thi – bảo mật.'}else field.querySelector('small').textContent='Người nhập được ghi riêng theo tài khoản đang thao tác.'};field.querySelector('select').addEventListener('change',apply);apply();
+ const note=field.querySelector('.question-origin-note');
+ const apply=()=>{
+  const value=field.querySelector('select').value,secure=form.querySelector('input[name="question_scope"][value="secure_exam"]'),approval=form.elements.namedItem('approval_status');
+  if(value==='academy'){
+   if(secure){secure.checked=true;secure.dispatchEvent(new Event('change'))}
+   if(approval)approval.value='pending';
+   if(note){note.textContent='Câu sẽ chờ Admin xác nhận và chỉ lưu trong Ngân hàng đề thi – bảo mật.';note.hidden=false}
+  }else if(note){note.textContent='';note.hidden=true}
+ };
+ field.querySelector('select').addEventListener('change',apply);apply();
+ window.AICLO_QUESTION_FORM_LAYOUT?.enhance?.();
 }
 
 const oldForm=window.v96QuestionForm;
