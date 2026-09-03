@@ -37,7 +37,10 @@ begin
 
  if new.origin_type='academy' then
   new.question_scope='secure_exam';
-  if not new.is_official then new.approval_status='pending'; new.status='draft'; end if;
+  if not new.is_official then
+   new.approval_status='pending'; new.status='draft';
+   new.approved_by=null; new.approved_at=null;
+  end if;
  else
   new.is_official=false; new.verified_by=null; new.verified_at=null;
  end if;
