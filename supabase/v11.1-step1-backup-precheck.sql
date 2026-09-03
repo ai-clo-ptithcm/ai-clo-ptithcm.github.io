@@ -77,6 +77,17 @@ begin
       table_name
     );
 
+    -- Lớp bảo vệ thứ hai: CTAS không tự sao chép RLS. Bật RLS nhưng không tạo
+    -- policy, nên anon/authenticated không thể đọc hoặc sửa dữ liệu backup.
+    execute format(
+      'alter table backup_v111_20260903.%I enable row level security',
+      table_name
+    );
+    execute format(
+      'alter table backup_v111_20260903.%I force row level security',
+      table_name
+    );
+
     execute format(
       'select count(*),
               md5(coalesce(string_agg(row_to_json(t)::text, ''''
@@ -107,6 +118,10 @@ $$;
 revoke all on all tables in schema backup_v111_20260903 from public;
 revoke all on all tables in schema backup_v111_20260903 from anon;
 revoke all on all tables in schema backup_v111_20260903 from authenticated;
+
+-- Manifest cũng chỉ dành cho chủ sở hữu database/SQL Editor.
+alter table backup_v111_20260903.manifest enable row level security;
+alter table backup_v111_20260903.manifest force row level security;
 
 -- Xác nhận ngay trong transaction rằng từng bảng nguồn vẫn giống bản sao.
 do $$
