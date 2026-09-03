@@ -1,7 +1,9 @@
-/* AI-CLO PTITHCM V11.6.14 — draggable quick edit dialog. */
-#modal.quick-edit-modal{position:fixed!important;inset:auto!important;left:50%;top:50%;width:min(780px,calc(100vw - 32px));max-width:780px;max-height:min(88vh,820px);margin:0!important;transform:translate(-50%,-50%);overflow:auto}
-#modal.quick-edit-modal .modal-head{position:sticky;top:0;z-index:2;cursor:grab;user-select:none;touch-action:none;background:#fff;border-bottom:1px solid var(--line)}
+/* AI-CLO PTITHCM V11.6.15 — draggable quick edit dialog kept inside the viewport. */
+#modal.quick-edit-modal{position:fixed!important;left:50%;top:50%;right:auto;bottom:auto;width:min(780px,calc(100vw - 32px));max-width:780px;max-height:calc(100dvh - 32px);margin:0!important;transform:translate(-50%,-50%);overflow:hidden;display:flex;flex-direction:column}
+#modal.quick-edit-modal .modal-head{position:relative;flex:0 0 auto;z-index:2;cursor:grab;user-select:none;touch-action:none;background:#fff;border-bottom:1px solid var(--line)}
+#modal.quick-edit-modal .modal-head h3{display:flex;align-items:center;gap:7px}
 #modal.quick-edit-modal .modal-head.dragging{cursor:grabbing}
+#modal.quick-edit-modal #modalBody{min-height:0;overflow:auto;overscroll-behavior:contain}
 .quick-question-form{display:grid;gap:14px;padding:4px 2px 2px}.quick-question-form .field{margin:0}.quick-question-form textarea{resize:vertical;min-height:72px}.quick-question-form>label:first-child textarea{min-height:112px}.quick-answer-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.quick-correct-field{max-width:180px}.quick-question-error{padding:10px 12px;border:1px solid #efb4ba;border-radius:9px;background:#fff5f6;color:#a61d2d;font-size:13px}.quick-question-actions{margin-top:0;padding-top:4px}.quick-edit-button{font-weight:800}
 @media(max-width:760px){.v105-question-table td.row-actions{grid-template-columns:repeat(auto-fit,minmax(86px,1fr))!important}}
-@media(max-width:700px){#modal.quick-edit-modal{left:12px!important;top:12px!important;width:calc(100vw - 24px);max-height:calc(100vh - 24px);transform:none!important}.quick-answer-grid{grid-template-columns:1fr}.quick-correct-field{max-width:none}#modal.quick-edit-modal .modal-head{cursor:default;touch-action:auto}}
+@media(max-width:700px){#modal.quick-edit-modal{left:12px!important;top:12px!important;right:auto!important;bottom:auto!important;width:calc(100vw - 24px);max-height:calc(100dvh - 24px);transform:none!important}#modal.quick-edit-modal .modal-head{cursor:default;touch-action:auto}.quick-answer-grid{grid-template-columns:1fr}.quick-correct-field{max-width:none}}
