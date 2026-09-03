@@ -70,7 +70,7 @@ const lazyAiGenerate=async function(...args){
 window.aiGenerateForm=lazyAiGenerate;
 
 async function loadDuplicateScan(){
- await loadScript('js/questions/duplicate-scan.js?v=11.6.12');
+ await loadScript('js/questions/duplicate-scan.js?v=11.6.13');
 }
 const lazyDuplicateScan=async function(...args){
  await loadDuplicateScan();
