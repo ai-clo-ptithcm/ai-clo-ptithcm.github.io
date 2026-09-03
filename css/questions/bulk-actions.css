@@ -1,0 +1,29 @@
+/* AI-CLO PTITHCM V11.6.19 — compact bulk-selection toolbar and bulk action window. */
+#bulkQuestionBar[data-aiclo-bulk-v11619="1"]{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid #f0a9b2;border-radius:12px;background:#fff7f8;min-height:58px}
+#bulkQuestionBar[data-aiclo-bulk-v11619="1"].hidden{display:none!important}
+#bulkQuestionBar[data-aiclo-bulk-v11619="1"]>b{font-size:14px;color:#1d2939;white-space:nowrap}
+.bulk-selection-actions{display:flex;align-items:center;gap:8px;margin-left:auto;flex-wrap:wrap}
+.bulk-selection-actions button{min-height:38px;padding:8px 13px!important;white-space:nowrap}
+#bulkDeleteQuestions{margin-left:0!important}
+
+#modal.bulk-actions-modal{width:620px;height:430px;min-width:480px;min-height:330px;resize:both;overflow:hidden}
+#modal.bulk-actions-modal #modalBody{min-height:0;overflow:auto}
+.bulk-action-form{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:18px 20px 20px}
+.bulk-action-form .field{margin:0}
+.bulk-action-form .field:has(select[name="origin_type"]){grid-column:1/-1}
+.bulk-action-note{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #dfe5ee;border-radius:10px;background:#f8fafc;color:#475467}
+.bulk-action-note b{color:#1d2939;white-space:nowrap}.bulk-action-note span{font-size:12px}
+.bulk-action-warning,.bulk-action-error{grid-column:1/-1;padding:10px 12px;border-radius:9px;font-size:12px;line-height:1.45}
+.bulk-action-warning{border:1px solid #efb4ba;background:#fff5f6;color:#a61d2d}.bulk-action-error{border:1px solid #efb4ba;background:#fff5f6;color:#a61d2d}
+.bulk-action-footer{grid-column:1/-1;display:flex;justify-content:flex-end;align-items:center;gap:8px;padding-top:4px;margin-top:auto}
+.bulk-action-footer button{min-width:110px}
+
+@media(max-width:760px){
+ #bulkQuestionBar[data-aiclo-bulk-v11619="1"]{align-items:flex-start;flex-direction:column}
+ .bulk-selection-actions{width:100%;margin-left:0;display:grid;grid-template-columns:1fr 1fr}
+ .bulk-selection-actions button{width:100%}
+}
+@media(max-width:700px){
+ #modal.bulk-actions-modal{left:10px!important;top:10px!important;width:calc(100vw - 20px)!important;height:auto!important;min-width:0!important;min-height:0!important;max-height:calc(100dvh - 20px);resize:none!important}
+ .bulk-action-form{grid-template-columns:1fr;padding:15px 14px 16px}.bulk-action-form .field:has(select[name="origin_type"]){grid-column:auto}.bulk-action-note,.bulk-action-warning,.bulk-action-error,.bulk-action-footer{grid-column:auto}.bulk-action-note{align-items:flex-start;flex-direction:column;gap:3px}.bulk-action-footer{justify-content:stretch}.bulk-action-footer button{flex:1;min-width:0}
+}
