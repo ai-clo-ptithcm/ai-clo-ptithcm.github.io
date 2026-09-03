@@ -28,7 +28,7 @@ window.v95RefreshShell=function(){
  priorRefresh?.();
  const nav=$('#nav');if(!nav)return;
  nav.innerHTML=navItems().filter(x=>x[3]).map(([view,icon,label])=>`<button data-view="${view}" class="${state.view===view?'active':''}"><span class="nav-icon">${icon}</span><span>${esc(label)}</span></button>`).join('');
- const home=$('#systemHomeBtn');if(home){home.innerHTML='<span>⌂</span><b>Hệ thống</b>';home.title='Về tổng quan hệ thống';home.setAttribute('aria-label','Về tổng quan hệ thống')}
+ const home=$('#systemHomeBtn');if(home){home.innerHTML='<span>←</span><b>Quay lại</b>';home.title='Quay lại màn hình trước';home.setAttribute('aria-label','Quay lại màn hình trước')}
  const pick=$('.subject-pick');pick?.classList.toggle('hidden',state.space!=='course');
 };
 
