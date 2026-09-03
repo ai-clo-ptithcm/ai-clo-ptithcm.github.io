@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V11.6.10 — restore active question/AI workspaces and in-page AI review. */
+/* AI-CLO PTITHCM V11.6.11 — restore active question/AI workspaces without reopening a saved question form. */
 (() => {
 'use strict';
 
@@ -6,7 +6,7 @@ const baseKey=()=>`ai-clo:v1053:${state.user?.id||'user'}:${state.subjectId||'su
 const workspaceKey=()=>`${baseKey()}:question-workspace`;
 const draftKey=id=>`${baseKey()}:question-draft:${id||'new'}`;
 const reviewKey=()=>`ai-clo:v11:${state.user?.id||'user'}:${state.subjectId||'subject'}:ai-review`;
-let restoring=false;
+let restoring=false,savingQuestion=false;
 
 const read=key=>{try{return JSON.parse(sessionStorage.getItem(key)||'null')}catch{return null}};
 const write=(key,value)=>{try{sessionStorage.setItem(key,JSON.stringify(value))}catch{}};
@@ -24,6 +24,7 @@ function rememberAi(){
 function forgetWorkspace(){drop(workspaceKey())}
 function forgetKind(kind){const w=read(workspaceKey());if(w?.kind===kind)forgetWorkspace()}
 function workspaceToRestore(){
+ if(savingQuestion)return null;
  const w=read(workspaceKey());
  if(!w)return null;
  if(w.kind==='question-form'){
@@ -52,7 +53,7 @@ window.enterApp=function(){
 const oldNavigate=window.navigate;
 window.navigate=function(v){
  const qform=$('#qForm');
- if(qform){rememberEditor(qform.dataset.draftId||'new')}
+ if(qform&&!savingQuestion){rememberEditor(qform.dataset.draftId||'new')}
  const aiForm=$('#aiForm');
  if(aiForm){window.AICLO_FORM_PERSISTENCE?.flush?.(aiForm);rememberAi()}
  return oldNavigate(v);
@@ -74,8 +75,27 @@ window.v96QuestionForm=async function(x={},sets){
 
  const submit=form.onsubmit;
  form.onsubmit=async e=>{
-  await submit(e);
-  if(!document.body.contains(form))forgetKind('question-form');
+  /*
+   * backToQuestionList() được gọi bên trong submit gốc. Nếu marker question-form còn tồn tại
+   * trong lúc danh sách đang render, wrapper questions() sẽ hiểu nhầm đây là form dang dở
+   * và mở lại ngay câu vừa lưu. Xóa marker + khóa restore trước khi submit để tránh race này.
+   */
+  savingQuestion=true;
+  forgetKind('question-form');
+  try{
+   await submit(e);
+  }finally{
+   const stillVisible=document.body.contains(form);
+   savingQuestion=false;
+   if(stillVisible){
+    /* Lưu lỗi hoặc người dùng hủy cảnh báo trùng: tiếp tục bảo vệ form đang soạn. */
+    rememberEditor(id);
+   }else{
+    /* Lưu thành công: không để draft/workspace cũ tự mở lại ở lần render kế tiếp. */
+    forgetKind('question-form');
+    drop(draftKey(id));
+   }
+  }
  };
 };
 
@@ -88,7 +108,7 @@ window.questions=async function(c){
  }
  await oldQuestions(c);
  if(activeReview)return; // state.js đã gọi showDraft sau khi review-flow mới được preload.
- if(restoring)return;
+ if(restoring||savingQuestion)return;
  const w=workspaceToRestore();if(!w)return;
  restoring=true;
  try{
@@ -105,7 +125,7 @@ window.questions=async function(c){
   }
   await window.v96QuestionForm(item,sets);
  }catch(ex){
-  console.warn('V11.6.10 restore question workspace',ex);
+  console.warn('V11.6.11 restore question workspace',ex);
  }finally{restoring=false}
 };
 
@@ -115,6 +135,7 @@ window.AICLO_QUESTION_WORKSPACE=Object.freeze({
  rememberQuestion:rememberEditor,
  forgetQuestion:()=>forgetKind('question-form'),
  current:workspaceToRestore,
- review:reviewToRestore
+ review:reviewToRestore,
+ isSavingQuestion:()=>savingQuestion
 });
 })();
