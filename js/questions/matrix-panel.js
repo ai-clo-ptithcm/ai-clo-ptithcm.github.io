@@ -1,6 +1,8 @@
-/* AI-CLO PTITHCM V11.6.1
-   Question bank matrix: Chapter / Topic rows × CLO columns.
-   Uses the same question-bank dataset as the current course view; no schema changes. */
+/* AI-CLO PTITHCM V11.6.2
+   Question bank matrix + compact action layout helpers.
+   - Chapter / Topic rows × CLO columns.
+   - Bulk import is moved from the bank list into the Add question workspace.
+   - No schema changes. */
 (()=>{
 'use strict';
 
@@ -107,6 +109,10 @@ function compactBankHeader(){
  if(note)note.classList.add('v1161-bank-note-compact');
 }
 
+function removeListBulkImport(){
+ document.querySelector('#bulkImportQ')?.remove();
+}
+
 function ensureMatrixButton(){
  const actions=document.querySelector('.bank-actions');
  if(!actions||document.querySelector('#questionBankMatrix'))return;
@@ -118,9 +124,35 @@ function ensureMatrixButton(){
  if(scan&&scan.parentElement===actions)actions.insertBefore(button,scan);else actions.appendChild(button);
 }
 
+function isAddQuestionWorkspace(){
+ const form=document.querySelector('#qForm');
+ const title=String(document.querySelector('#pageTitle')?.textContent||'').trim().toLowerCase();
+ return !!form&&title.includes('thêm câu hỏi');
+}
+
+function ensureBulkImportInsideQuestionForm(){
+ if(!isAddQuestionWorkspace()||document.querySelector('#questionBulkImportInside'))return;
+ const form=document.querySelector('#qForm');
+ const box=document.createElement('div');
+ box.className='wide question-create-import';
+ box.innerHTML=`<div><b>Thêm nhiều câu hỏi</b><small>Nếu đã chuẩn bị danh sách, bạn có thể nhập nhiều câu từ Excel thay vì tạo từng câu.</small></div><button id="questionBulkImportInside" type="button" class="secondary">⇧ Nhập hàng loạt từ Excel</button>`;
+ form.prepend(box);
+ const button=box.querySelector('#questionBulkImportInside');
+ button.addEventListener('click',async()=>{
+  const oldText=button.textContent;button.disabled=true;button.textContent='Đang mở…';
+  try{
+   if(typeof v96QuestionSets!=='function')throw new Error('Chưa tải được dữ liệu học phần.');
+   const sets=await v96QuestionSets();
+   if(typeof window.v102BulkImportQuestions!=='function')throw new Error('Chưa tải được chức năng nhập hàng loạt.');
+   await window.v102BulkImportQuestions(sets);
+  }catch(ex){err(ex);button.disabled=false;button.textContent=oldText}
+ });
+}
+
 function enhance(){
+ ensureBulkImportInsideQuestionForm();
  if(!document.querySelector('.v105-bank-tabs')||!document.querySelector('.bank-actions'))return;
- compactBankHeader();ensureMatrixButton();
+ compactBankHeader();removeListBulkImport();ensureMatrixButton();
 }
 
 window.AICLO_OPEN_QUESTION_BANK_MATRIX=openQuestionBankMatrix;
