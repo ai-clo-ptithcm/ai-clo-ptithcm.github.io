@@ -1,7 +1,9 @@
-/* AI-CLO PTITHCM V11.6.2
+/* AI-CLO PTITHCM V11.6.3
    Question bank matrix + compact action layout helpers.
    - Chapter / Topic rows × CLO columns.
    - Bulk import is moved from the bank list into the Add question workspace.
+   - Gemini/Academy provenance stays visible after filtering and pagination.
+   - Hovering question content shows the full question in a floating preview.
    - No schema changes. */
 (()=>{
 'use strict';
@@ -10,6 +12,8 @@ const byId=(arr,id)=>arr.find(x=>String(x.id)===String(id));
 const currentBank=()=>window.AICLO_V105?.activeBank?.()||'practice';
 const inBank=(scope,bank)=>window.v105QuestionInBank?window.v105QuestionInBank(scope,bank):(scope===bank||scope==='both');
 const bankLabel=bank=>bank==='secure_exam'?'Đề thi - bảo mật':'Luyện tập - kiểm tra';
+let questionMetaSubject=null,questionMetaPromise=null,questionMetaLoadedAt=0;
+let hoverCard=null,hoverTarget=null,enhanceQueued=false;
 
 function matrixKey(chapterId,topicId,cloId){return `${chapterId||'__none__'}|${topicId||'__none__'}|${cloId||'__none__'}`}
 
@@ -149,19 +153,124 @@ function ensureBulkImportInsideQuestionForm(){
  });
 }
 
+async function loadQuestionMeta(force=false){
+ const sid=state.subjectId;
+ if(!sid)return new Map();
+ const fresh=questionMetaSubject===sid&&questionMetaPromise&&Date.now()-questionMetaLoadedAt<30000;
+ if(fresh&&!force)return questionMetaPromise;
+ questionMetaSubject=sid;questionMetaLoadedAt=Date.now();
+ questionMetaPromise=(async()=>{
+  const query=contentFilter(db.from('questions').select('id,origin_type,is_official,content'),sid);
+  const {data,error}=await query;
+  if(error)throw error;
+  return new Map((data||[]).map(x=>[String(x.id),x]));
+ })();
+ return questionMetaPromise;
+}
+
+function originBadgeHtml(meta){
+ if(meta?.origin_type==='gemini')return '<br><span class="badge question-origin gemini question-origin-list">✦ Gemini hỗ trợ</span>';
+ if(meta?.origin_type==='academy')return `<br><span class="badge question-origin academy question-origin-list">🏛 Câu hỏi Học viện</span><br><span class="badge ${meta.is_official?'green':'red'} question-origin-list-state">${meta.is_official?'Đã xác nhận':'Chờ xác nhận'}</span>`;
+ return '';
+}
+
+async function decorateQuestionOrigins(){
+ const rows=[...document.querySelectorAll('#qrows tr')].filter(row=>row.querySelector('[data-detail]'));
+ if(!rows.length)return;
+ let metaMap=await loadQuestionMeta();
+ if(rows.some(row=>{const id=row.querySelector('[data-detail]')?.dataset.detail;return id&&!metaMap.has(String(id))}))metaMap=await loadQuestionMeta(true);
+ for(const row of rows){
+  const detail=row.querySelector('[data-detail]'),id=detail?.dataset.detail,meta=metaMap.get(String(id||'')),cell=row.querySelector('.q-code-cell');
+  if(!cell||!meta)continue;
+  if(meta.origin_type==='lecturer')continue;
+  const existing=[...cell.querySelectorAll('.question-origin')].some(el=>el.classList.contains(meta.origin_type));
+  if(!existing)cell.insertAdjacentHTML('beforeend',originBadgeHtml(meta));
+  if(meta.origin_type==='academy'){
+   const statusText=meta.is_official?'Đã xác nhận':'Chờ xác nhận';
+   if(!cell.textContent.includes(statusText))cell.insertAdjacentHTML('beforeend',`<br><span class="badge ${meta.is_official?'green':'red'} question-origin-list-state">${statusText}</span>`);
+  }
+ }
+}
+
+function ensureHoverCard(){
+ if(hoverCard&&document.body.contains(hoverCard))return hoverCard;
+ hoverCard=document.createElement('div');
+ hoverCard.id='questionFullHover';hoverCard.className='qbank-question-hover';hoverCard.hidden=true;hoverCard.setAttribute('aria-hidden','true');
+ document.body.appendChild(hoverCard);
+ return hoverCard;
+}
+
+function hideQuestionHover(){
+ if(!hoverCard)return;
+ hoverTarget=null;hoverCard.hidden=true;hoverCard.setAttribute('aria-hidden','true');
+}
+
+function positionQuestionHover(target){
+ const card=ensureHoverCard(),rect=target.getBoundingClientRect(),pad=14,gap=9;
+ const width=Math.min(560,Math.max(320,window.innerWidth-pad*2));
+ card.style.width=`${width}px`;card.style.left='0px';card.style.top='0px';card.hidden=false;card.style.visibility='hidden';
+ const height=Math.min(card.scrollHeight,window.innerHeight*0.56);
+ let left=Math.min(Math.max(pad,rect.left),window.innerWidth-width-pad);
+ let top=rect.bottom+gap;
+ if(top+height>window.innerHeight-pad)top=Math.max(pad,rect.top-height-gap);
+ card.style.left=`${Math.round(left)}px`;card.style.top=`${Math.round(top)}px`;card.style.visibility='visible';
+}
+
+async function showQuestionHover(target){
+ if(window.matchMedia?.('(hover: none)').matches)return;
+ hoverTarget=target;
+ const id=target.dataset.detail;
+ let content='';
+ try{const map=await loadQuestionMeta();content=map.get(String(id||''))?.content||''}catch{}
+ if(hoverTarget!==target)return;
+ content=content||String(target.textContent||'').trim();
+ const card=ensureHoverCard();
+ card.innerHTML='<small>NỘI DUNG ĐẦY ĐỦ</small><div class="qbank-question-hover-content"></div>';
+ card.querySelector('.qbank-question-hover-content').textContent=content;
+ card.setAttribute('aria-hidden','false');
+ positionQuestionHover(target);
+ try{renderMath(card)}catch{}
+ requestAnimationFrame(()=>{if(hoverTarget===target)positionQuestionHover(target)});
+}
+
+function bindQuestionHover(host){
+ if(host.dataset.aicloQuestionHover==='1')return;
+ host.dataset.aicloQuestionHover='1';
+ host.addEventListener('pointerover',event=>{
+  const target=event.target.closest?.('.question-summary');
+  if(!target||!host.contains(target)||target.contains(event.relatedTarget))return;
+  showQuestionHover(target);
+ });
+ host.addEventListener('pointerout',event=>{
+  const target=event.target.closest?.('.question-summary');
+  if(!target||target.contains(event.relatedTarget))return;
+  if(hoverTarget===target)hideQuestionHover();
+ });
+ window.addEventListener('scroll',hideQuestionHover,true);
+ window.addEventListener('resize',hideQuestionHover);
+}
+
 function enhance(){
  ensureBulkImportInsideQuestionForm();
  if(!document.querySelector('.v105-bank-tabs')||!document.querySelector('.bank-actions'))return;
  compactBankHeader();removeListBulkImport();ensureMatrixButton();
+ decorateQuestionOrigins().catch(ex=>console.warn('Không thể gắn nguồn câu hỏi',ex));
+}
+
+function queueEnhance(){
+ if(enhanceQueued)return;
+ enhanceQueued=true;
+ requestAnimationFrame(()=>{enhanceQueued=false;enhance()});
 }
 
 window.AICLO_OPEN_QUESTION_BANK_MATRIX=openQuestionBankMatrix;
 
 document.addEventListener('DOMContentLoaded',()=>{
- enhance();
  const host=document.querySelector('#content');
+ if(host)bindQuestionHover(host);
+ enhance();
  if(!host)return;
- const observer=new MutationObserver(()=>enhance());
+ const observer=new MutationObserver(queueEnhance);
  observer.observe(host,{childList:true,subtree:true});
 });
 })();
