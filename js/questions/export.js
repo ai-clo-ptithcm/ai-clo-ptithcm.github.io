@@ -35,9 +35,9 @@ async function exportQuestionBank(){
   if(!XLSXLib)throw new Error('Không tải được thư viện Excel.');
   const sid=state.subjectId;
   const [questions,chapters,clos]=await Promise.all([
-   q('questions','*, question_options(*)',x=>x.eq('subject_id',sid).order('created_at',{ascending:true})),
-   q('chapters','*',x=>x.eq('subject_id',sid).order('order_index')),
-   q('clos','*',x=>x.eq('subject_id',sid).order('code'))
+   q('questions','*, question_options(*)',x=>contentFilter(x,sid).order('created_at',{ascending:true})),
+   q('chapters','*',x=>contentFilter(x,sid).order('order_index')),
+   q('clos','*',x=>contentFilter(x,sid).order('code'))
   ]);
   const chapterIds=chapters.map(x=>x.id).filter(Boolean);
   const topics=chapterIds.length?await q('topics','*',x=>x.in('chapter_id',chapterIds).order('order_index')):[];
