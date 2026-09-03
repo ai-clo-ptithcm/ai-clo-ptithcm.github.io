@@ -36,12 +36,17 @@ async function recentNotices(){
 }
 async function systemData(){
  const uid=state.user.id,r=role();
- return memo(`system:dashboard:${uid}:${r}`,SYSTEM_TTL,async()=>{
+ return memo(`system:dashboard:v112:${uid}:${r}`,SYSTEM_TTL,async()=>{
   const ids=await membershipsForUser();
   const visible=r==='admin'?state.subjects:state.subjects.filter(s=>ids.has(s.id));
   if(r==='admin'){
-   const profiles=await q('profiles','id,role,is_active',x=>x.order('id'));
-   return {r,visible,profiles,unread:0,submitted:0,students:0};
+   const [profiles,banks,bankQuestions,bankChapters]=await Promise.all([
+    q('profiles','id,role,is_active',x=>x.order('id')),
+    q('question_banks','id,name,code,description,is_active',x=>x.order('name')),
+    q('questions','question_bank_id,question_scope'),
+    q('chapters','id,question_bank_id')
+   ]);
+   return {r,visible,profiles,banks,bankQuestions,bankChapters,unread:0,submitted:0,students:0};
   }
   const unread=await countRows(`system:unread:${uid}`,NOTICE_TTL,'notifications',x=>x.eq('user_id',uid).is('read_at',null));
   if(isTeacher(r)){
@@ -67,10 +72,11 @@ function appendNotices(c,items){
 }
 async function fastSystemDashboard(c){
  const data=await systemData(),r=data.r;
- let cards=[],intro='',action='';
+ let cards=[],intro='',action='',bankPanel='';
  if(r==='admin'){
   cards=[['Học phần',state.subjects.length],['Người dùng',data.profiles.length],['Giảng viên',data.profiles.filter(p=>isTeacher(p.role)).length],['Sinh viên',data.profiles.filter(p=>p.role==='student').length]];
   intro='Theo dõi toàn hệ thống, quản lý người dùng và mở từng học phần để kiểm tra dữ liệu.';action='Quản lý học phần';
+  bankPanel=`<section class="panel v112-banks"><div class="panel-head"><div><h3>Ngân hàng câu hỏi</h3><p class="hint">${data.banks.length} ngân hàng · ${data.bankQuestions.length} câu hỏi. File Excel có cả đáp án và câu bảo mật.</p></div></div><div class="v112-bank-grid">${data.banks.map(bank=>{const linked=state.subjects.filter(s=>s.question_bank_id===bank.id),questions=data.bankQuestions.filter(q=>q.question_bank_id===bank.id),practice=questions.filter(q=>['practice','both'].includes(q.question_scope)).length,secure=questions.filter(q=>['secure_exam','both'].includes(q.question_scope)).length,chapters=data.bankChapters.filter(ch=>ch.question_bank_id===bank.id).length;return `<article class="v112-bank-card"><div><small>${esc(bank.code)}</small><h4>${esc(bank.name)}</h4><p>${chapters} chương · ${questions.length} câu · ${linked.length} học phần</p><div><span class="badge green">${practice} luyện tập</span><span class="badge secure">🔒 ${secure} bảo mật</span></div></div><div class="v112-bank-actions"><button class="secondary" data-fast-open-bank="${bank.id}" ${linked.length?'':'disabled'}>Mở ngân hàng</button><button class="primary" data-fast-export-bank="${bank.id}">↓ Tải Excel</button></div></article>`}).join('')||'<div class="empty"><b>Chưa có ngân hàng câu hỏi</b><span>Tạo học phần và ngân hàng đầu tiên để bắt đầu.</span></div>'}</div></section>`;
  }else if(isTeacher(r)){
   cards=[['Học phần phụ trách',data.visible.length],['Sinh viên',data.students],['Thông báo chưa đọc',data.unread],['Vai trò','Giảng viên']];
   intro='Chọn học phần để quản lý nội dung, ngân hàng câu hỏi, đánh giá và kết quả CLO.';action='Xem học phần phụ trách';
@@ -78,11 +84,15 @@ async function fastSystemDashboard(c){
   cards=[['Học phần đang học',data.visible.length],['Lượt đã nộp',data.submitted],['Thông báo chưa đọc',data.unread],['Vai trò','Sinh viên']];
   intro='Theo dõi học phần, bài cần làm, kết quả CLO và phản hồi học tập của bạn.';action='Xem học phần đang học';
  }
- c.innerHTML=`<div class="v109-dashboard"><section class="v109-hero"><div><small>TỔNG QUAN HỆ THỐNG</small><h3>Xin chào, ${esc(state.profile?.full_name||'bạn')}</h3><p>${esc(intro)}</p></div><span>${esc(roleLabel(r))}</span></section><div class="v109-stats">${cards.map(x=>stat(...x)).join('')}</div><section class="panel"><div class="panel-head"><h3>${esc(action)}</h3><button id="systemAllCourses" class="secondary">${esc(action)}</button></div><div class="v109-courses">${courseCards(data.visible.slice(0,6))}</div></section></div>`;
+ c.innerHTML=`<div class="v109-dashboard"><section class="v109-hero"><div><small>TỔNG QUAN HỆ THỐNG</small><h3>Xin chào, ${esc(state.profile?.full_name||'bạn')}</h3><p>${esc(intro)}</p></div><span>${esc(roleLabel(r))}</span></section><div class="v109-stats">${cards.map(x=>stat(...x)).join('')}</div>${bankPanel}<section class="panel"><div class="panel-head"><h3>${esc(action)}</h3><button id="systemAllCourses" class="secondary">${esc(action)}</button></div><div class="v109-courses">${courseCards(data.visible.slice(0,6))}</div></section></div>`;
  $('#pageTitle').textContent='Tổng quan hệ thống';
  $('#pageSub').textContent=r==='admin'?'Học phần, người dùng và tình trạng hệ thống':isTeacher(r)?'Các học phần phụ trách và công việc cần xử lý':'Học phần, bài kiểm tra và kết quả của bạn';
  $('#systemAllCourses').onclick=()=>navigate('subjects');
  bindCourseCards(c);
+ if(r==='admin'){
+  $$('[data-fast-open-bank]',c).forEach(button=>button.onclick=()=>{const subject=state.subjects.find(s=>s.question_bank_id===button.dataset.fastOpenBank);if(subject)window.v95EnterCourse?.(subject.id,'questions')});
+  $$('[data-fast-export-bank]',c).forEach(button=>button.onclick=()=>{const bank=data.banks.find(b=>b.id===button.dataset.fastExportBank);if(bank)window.AICLO_QUESTION_EXPORT?.exportBank(bank,button)});
+ }
  if(r!=='admin')appendNotices(c,await recentNotices());
 }
 
