@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V11.6.5 — stable compact question-bank actions and isolated filter drawer. */
+/* AI-CLO PTITHCM V11.6.7 — stable compact question-bank actions, filter drawer and active filter chips. */
 (()=>{
 'use strict';
 
@@ -10,6 +10,12 @@ function isBankView(){return !!document.querySelector('.v105-bank-tabs')&&!!docu
 function activeFilterCount(){return FILTER_IDS.reduce((n,id)=>n+(document.getElementById(id)?.value&&document.getElementById(id).value!=='all'?1:0),0)}
 function moveIfNeeded(el,parent){if(el&&parent&&el.parentElement!==parent)parent.appendChild(el)}
 function setTextIfNeeded(el,text){if(el&&el.textContent!==text)el.textContent=text}
+function selectedFilterText(id){
+ const el=document.getElementById(id);if(!el||!el.value||el.value==='all')return '';
+ if(id==='qcreatorFilter'&&el.value==='mine')return 'Tôi';
+ return String(el.selectedOptions?.[0]?.textContent||el.value).trim();
+}
+function activeFilters(){return FILTER_IDS.map(id=>({id,value:document.getElementById(id)?.value||'all',text:selectedFilterText(id)})).filter(x=>x.value!=='all'&&x.text)}
 
 function updateFilterButton(){
  const btn=document.querySelector('#questionFilterButton');if(!btn)return;
@@ -21,6 +27,37 @@ function updateFilterButton(){
  if(btn.classList.contains('active')!==(count>0))btn.classList.toggle('active',count>0);
  btn.title=count?`Đang áp dụng ${count} bộ lọc`:'Lọc danh sách câu hỏi';
 }
+
+function clearFilter(id,{capture=true}={}){
+ const el=document.getElementById(id);if(!el)return;
+ if(id==='qchapterFilter'){
+  if(el.value!=='all'){el.value='all';el.dispatchEvent(new Event('change'))}
+  const topic=document.getElementById('qtopicFilter');
+  if(topic&&topic.value!=='all'){topic.value='all';topic.dispatchEvent(new Event('change'))}
+ }else if(el.value!=='all'){
+  el.value='all';el.dispatchEvent(new Event('change'));
+ }
+ if(capture)window.captureQuestionFilters?.();
+ requestAnimationFrame(updateFilterState);
+}
+function clearAllFilters(){
+ clearFilter('qchapterFilter',{capture:false});
+ FILTER_IDS.filter(id=>id!=='qchapterFilter'&&id!=='qtopicFilter').forEach(id=>clearFilter(id,{capture:false}));
+ const topic=document.getElementById('qtopicFilter');
+ if(topic&&topic.value!=='all'){topic.value='all';topic.dispatchEvent(new Event('change'))}
+ window.captureQuestionFilters?.();
+ requestAnimationFrame(updateFilterState);
+}
+function renderFilterChips(){
+ const row=document.querySelector('#questionFilterChips');if(!row)return;
+ const filters=activeFilters();
+ const key=filters.map(x=>`${x.id}:${x.value}:${x.text}`).join('|');
+ if(row.dataset.filterKey===key)return;
+ row.dataset.filterKey=key;
+ row.hidden=!filters.length;
+ row.innerHTML=filters.map(x=>`<button type="button" class="qbank-filter-chip" data-remove-filter="${esc(x.id)}" title="Bỏ lọc ${esc(x.text)}"><span>${esc(x.text)}</span><b aria-hidden="true">×</b></button>`).join('')+(filters.length>1?'<button type="button" class="qbank-filter-clear-all" data-clear-all-filters>Xóa tất cả</button>':'');
+}
+function updateFilterState(){updateFilterButton();renderFilterChips()}
 
 function compactMainActions(){
  const old=document.querySelector('.bank-actions'),note=document.querySelector('.v105-bank-note');
@@ -70,16 +107,31 @@ function compactSearchAndFilters(){
  }
  moveIfNeeded(filterBtn,row);
  if(!tools.classList.contains('qbank-hidden-filter-source'))tools.classList.add('qbank-hidden-filter-source');
+ let chips=document.querySelector('#questionFilterChips');
+ if(!chips){
+  chips=document.createElement('div');
+  chips.id='questionFilterChips';
+  chips.className='qbank-filter-chips';
+  chips.hidden=true;
+  chips.addEventListener('click',event=>{
+   const chip=event.target.closest?.('[data-remove-filter]');
+   if(chip){clearFilter(chip.dataset.removeFilter);return}
+   if(event.target.closest?.('[data-clear-all-filters]'))clearAllFilters();
+  });
+  row.insertAdjacentElement('afterend',chips);
+ }
  let countRow=document.querySelector('#questionCountRow');
  if(!countRow){
   countRow=document.createElement('div');
   countRow.id='questionCountRow';
   countRow.className='qbank-count-row';
-  row.insertAdjacentElement('afterend',countRow);
+  chips.insertAdjacentElement('afterend',countRow);
+ }else if(countRow.previousElementSibling!==chips){
+  chips.insertAdjacentElement('afterend',countRow);
  }
  const count=document.querySelector('#questionCount');
  moveIfNeeded(count,countRow);
- updateFilterButton();
+ updateFilterState();
 }
 
 function cloneSelectHtml(sourceId,panelId){
@@ -146,7 +198,7 @@ async function openFilterPanel(){
     el.dispatchEvent(new Event('change'));
    });
    window.captureQuestionFilters?.();
-   updateFilterButton();
+   updateFilterState();
    window.closeDrawer?.();
   });
  },{eyebrow:'NGÂN HÀNG CÂU HỎI'});
@@ -172,7 +224,7 @@ function bindFilterState(){
  FILTER_IDS.forEach(id=>{
   const el=document.getElementById(id);if(!el||el.dataset.aicloFilterState==='1')return;
   el.dataset.aicloFilterState='1';
-  el.addEventListener('change',()=>requestAnimationFrame(updateFilterButton));
+  el.addEventListener('change',()=>requestAnimationFrame(updateFilterState));
  });
 }
 
@@ -181,7 +233,7 @@ function enhance(){
  compactMainActions();
  compactSearchAndFilters();
  bindFilterState();
- updateFilterButton();
+ updateFilterState();
 }
 function queueEnhance(){
  if(enhanceQueued)return;
