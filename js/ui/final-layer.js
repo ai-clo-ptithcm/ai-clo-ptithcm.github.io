@@ -43,11 +43,19 @@ async function systemDashboard(c){
  const r=role(),ids=await roleCourseIds();
  const visible=r==='admin'?state.subjects:state.subjects.filter(s=>ids.has(s.id));
  const unread=await count('notifications',x=>x.eq('user_id',state.user.id).is('read_at',null));
- let cards=[],intro='',action='';
+ let cards=[],intro='',action='',bankPanel='',banks=[];
  if(r==='admin'){
-  const profiles=await safe(()=>q('profiles','id,role,is_active'),[]);
+  const [profiles,bankRows,bankQuestions,bankChapters]=await Promise.all([
+   safe(()=>q('profiles','id,role,is_active'),[]),
+   safe(()=>q('question_banks','id,name,code,description,is_active',x=>x.order('name')),[]),
+   safe(()=>q('questions','question_bank_id,question_scope'),[]),
+   safe(()=>q('chapters','id,question_bank_id'),[])
+  ]);
+  banks=bankRows;
   cards=[['Học phần',state.subjects.length],['Người dùng',profiles.length],['Giảng viên',profiles.filter(p=>isTeacher(p.role)).length],['Sinh viên',profiles.filter(p=>p.role==='student').length]];
   intro='Theo dõi toàn hệ thống, quản lý người dùng và mở từng học phần để kiểm tra dữ liệu.';action='Quản lý học phần';
+  const totalQuestions=bankQuestions.length;
+  bankPanel=`<section class="panel v112-banks"><div class="panel-head"><div><h3>Ngân hàng câu hỏi</h3><p class="hint">${banks.length} ngân hàng · ${totalQuestions} câu hỏi. File Excel có cả đáp án và câu bảo mật.</p></div></div><div class="v112-bank-grid">${banks.map(bank=>{const linked=state.subjects.filter(s=>s.question_bank_id===bank.id),questions=bankQuestions.filter(q=>q.question_bank_id===bank.id),practice=questions.filter(q=>['practice','both'].includes(q.question_scope)).length,secure=questions.filter(q=>['secure_exam','both'].includes(q.question_scope)).length,chapters=bankChapters.filter(ch=>ch.question_bank_id===bank.id).length;return `<article class="v112-bank-card"><div><small>${esc(bank.code)}</small><h4>${esc(bank.name)}</h4><p>${chapters} chương · ${questions.length} câu · ${linked.length} học phần</p><div><span class="badge green">${practice} luyện tập</span><span class="badge secure">🔒 ${secure} bảo mật</span></div></div><div class="v112-bank-actions"><button class="secondary" data-v112-open-bank="${bank.id}" ${linked.length?'':'disabled'}>Mở ngân hàng</button><button class="primary" data-v112-export-bank="${bank.id}">↓ Tải Excel</button></div></article>`}).join('')||'<div class="empty"><b>Chưa có ngân hàng câu hỏi</b><span>Tạo học phần và ngân hàng đầu tiên để bắt đầu.</span></div>'}</div></section>`;
  }else if(isTeacher(r)){
   const members=await safe(()=>q('subject_members','subject_id,user_id,role',x=>x.in('subject_id',visible.map(s=>s.id))),[]);
   const students=new Set(members.filter(m=>m.role==='student').map(m=>m.user_id));
@@ -58,9 +66,13 @@ async function systemDashboard(c){
   cards=[['Học phần đang học',visible.length],['Lượt đã nộp',submitted],['Thông báo chưa đọc',unread],['Vai trò','Sinh viên']];
   intro='Theo dõi học phần, bài cần làm, kết quả CLO và phản hồi học tập của bạn.';action='Xem học phần đang học';
  }
- c.innerHTML=`<div class="v109-dashboard"><section class="v109-hero"><div><small>TỔNG QUAN HỆ THỐNG</small><h3>Xin chào, ${esc(state.profile?.full_name||'bạn')}</h3><p>${esc(intro)}</p></div><span>${esc(roleLabel(r))}</span></section><div class="v109-stats">${cards.map(x=>stat(...x)).join('')}</div><section class="panel"><div class="panel-head"><h3>${esc(action)}</h3><button id="v109AllCourses" class="secondary">${esc(action)}</button></div><div class="v109-courses">${courseCards(visible.slice(0,6))}</div></section></div>`;
+ c.innerHTML=`<div class="v109-dashboard"><section class="v109-hero"><div><small>TỔNG QUAN HỆ THỐNG</small><h3>Xin chào, ${esc(state.profile?.full_name||'bạn')}</h3><p>${esc(intro)}</p></div><span>${esc(roleLabel(r))}</span></section><div class="v109-stats">${cards.map(x=>stat(...x)).join('')}</div>${bankPanel}<section class="panel"><div class="panel-head"><h3>${esc(action)}</h3><button id="v109AllCourses" class="secondary">${esc(action)}</button></div><div class="v109-courses">${courseCards(visible.slice(0,6))}</div></section></div>`;
  $('#pageTitle').textContent='Tổng quan hệ thống';$('#pageSub').textContent=r==='admin'?'Học phần, người dùng và tình trạng hệ thống':isTeacher(r)?'Các học phần phụ trách và công việc cần xử lý':'Học phần, bài kiểm tra và kết quả của bạn';
  $('#v109AllCourses').onclick=()=>navigate('subjects');bindCourseCards(c);
+ if(r==='admin'){
+  $$('[data-v112-open-bank]',c).forEach(button=>button.onclick=()=>{const subject=state.subjects.find(s=>s.question_bank_id===button.dataset.v112OpenBank);if(subject)window.v95EnterCourse?.(subject.id,'questions')});
+  $$('[data-v112-export-bank]',c).forEach(button=>button.onclick=()=>{const bank=banks.find(b=>b.id===button.dataset.v112ExportBank);if(bank)window.AICLO_QUESTION_EXPORT?.exportBank(bank,button)});
+ }
  if(r!=='admin'){
   const notices=await safe(()=>q('notifications','id,title,message,category,severity,created_at,read_at,subject_id,target_view,target_id',x=>x.eq('user_id',state.user.id).order('created_at',{ascending:false}).limit(5)),[]);
   const panel=document.createElement('section');panel.className='panel v109-notices';panel.innerHTML=`<div class="panel-head"><div><h3>Thông báo gần đây</h3><p class="hint">Những nội dung mới từ hệ thống và các học phần.</p></div><button id="v109AllNotices" class="secondary">Xem tất cả thông báo</button></div><div class="v109-notice-list">${notices.map(n=>`<button type="button" class="v109-notice ${n.read_at?'':'unread'}" data-v109-notice="${n.id}"><span>🔔</span><div><b>${esc(n.title||'Thông báo')}</b><p>${esc(n.message||'')}</p><small>${fmt(n.created_at)}${n.read_at?'':' · Chưa đọc'}</small></div></button>`).join('')||'<div class="empty"><b>Chưa có thông báo</b><span>Thông báo mới sẽ xuất hiện tại đây.</span></div>'}</div>`;
