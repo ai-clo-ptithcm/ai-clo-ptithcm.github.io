@@ -1,3 +1,34 @@
+# AI-CLO PTITHCM — V11.5
+
+V11.5 hoàn thiện không gian quản trị và quy trình đánh giá theo hướng mở trang con ngay trong ứng dụng.
+
+## Điểm mới chính
+
+- **Quản trị ngân hàng câu hỏi độc lập:** Admin có tab Ngân hàng câu hỏi riêng, lọc theo nhóm Toán/Vật lý, tạo ngân hàng, mở quản trị và xuất Excel.
+- **Học phần gắn ngân hàng dùng chung:** học phần mới kế thừa Chương, Chủ đề và CLO từ ngân hàng được chọn; có học kỳ, năm học và thời gian bắt đầu/kết thúc.
+- **Nguồn câu hỏi rõ ràng:** phân biệt Giảng viên biên soạn, Gemini hỗ trợ và câu hỏi Học viện; ngân hàng Luyện tập được tách khỏi Đề thi bảo mật.
+- **Duyệt câu Gemini an toàn:** giữ nội dung khi chuyển màn hình, so sánh câu gần giống trong cùng chủ đề/chương, hỗ trợ kiểm tra giống về toán học và kết thúc đúng phiên thay vì quay lại câu đầu.
+- **Quản lý người dùng:** các ô thống kê nằm trên một hàng ở desktop; Danh sách thành viên tách Sinh viên/Giảng viên, có đăng nhập gần nhất và bộ lọc gọn.
+- **Điều hướng học phần:** nút Quay lại dùng lịch sử nội bộ; sidebar có Về hệ thống và khung học phần được thu gọn.
+- **Kết quả CLO:** hỗ trợ sắp xếp tên, GPA và từng CLO; điểm dưới 4 được làm nổi bật.
+
+## Đánh giá và bài kiểm tra
+
+- Danh sách bài kiểm tra chỉ giữ một nút **Chi tiết**; nhấn tên bài hoặc Chi tiết mở trang quản lý bài ngay trong app.
+- Trang chi tiết tập trung Cấu trúc câu hỏi, Làm thử, Sửa cài đặt, Phát hành/Đóng, Xóa bài và danh sách bài làm.
+- Danh sách bài làm hỗ trợ tìm kiếm, lọc trạng thái và sắp xếp theo tên, ngày làm, GPA hoặc từng CLO; GPA/CLO dưới 4 được cảnh báo rõ.
+- Giữ Xem bài, AI theo từng lượt và Xóa lượt làm; bộ lọc/sắp xếp được lưu trong phiên làm việc.
+- Nút **AI phân tích bài kiểm tra** chỉ tổng hợp các lượt thuộc đúng bài đang mở, có cache theo dữ liệu và nhận diện CLO yếu, câu khó, phương án thường được chọn.
+- Khi tạo bài kiểm tra, ma trận **Mục theo hàng × CLO theo cột** hiển thị tổng hàng/cột và kiểm tra số câu khả dụng trước khi tạo.
+
+## Supabase V11.5
+
+- Đã chạy `supabase/v11.5-exam-ai-analysis.sql` và nhận `MIGRATION_V11_5_OK`.
+- Đã deploy lại Edge Function `analyze-assessment` để hỗ trợ `scope: exam` và `exam_id`.
+- Migration giữ nguyên RLS, bổ sung khóa ngoại và chỉ mục cho nhận xét AI theo bài kiểm tra.
+
+---
+
 # AI-CLO PTITHCM — V11
 
 **V11 là checkpoint frontend hiện tại của dự án.** Bản này tập trung tái cấu trúc JS/CSS theo chức năng, giảm tải ban đầu và cải thiện cảm nhận khi chuyển các mục trong sidebar mà không thay đổi nghiệp vụ cốt lõi.
