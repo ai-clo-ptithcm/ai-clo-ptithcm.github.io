@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V11.6.4 — compact question-bank toolbar and drawers. */
+/* AI-CLO PTITHCM V11.6.7 — compact question-bank toolbar, drawers and active filter chips. */
 .qbank-primary-actions{display:grid;grid-template-columns:1.25fr 1.05fr .8fr .85fr;gap:10px;margin:0 0 12px}
 .qbank-primary-actions>button{width:100%;min-height:48px;margin:0!important;font-weight:800;white-space:nowrap}
 .qbank-primary-actions>#generateAI{font-size:15px}
@@ -11,6 +11,15 @@
 .qbank-filter-button{height:48px;background:#fff!important;border:1px solid #d5dde8!important;color:#26364d!important;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:7px}
 .qbank-filter-button b{min-width:21px;height:21px;padding:0 6px;border-radius:999px;display:inline-grid;place-items:center;background:var(--red);color:#fff;font-size:10px}
 .qbank-filter-button.active{border-color:#d9a8b0!important;background:#fff7f8!important;color:var(--red)!important}
+.qbank-filter-chips{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:0 0 8px;min-height:30px}
+.qbank-filter-chips[hidden]{display:none!important}
+.qbank-filter-chip,.qbank-filter-clear-all{border:0;border-radius:999px;min-height:30px;padding:5px 10px;font-size:12px;font-weight:750;line-height:1.2}
+.qbank-filter-chip{display:inline-flex;align-items:center;gap:7px;background:#eef3f8;color:#32445c;box-shadow:inset 0 0 0 1px #d9e1ea}
+.qbank-filter-chip:hover{background:#e7edf4;color:#172033}
+.qbank-filter-chip b{font-size:16px;line-height:1;font-weight:500;color:#778396}
+.qbank-filter-chip:hover b{color:var(--red)}
+.qbank-filter-clear-all{background:transparent;color:var(--red);padding-left:7px;padding-right:7px}
+.qbank-filter-clear-all:hover{background:#fff0f2}
 .qbank-count-row{min-height:24px;display:flex;align-items:center;margin:0 0 8px}
 .qbank-count-row>#questionCount{margin:0!important;padding:0!important;text-align:left!important}
 
@@ -48,6 +57,7 @@
  .qbank-search-row>#qsearch,.qbank-filter-button{height:44px}
  .qbank-filter-grid{grid-template-columns:1fr}
  .qbank-filter-field:first-child,.qbank-filter-field:nth-child(2){grid-column:auto}
+ .qbank-filter-chip,.qbank-filter-clear-all{font-size:11px;min-height:28px}
 }
 @media(max-width:430px){
  .qbank-primary-actions{grid-template-columns:1fr 1fr}
