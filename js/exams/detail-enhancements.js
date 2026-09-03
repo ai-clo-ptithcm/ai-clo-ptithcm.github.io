@@ -1,12 +1,16 @@
-/* AI-CLO PTITHCM V11.6.20 — assessment detail layout, sorting and scroll persistence. */
+/* AI-CLO PTITHCM V11.6.23 — assessment detail lifecycle, layout, sorting and scroll persistence. */
 (()=>{
 'use strict';
 
 let queued=false,observer=null,scrollTimer=null,restoringScroll=false;
+let detailEpoch=0,detailExamId='',navigationInstalled=false;
 const enhancedPages=new WeakSet();
-const activeExamId=()=>{try{return sessionStorage.getItem(`aiclo:v115:active-exam:${state.subjectId}`)||''}catch{return''}};
+const activeExamKey=()=>`aiclo:v115:active-exam:${state.subjectId}`;
+const activeExamId=()=>{try{return sessionStorage.getItem(activeExamKey())||''}catch{return''}};
 const scrollKey=id=>`aiclo:v11620:exam-scroll:${state.user?.id||'user'}:${state.subjectId||'subject'}:${id}`;
 const highSortKey=id=>`aiclo:v11620:exam-high-sort:${state.user?.id||'user'}:${state.subjectId||'subject'}:${id}`;
+const assessmentTabKey=()=>`aiclo:v109:assessment:${state.subjectId}`;
+const finalWorkspaceKey=()=>`ai-clo:v11:final-workspace:${state.user?.id||'user'}:${state.subjectId||'subject'}`;
 const readNumber=text=>{const n=Number(String(text||'').trim().replace(',','.'));return Number.isFinite(n)?n:null};
 
 function readSavedScroll(id){
@@ -15,7 +19,7 @@ function readSavedScroll(id){
 }
 function saveScroll(){
  if(restoringScroll)return;
- const page=document.querySelector('.assessment-detail-page'),id=activeExamId();if(!page||!id)return;
+ const page=document.querySelector('.assessment-detail-page'),id=activeExamId()||detailExamId;if(!page||!id)return;
  try{sessionStorage.setItem(scrollKey(id),JSON.stringify({y:Math.max(0,Math.round(window.scrollY||0)),at:Date.now()}))}catch{}
 }
 function clearScroll(id){if(!id)return;try{sessionStorage.removeItem(scrollKey(id))}catch{}}
@@ -26,6 +30,12 @@ function restoreScroll(page,id){
  const apply=()=>window.scrollTo({top:y,left:0,behavior:'auto'});
  requestAnimationFrame(()=>requestAnimationFrame(apply));
  setTimeout(apply,90);setTimeout(()=>{apply();restoringScroll=false},180);
+}
+function invalidateViewOnlyDetail({clearPosition=true}={}){
+ const id=activeExamId()||detailExamId;
+ detailEpoch++;detailExamId='';
+ try{sessionStorage.removeItem(activeExamKey())}catch{}
+ if(clearPosition&&id)clearScroll(id);
 }
 
 function removeLeakedFinalExamSection(){
@@ -103,25 +113,81 @@ function enhanceAttemptRows(page){
  applyHighCloSort(page);
 }
 
+function enhanceAssessmentLanding(){
+ if(state.view!=='exams'||document.querySelector('.assessment-detail-page'))return;
+ const body=document.querySelector('#v109AssessmentBody'),hint=body?.querySelector('.toolbar .hint');
+ if(hint&&hint.textContent!=='Tạo bài kiểm tra, theo dõi lượt làm và phân tích kết quả theo CLO.')hint.textContent='Tạo bài kiểm tra, theo dõi lượt làm và phân tích kết quả theo CLO.';
+}
+function isFinalExamWorkspace(workspace){
+ if(!workspace||state.view!=='exams')return false;
+ const title=workspace.querySelector('.workspace-head h3')?.textContent||'';
+ let marker=false;try{marker=!!sessionStorage.getItem(finalWorkspaceKey())}catch{}
+ return marker||/đề thi cuối kỳ|duyệt đề gốc|đã tạo bộ đề cuối kỳ/i.test(title);
+}
+function ensureFinalExamListBack(){
+ const workspace=document.querySelector('#content .question-workspace');if(!isFinalExamWorkspace(workspace))return;
+ const head=workspace.querySelector('.workspace-head');if(!head||head.querySelector('#finalAssessmentListBack'))return;
+ const button=document.createElement('button');button.id='finalAssessmentListBack';button.type='button';button.className='secondary final-assessment-list-back';button.textContent='← Danh sách đề thi cuối kỳ';
+ button.onclick=async()=>{
+  const form=workspace.querySelector('#finalExamForm');if(form)window.AICLO_FORM_PERSISTENCE?.flush?.(form);
+  try{sessionStorage.removeItem(finalWorkspaceKey());sessionStorage.setItem(assessmentTabKey(),'final')}catch{}
+  invalidateViewOnlyDetail({clearPosition:true});
+  await window.render?.();
+ };
+ head.insertBefore(button,head.firstChild);
+}
+
 function enhancePage(page){
- const id=activeExamId();removeLeakedFinalExamSection();moveExamAiAction(page);ensureCloHighSortOptions(page,id);enhanceAttemptRows(page);syncExamAiResult(page);
+ const id=activeExamId()||detailExamId;removeLeakedFinalExamSection();moveExamAiAction(page);ensureCloHighSortOptions(page,id);enhanceAttemptRows(page);syncExamAiResult(page);
  if(!enhancedPages.has(page)){enhancedPages.add(page);restoreScroll(page,id)}
 }
 function enhance(){
  const page=document.querySelector('.assessment-detail-page');if(page)enhancePage(page);else removeLeakedFinalExamSection();
+ enhanceAssessmentLanding();ensureFinalExamListBack();
 }
 function queueEnhance(){if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;enhance()})}
+
+function installNavigationLifecycle(){
+ if(navigationInstalled)return;navigationInstalled=true;
+ const baseOpen=window.openExamAttempts;
+ if(typeof baseOpen==='function'&&!baseOpen.__aicloViewOnlyGuard){
+  const guardedOpen=async function(exam,...args){
+   const request=++detailEpoch;detailExamId=exam?.id||'';
+   try{
+    const result=await baseOpen.call(this,exam,...args);
+    if(request!==detailEpoch){
+     if(!detailExamId&&document.querySelector('.assessment-detail-page'))await window.render?.();
+     return;
+    }
+    return result;
+   }catch(error){
+    if(request!==detailEpoch)return;
+    throw error;
+   }
+  };
+  guardedOpen.__aicloViewOnlyGuard=true;guardedOpen.__aicloBase=baseOpen;window.openExamAttempts=guardedOpen;
+ }
+ const baseNavigate=window.navigate;
+ if(typeof baseNavigate==='function'&&!baseNavigate.__aicloAssessmentLifecycle){
+  const guardedNavigate=function(view,...args){
+   const hasViewOnlyDetail=!!document.querySelector('.assessment-detail-page')||!!detailExamId||!!activeExamId();
+   if(hasViewOnlyDetail){saveScroll();invalidateViewOnlyDetail({clearPosition:true})}
+   return baseNavigate.call(this,view,...args);
+  };
+  guardedNavigate.__aicloAssessmentLifecycle=true;guardedNavigate.__aicloBase=baseNavigate;window.navigate=guardedNavigate;
+ }
+}
 
 // Keep the AI-result panel visible as soon as the lecturer explicitly starts analysis.
 document.addEventListener('click',e=>{
  const ai=e.target.closest?.('#examAiAnalyze');if(ai){const page=ai.closest('.assessment-detail-page'),section=page?.querySelector('.exam-ai-section');if(section){section.dataset.aiRunning='1';section.hidden=false}}
- const back=e.target.closest?.('#examDetailBack');if(back){clearScroll(activeExamId());return}
+ const back=e.target.closest?.('#examDetailBack');if(back){invalidateViewOnlyDetail({clearPosition:true});return}
  // An explicit click from the assessment list means a fresh visit: start at the top.
  const open=e.target.closest?.('[data-attempts]');if(open&&!document.querySelector('.assessment-detail-page'))clearScroll(open.dataset.attempts);
 },true);
 
 document.addEventListener('change',e=>{
- const select=e.target.closest?.('#attemptSort');if(!select)return;const id=activeExamId();
+ const select=e.target.closest?.('#attemptSort');if(!select)return;const id=activeExamId()||detailExamId;
  try{if(String(select.value).startsWith('clo-high:'))sessionStorage.setItem(highSortKey(id),select.value);else sessionStorage.removeItem(highSortKey(id))}catch{}
  requestAnimationFrame(queueEnhance);
 },true);
@@ -134,6 +200,7 @@ function init(){
  const host=document.querySelector('#content');if(host&&!observer){observer=new MutationObserver(queueEnhance);observer.observe(host,{childList:true,subtree:true,characterData:true})}queueEnhance();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installNavigationLifecycle,{once:true});else setTimeout(installNavigationLifecycle,0);
 
-window.AICLO_EXAM_DETAIL_ENHANCEMENTS=Object.freeze({version:'11.6.20',enhance:queueEnhance,saveScroll});
+window.AICLO_EXAM_DETAIL_ENHANCEMENTS=Object.freeze({version:'11.6.23',enhance:queueEnhance,saveScroll,invalidate:invalidateViewOnlyDetail});
 })();
