@@ -49,7 +49,7 @@ const lazyCloForm=async function(...args){
 window.v102CloForm=lazyCloForm;
 
 const lazyAiHistory=async function(...args){
- await loadScript('js/ai/question-review.js');
+ await loadScript('js/ai/question-review.js?v=11.4.2');
  const fn=window.aiHistory;
  if(typeof fn!=='function'||fn===lazyAiHistory)throw new Error('Không khởi tạo được lịch sử AI.');
  return fn(...args);
@@ -57,7 +57,7 @@ const lazyAiHistory=async function(...args){
 window.aiHistory=lazyAiHistory;
 
 const lazyAiGenerate=async function(...args){
- await loadMany(['js/ai/question-review.js','js/ai/generator.js']);
+ await loadMany(['js/ai/question-review.js?v=11.4.2','js/ai/generator.js']);
  const fn=window.aiGenerateForm;
  if(typeof fn!=='function'||fn===lazyAiGenerate)throw new Error('Không khởi tạo được chức năng tạo câu hỏi AI.');
  return fn(...args);
