@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V11.6.11 — restore active question/AI workspaces without reopening a saved question form. */
+/* AI-CLO PTITHCM V11.6.12 — restore question, AI and duplicate-scan workspaces safely. */
 (() => {
 'use strict';
 
@@ -15,12 +15,9 @@ const hasDraft=id=>{try{return !!sessionStorage.getItem(draftKey(id))}catch{retu
 const activeBank=()=>window.AICLO_V105?.activeBank?.()||'practice';
 const reviewToRestore=()=>{const r=read(reviewKey());return r?.batchId&&r?.subjectId===state.subjectId?r:null};
 
-function rememberEditor(id){
- write(workspaceKey(),{kind:'question-form',id:id||'new',bank:activeBank(),updated_at:Date.now()});
-}
-function rememberAi(){
- write(workspaceKey(),{kind:'ai-form',bank:activeBank(),updated_at:Date.now()});
-}
+function rememberEditor(id){write(workspaceKey(),{kind:'question-form',id:id||'new',bank:activeBank(),updated_at:Date.now()})}
+function rememberAi(){write(workspaceKey(),{kind:'ai-form',bank:activeBank(),updated_at:Date.now()})}
+function rememberDuplicate(){write(workspaceKey(),{kind:'duplicate-scan',bank:activeBank(),updated_at:Date.now()})}
 function forgetWorkspace(){drop(workspaceKey())}
 function forgetKind(kind){const w=read(workspaceKey());if(w?.kind===kind)forgetWorkspace()}
 function workspaceToRestore(){
@@ -31,7 +28,7 @@ function workspaceToRestore(){
   if(!hasDraft(w.id)){forgetWorkspace();return null}
   return w;
  }
- if(w.kind==='ai-form')return w;
+ if(w.kind==='ai-form'||w.kind==='duplicate-scan')return w;
  forgetWorkspace();
  return null;
 }
@@ -42,7 +39,7 @@ function restoreBank(bank){
  if(tab&&!tab.classList.contains('active'))tab.click();
 }
 
-/* Nếu trình duyệt reload/discard tab trong lúc đang soạn hoặc duyệt AI, vào lại Ngân hàng câu hỏi. */
+/* Nếu trình duyệt reload/discard tab trong lúc đang soạn, duyệt AI hoặc kiểm tra trùng, vào lại Ngân hàng câu hỏi. */
 const oldEnterApp=window.enterApp;
 window.enterApp=function(){
  if(workspaceToRestore()||reviewToRestore())state.view='questions';
@@ -75,11 +72,7 @@ window.v96QuestionForm=async function(x={},sets){
 
  const submit=form.onsubmit;
  form.onsubmit=async e=>{
-  /*
-   * backToQuestionList() được gọi bên trong submit gốc. Nếu marker question-form còn tồn tại
-   * trong lúc danh sách đang render, wrapper questions() sẽ hiểu nhầm đây là form dang dở
-   * và mở lại ngay câu vừa lưu. Xóa marker + khóa restore trước khi submit để tránh race này.
-   */
+  /* backToQuestionList() chạy bên trong submit gốc. Khóa restore trước để không mở lại câu vừa lưu. */
   savingQuestion=true;
   forgetKind('question-form');
   try{
@@ -91,7 +84,7 @@ window.v96QuestionForm=async function(x={},sets){
     /* Lưu lỗi hoặc người dùng hủy cảnh báo trùng: tiếp tục bảo vệ form đang soạn. */
     rememberEditor(id);
    }else{
-    /* Lưu thành công: không để draft/workspace cũ tự mở lại ở lần render kế tiếp. */
+    /* Lưu thành công: không để draft/workspace cũ tự mở lại. */
     forgetKind('question-form');
     drop(draftKey(id));
    }
@@ -99,7 +92,7 @@ window.v96QuestionForm=async function(x={},sets){
  };
 };
 
-/* Quay lại Ngân hàng: preload review-flow nếu còn phiên duyệt, rồi khôi phục đúng trang con/form đang làm. */
+/* Quay lại Ngân hàng: preload module cần thiết rồi khôi phục đúng trang con/form đang làm. */
 const oldQuestions=window.questions;
 window.questions=async function(c){
  const activeReview=reviewToRestore();
@@ -107,12 +100,17 @@ window.questions=async function(c){
   try{await window.AICLO_FEATURES?.loadAiReviewFlow?.()}catch(ex){console.warn('Không tải được luồng duyệt AI để khôi phục',ex)}
  }
  await oldQuestions(c);
- if(activeReview)return; // state.js đã gọi showDraft sau khi review-flow mới được preload.
+ if(activeReview)return; // state.js gọi showDraft sau khi review-flow mới được preload.
  if(restoring||savingQuestion)return;
  const w=workspaceToRestore();if(!w)return;
  restoring=true;
  try{
   restoreBank(w.bank);
+  if(w.kind==='duplicate-scan'){
+   await window.AICLO_FEATURES?.loadDuplicateScan?.();
+   await window.AICLO_DUPLICATE_SCAN?.restore?.();
+   return;
+  }
   const sets=await v96QuestionSets();
   if(w.kind==='ai-form'){
    await window.aiGenerateForm(sets);
@@ -125,7 +123,7 @@ window.questions=async function(c){
   }
   await window.v96QuestionForm(item,sets);
  }catch(ex){
-  console.warn('V11.6.11 restore question workspace',ex);
+  console.warn('V11.6.12 restore question workspace',ex);
  }finally{restoring=false}
 };
 
@@ -134,6 +132,8 @@ window.AICLO_QUESTION_WORKSPACE=Object.freeze({
  forgetAi:()=>forgetKind('ai-form'),
  rememberQuestion:rememberEditor,
  forgetQuestion:()=>forgetKind('question-form'),
+ rememberDuplicate,
+ forgetDuplicate:()=>forgetKind('duplicate-scan'),
  current:workspaceToRestore,
  review:reviewToRestore,
  isSavingQuestion:()=>savingQuestion
