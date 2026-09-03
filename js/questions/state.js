@@ -256,4 +256,5 @@ window.questions=async function(c){
   toast('Đã khôi phục phiên duyệt câu Gemini');
  }catch(ex){console.warn('Restore Gemini review',ex)}finally{restoring=false}
 };
+window.AICLO_AI_REVIEW_STATE=Object.freeze({read,clear});
 })();
