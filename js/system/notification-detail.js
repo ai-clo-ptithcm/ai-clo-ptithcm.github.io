@@ -25,6 +25,11 @@ async function openNoticeTarget(n){
  if(n.subject_id&&courseViews.includes(view))await window.v95EnterCourse?.(n.subject_id,view);
  else await navigate(view);
  if(!n.target_id)return;
+ if(view==='questions'&&String(n.title||'').startsWith('Admin yêu cầu chỉnh sửa câu hỏi')){
+  const sets=await window.AICLO_QUESTION_STATE?.lightQuestionSets?.(),item=sets?.items?.find(x=>x.id===n.target_id);
+  if(item){const full=await window.AICLO_QUESTION_STATE.hydrateQuestion(item);await window.v96QuestionDetail?.(full,sets);return}
+  toast('Câu hỏi không còn trong ngân hàng hoặc bạn chưa có quyền truy cập.',true);return;
+ }
  if(view==='questions'&&typeof reviewBatch==='function'){
   await reviewBatch(n.target_id,0);
   return;
