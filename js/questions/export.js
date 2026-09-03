@@ -133,16 +133,5 @@ async function exportQuestionBank(target={}){
  finally{if(button){button.disabled=false;button.textContent=originalButtonText||'↓ Xuất ngân hàng Excel'}}
 }
 
-const previousQuestions=window.questions;
-window.questions=async function(c){
- await previousQuestions(c);
- if(role()!=='admin'||state.view!=='questions'||!state.subjectId)return;
- const actions=$('.bank-actions',c);if(!actions||$('#exportQuestionBank',actions))return;
- const button=document.createElement('button');
- button.id='exportQuestionBank';button.type='button';button.className='secondary';button.textContent='↓ Xuất ngân hàng Excel';
- const firstAction=$('#scanDuplicates',actions);firstAction?actions.insertBefore(button,firstAction):actions.appendChild(button);
- button.onclick=()=>exportQuestionBank({button});
-};
-
 window.AICLO_QUESTION_EXPORT=Object.freeze({exportAll:exportQuestionBank,exportBank:(bank,button)=>exportQuestionBank({bank,button})});
 })();
