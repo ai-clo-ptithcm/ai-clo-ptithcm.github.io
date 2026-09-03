@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V11.6 · Ma trận Mục × CLO */
+/* AI-CLO PTITHCM V11.6.26 · Ma trận Mục × CLO */
 .exam-matrix-modal{width:min(1180px,96vw);max-width:1180px}
 .exam-matrix-modal #modalBody{max-height:calc(92vh - 68px);overflow:auto}
 .exam-blueprint-form{align-items:start}
@@ -20,12 +20,14 @@
 .matrix-empty-cell{background:rgba(148,163,184,.07)}
 .matrix-empty-cell input{opacity:.45}
 .matrix-row-total,.matrix-clo-total,#matrixGrandTotal{font-variant-numeric:tabular-nums}
+#matrixGrandTotal{white-space:nowrap}
 .matrix-builder-table tfoot th{background:rgba(15,23,42,.045);font-weight:750}
 .matrix-builder-table tfoot th:first-child{text-align:left}
 .matrix-builder-table tbody tr:hover td{background:rgba(239,68,68,.025)}
 .matrix-builder-table tbody tr:hover .matrix-empty-cell{background:rgba(148,163,184,.1)}
 .matrix-check-note{display:block;margin-top:8px;color:var(--muted,#667085)}
-#matrixExamTotal[readonly]{background:rgba(15,23,42,.045);font-weight:750;cursor:default}
+#matrixExamTotal{font-weight:750;font-variant-numeric:tabular-nums;background:#fff}
+#matrixExamTotal:invalid{border-color:#efb4ba;background:#fff8f8}
 .exam-blueprint-form .assessment-preview{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center}
 .exam-blueprint-form .assessment-preview>b{width:100%}
 .exam-blueprint-form .bank-check{margin-top:12px}
