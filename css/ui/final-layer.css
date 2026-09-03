@@ -33,3 +33,7 @@
  .v105-question-table .q-structure-cell b,.v105-question-table .q-structure-cell small{width:100%!important;max-width:none!important}
  .v105-question-table .row-actions{width:100%!important}
 }
+
+/* V11.2 — Admin question-bank overview and course settings. */
+.v112-bank-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}.v112-bank-card{display:flex;flex-direction:column;justify-content:space-between;gap:18px;padding:18px;border:1px solid var(--line);border-radius:15px;background:#fff}.v112-bank-card small{color:var(--red);font-weight:900;letter-spacing:.06em}.v112-bank-card h4{margin:5px 0;font-size:19px}.v112-bank-card p{margin:0 0 10px;color:var(--muted)}.v112-bank-card .badge{margin:0 5px 5px 0}.v112-bank-actions,.course-card-actions{display:flex;gap:8px;flex-wrap:wrap}.v112-bank-actions button{flex:1}.course-card>div:first-child>small{display:block;margin-top:5px}.course-card>div:first-child>.badge{margin-left:6px}
+@media(max-width:620px){.v112-bank-grid{grid-template-columns:1fr}.v112-bank-actions{display:grid;grid-template-columns:1fr}.course-card-actions{display:grid;grid-template-columns:1fr}}
