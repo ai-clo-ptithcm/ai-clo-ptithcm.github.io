@@ -1,10 +1,11 @@
-/* AI-CLO PTITHCM V11.6.25 — direct create-assessment app window using the shared draggable/resizable controller. */
+/* AI-CLO PTITHCM V11.6.26 — direct create-assessment app window using the shared draggable/resizable controller. */
 (()=>{
 'use strict';
 let queued=false,observer=null,modalHookInstalled=false;
 
+function assessmentForm(){return document.querySelector('#modal #matrixAssessmentForm, #modal #assessmentForm')}
 function enhanceAssessmentWindow(){
- const form=document.querySelector('#modal #assessmentForm');
+ const form=assessmentForm();
  if(!form)return null;
  const dialog=form.closest('#modal');if(!dialog?.open)return null;
  form.classList.add('assessment-window-form');
@@ -34,7 +35,7 @@ function installModalHook(){
  if(base.__aicloAssessmentWindow){modalHookInstalled=true;return}
  const wrapped=function(title,html,...args){
   const markup=String(html||'');
-  const isAssessment=String(title||'').trim()==='Tạo bài kiểm tra'||markup.includes('id="assessmentForm"')||markup.includes("id='assessmentForm'");
+  const isAssessment=String(title||'').trim()==='Tạo bài kiểm tra'||markup.includes('id="assessmentForm"')||markup.includes("id='assessmentForm'")||markup.includes('id="matrixAssessmentForm"')||markup.includes("id='matrixAssessmentForm'");
   const result=base.call(this,isAssessment?'AI-CLO | Tạo bài kiểm tra':title,html,...args);
   if(isAssessment)enhanceAssessmentWindow();
   return result;
@@ -50,5 +51,5 @@ function init(){
  queueEnhance();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
-window.AICLO_ASSESSMENT_WINDOW=Object.freeze({version:'11.6.25',enhance:enhanceAssessmentWindow,open:enhanceAssessmentWindow});
+window.AICLO_ASSESSMENT_WINDOW=Object.freeze({version:'11.6.26',enhance:enhanceAssessmentWindow,open:enhanceAssessmentWindow});
 })();
