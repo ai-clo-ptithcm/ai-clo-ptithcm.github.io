@@ -26,7 +26,7 @@ window.v96QuestionDetail=async function(x,sets){
 };
 
 async function decorateList(){
- if(state.view!=='questions'||!state.subjectId)return;const creatorAll=$('#qcreatorFilter option[value="all"]');if(creatorAll)creatorAll.textContent='Tất cả người nhập';const {data,error}=await db.from('questions').select('id,origin_type,is_official').eq('subject_id',state.subjectId);if(error)return;
+ if(state.view!=='questions'||!state.subjectId)return;const creatorAll=$('#qcreatorFilter option[value="all"]');if(creatorAll)creatorAll.textContent='Tất cả người nhập';const {data,error}=await contentFilter(db.from('questions').select('id,origin_type,is_official,display_code'));if(error)return;
  for(const x of data||[]){const button=document.querySelector(`#qrows [data-detail="${CSS.escape(x.id)}"]`);if(!button)continue;const row=button.closest('tr'),cell=row?.querySelector('.q-code-cell');if(x.is_official)row?.querySelector('[data-select-question]')?.remove();if(!cell||cell.querySelector('.question-origin'))continue;cell.insertAdjacentHTML('beforeend',`<br><span class="badge question-origin ${x.origin_type||'lecturer'}">${esc(label(x.origin_type))}</span>${x.is_official?'<br><span class="badge green">Đã xác nhận</span>':x.origin_type==='academy'?'<br><span class="badge red">Chờ xác nhận</span>':''}`)}
 }
 const oldQuestions=window.questions;window.questions=async function(c){await oldQuestions(c);await decorateList()};
