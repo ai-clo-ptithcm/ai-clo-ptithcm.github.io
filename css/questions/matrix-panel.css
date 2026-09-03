@@ -1,8 +1,25 @@
-/* AI-CLO PTITHCM V11.6.1 — compact bank intro + Chapter/Topic × CLO matrix */
-.v105-bank-tabs.v1161-bank-tabs-compact{margin-bottom:8px!important}
-.v105-bank-note.v1161-bank-note-compact{min-height:0!important;margin:0 0 10px!important;padding:8px 12px!important;gap:8px!important;border-radius:10px!important;line-height:1.35!important}
-.v105-bank-note.v1161-bank-note-compact b,.v105-bank-note.v1161-bank-note-compact span{margin:0!important;line-height:1.35!important}
+/* AI-CLO PTITHCM V11.6.2 — compact bank intro + Chapter/Topic × CLO matrix */
+.v105-bank-tabs.v1161-bank-tabs-compact{margin-bottom:7px!important}
+.v105-bank-note.v1161-bank-note-compact{min-height:0!important;margin:0 0 9px!important;padding:7px 12px!important;gap:7px!important;border-radius:10px!important;line-height:1.32!important}
+.v105-bank-note.v1161-bank-note-compact b,.v105-bank-note.v1161-bank-note-compact span{margin:0!important;line-height:1.32!important}
 #questionBankMatrix{white-space:nowrap}
+
+/* Hàng thao tác ngân hàng: 5 nút trên một dòng desktop, canh đúng mép trái/phải. */
+.bank-actions{display:grid!important;grid-template-columns:repeat(5,max-content)!important;justify-content:space-between!important;align-items:center!important;width:100%!important;max-width:100%!important;gap:10px 14px!important;margin:0 0 16px!important;padding:0!important}
+.bank-actions>#questionCount{grid-column:1/-1!important;grid-row:1!important;justify-self:start!important;margin:0!important;padding:0!important;text-align:left!important;white-space:nowrap}
+.bank-actions>button{grid-row:2!important;margin:0!important;margin-left:0!important;white-space:nowrap}
+.bank-actions>#questionBankMatrix,.bank-actions>#scanDuplicates,.bank-actions>#aiHistory{background:#fff!important;border:1px solid #d8dee8!important;color:#26364d!important;box-shadow:0 2px 6px #1018280b;font-weight:800!important}
+.bank-actions>#questionBankMatrix:hover,.bank-actions>#scanDuplicates:hover,.bank-actions>#aiHistory:hover{background:#f8fafc!important;border-color:#b9c3d1!important;color:#172033!important}
+
+/* Nội dung danh sách chỉ hiện tối đa 3 dòng để bảng gọn và đều. */
+.v105-question-table .q-content-cell .question-summary{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:3!important;overflow:hidden!important;line-height:1.5!important;max-height:4.5em!important;text-overflow:ellipsis;text-align:left!important}
+
+/* Nhập hàng loạt nằm trong trang Thêm câu hỏi. */
+.question-create-import{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:12px 14px;border:1px solid #dce3ec;border-radius:11px;background:#f8fafc}
+.question-create-import>div{display:grid;gap:3px;min-width:0}
+.question-create-import b{color:#253858;font-size:13px}
+.question-create-import small{color:var(--muted);font-size:12px;line-height:1.4;font-weight:500}
+.question-create-import button{flex:0 0 auto;white-space:nowrap;background:#fff!important;border:1px solid #d2d9e4!important}
 
 .qbank-matrix-panel{display:grid;gap:14px}
 .qbank-matrix-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
@@ -24,11 +41,21 @@
 .qbank-matrix-loading,.qbank-matrix-empty{padding:18px;border:1px dashed var(--line);border-radius:12px;background:#fafbfc;color:var(--muted)}
 .qbank-matrix-warning{margin:0;padding:10px 12px;border-radius:10px;background:#fff4f6;color:#9f2435;font-size:12px;line-height:1.45}
 
+@media(max-width:1180px){
+ .bank-actions{grid-template-columns:repeat(3,minmax(0,1fr))!important;justify-content:stretch!important}
+ .bank-actions>button{grid-row:auto!important;width:100%;min-width:0!important}
+ .bank-actions>#questionCount{grid-column:1/-1!important}
+}
 @media(max-width:900px){
  .qbank-matrix-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .bank-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
 @media(max-width:620px){
  .v105-bank-note.v1161-bank-note-compact{padding:7px 10px!important;margin-bottom:8px!important;gap:2px!important}
+ .bank-actions{grid-template-columns:1fr 1fr!important;gap:8px!important}
+ .bank-actions>#questionCount{grid-column:1/-1!important;white-space:normal}
+ .question-create-import{align-items:stretch;flex-direction:column;gap:10px}
+ .question-create-import button{width:100%}
  .qbank-matrix-summary{grid-template-columns:1fr 1fr;gap:7px}
  .qbank-matrix-summary>div{padding:10px}
  .qbank-matrix-summary b{font-size:16px}
