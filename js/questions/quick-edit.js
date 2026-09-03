@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V11.6.14 — draggable quick editor for question content and answers. */
+/* AI-CLO PTITHCM V11.6.15 — draggable quick editor kept inside the visible viewport. */
 (()=>{
 'use strict';
 
@@ -39,8 +39,17 @@ function resetModalPosition(dialog){
  dialog.style.right='auto';dialog.style.bottom='auto';
 }
 function clamp(value,min,max){return Math.max(min,Math.min(max,value))}
+function keepModalInViewport(dialog){
+ if(!dialog?.open||matchMedia('(max-width:700px)').matches)return;
+ const rect=dialog.getBoundingClientRect(),pad=8;
+ const left=clamp(rect.left,pad,Math.max(pad,innerWidth-rect.width-pad));
+ const top=clamp(rect.top,pad,Math.max(pad,innerHeight-rect.height-pad));
+ if(Math.abs(left-rect.left)<.5&&Math.abs(top-rect.top)<.5)return;
+ dialog.style.left=`${left}px`;dialog.style.top=`${top}px`;dialog.style.transform='none';
+}
 function installDrag(dialog){
  const head=dialog.querySelector('.modal-head');if(!head)return;
+ let resizeFrame=0;
  const onDown=event=>{
   if(matchMedia('(max-width:700px)').matches||event.button!==0||event.target.closest('button,input,select,textarea,a'))return;
   const rect=dialog.getBoundingClientRect();
@@ -53,14 +62,25 @@ function installDrag(dialog){
   const rect=dialog.getBoundingClientRect(),pad=8;
   const left=clamp(event.clientX-activePointer.dx,pad,Math.max(pad,innerWidth-rect.width-pad));
   const top=clamp(event.clientY-activePointer.dy,pad,Math.max(pad,innerHeight-rect.height-pad));
-  dialog.style.left=`${left}px`;dialog.style.top=`${top}px`;
+  dialog.style.left=`${left}px`;dialog.style.top=`${top}px`;dialog.style.transform='none';
  };
  const onUp=event=>{
   if(!activePointer||activePointer.id!==event.pointerId)return;
   activePointer=null;head.classList.remove('dragging');try{head.releasePointerCapture?.(event.pointerId)}catch{}
  };
+ const onResize=()=>{
+  cancelAnimationFrame(resizeFrame);
+  resizeFrame=requestAnimationFrame(()=>keepModalInViewport(dialog));
+ };
  head.addEventListener('pointerdown',onDown);head.addEventListener('pointermove',onMove);head.addEventListener('pointerup',onUp);head.addEventListener('pointercancel',onUp);
- const cleanup=()=>{activePointer=null;head.classList.remove('dragging');head.removeEventListener('pointerdown',onDown);head.removeEventListener('pointermove',onMove);head.removeEventListener('pointerup',onUp);head.removeEventListener('pointercancel',onUp);dialog.classList.remove('quick-edit-modal');dialog.style.left='';dialog.style.top='';dialog.style.right='';dialog.style.bottom='';dialog.style.transform=''};
+ window.addEventListener('resize',onResize);window.visualViewport?.addEventListener('resize',onResize);
+ requestAnimationFrame(()=>keepModalInViewport(dialog));
+ const cleanup=()=>{
+  activePointer=null;cancelAnimationFrame(resizeFrame);head.classList.remove('dragging');
+  head.removeEventListener('pointerdown',onDown);head.removeEventListener('pointermove',onMove);head.removeEventListener('pointerup',onUp);head.removeEventListener('pointercancel',onUp);
+  window.removeEventListener('resize',onResize);window.visualViewport?.removeEventListener('resize',onResize);
+  dialog.classList.remove('quick-edit-modal');dialog.style.left='';dialog.style.top='';dialog.style.right='';dialog.style.bottom='';dialog.style.transform='';
+ };
  dialog.addEventListener('close',cleanup,{once:true});
 }
 
@@ -117,7 +137,7 @@ async function openQuick(id,{source='bank',pairId=null,onSaved=null}={}){
   if(!v96CanManage(question))return toast('Chỉ người nhập hoặc Admin được sửa câu hỏi.',true);
   captureQuestionFilters?.();
   const initial={content:String(question.content||'').trim(),correct_answer:String(question.correct_answer||'A').toUpperCase(),options:optionMap(question)};
-  modal(`Sửa nhanh · ${questionCode(question)}`,modalMarkup(question));
+  modal(`↕ Sửa nhanh · ${questionCode(question)}`,modalMarkup(question));
   const dialog=$('#modal');dialog.classList.add('quick-edit-modal');resetModalPosition(dialog);installDrag(dialog);
   const form=$('#quickQuestionForm'),cancel=$('#cancelQuickQuestion'),save=$('#saveQuickQuestion'),errorBox=$('#quickQuestionError');
   cancel.onclick=closeModal;
