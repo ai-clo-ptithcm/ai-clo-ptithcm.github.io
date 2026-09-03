@@ -12,9 +12,9 @@ async function scopedTopics(chapters, select='*'){
  * Keep the existing UI/behavior, but fetch only topics belonging to the active course. */
 window.v96QuestionSets=async function(){
   const [items,ch,clos]=await Promise.all([
-    q('questions','*, question_options(*)',x=>x.eq('subject_id',state.subjectId).order('created_at',{ascending:false})),
-    q('chapters','*',x=>x.eq('subject_id',state.subjectId).order('order_index')),
-    q('clos','*',x=>x.eq('subject_id',state.subjectId).order('code'))
+    q('questions','*, question_options(*)',x=>contentFilter(x).order('created_at',{ascending:false})),
+    q('chapters','*',x=>contentFilter(x).order('order_index')),
+    q('clos','*',x=>contentFilter(x).order('code'))
   ]);
   const topics=await scopedTopics(ch);
   return {items,ch,topics,clos};
