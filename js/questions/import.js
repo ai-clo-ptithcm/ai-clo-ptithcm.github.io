@@ -190,11 +190,12 @@ function previewHtml(parsed) {
     <div class="question-import-preview-table table-wrap"><table><thead><tr><th>Dòng</th><th>Chương · Chủ đề</th><th>CLO</th><th>Nội dung</th><th>Ngân hàng</th><th>Kiểm tra</th></tr></thead><tbody>
       ${parsed.map(item => `<tr class="${item.errors.length ? 'import-bad' : ''}"><td>${item.rowNo}</td><td>${esc(item.chapter?.name || '—')}<br><small>${esc(item.topic?.name || '—')}</small></td><td>${esc(item.clo?.code || '—')}</td><td>${esc(item.content.slice(0, 120))}</td><td>${esc(bankLabel(item.question_scope))}</td><td>${item.errors.length ? esc(item.errors.join('; ')) : '✓ Hợp lệ'}</td></tr>`).join('')}
     </tbody></table></div>
-    <div class="question-import-confirm"><button id="confirmQuestionImport" class="primary" ${goodCount ? '' : 'disabled'}>Nhập ${goodCount} câu hợp lệ</button></div>`;
+    <div class="question-import-confirm"><label class="field bulk-origin-field"><span>Nguồn của danh sách nhập</span><select id="questionImportOrigin"><option value="lecturer">Giảng viên biên soạn</option><option value="academy">Đề xuất là câu hỏi Học viện</option></select><small>Câu Học viện sẽ chuyển vào Ngân hàng đề thi – bảo mật và chờ Admin xác nhận.</small></label><button id="confirmQuestionImport" class="primary" ${goodCount ? '' : 'disabled'}>Nhập ${goodCount} câu hợp lệ</button></div>`;
 }
 
-async function insertOne(item, subjectId) {
-  const approval = item.approval_status;
+async function insertOne(item, subjectId, originType) {
+  const academy = originType === 'academy';
+  const approval = academy ? 'pending' : item.approval_status;
   const {data: question, error: questionError} = await db.from('questions').insert({
     subject_id: subjectId,
     chapter_id: item.chapter.id,
@@ -205,10 +206,11 @@ async function insertOne(item, subjectId) {
     explanation: item.explanation,
     created_by: state.user.id,
     status: approval === 'approved' ? 'active' : 'draft',
-    question_scope: item.question_scope,
+    question_scope: academy ? 'secure_exam' : item.question_scope,
     approval_status: approval,
     approved_by: approval === 'approved' ? state.user.id : null,
-    approved_at: approval === 'approved' ? new Date().toISOString() : null
+    approved_at: approval === 'approved' ? new Date().toISOString() : null,
+    origin_type: academy ? 'academy' : 'lecturer'
   }).select().single();
   if (questionError) throw questionError;
 
@@ -233,7 +235,9 @@ async function returnToBank() {
 async function importRows(parsed, subjectId, button, preview) {
   const good = parsed.filter(item => !item.errors.length);
   if (!good.length) return;
-  const accepted = await confirmAction('Nhập câu hỏi', `Lưu ${good.length} câu hợp lệ vào học phần hiện tại? Các dòng lỗi sẽ bị bỏ qua.`, {confirmLabel: 'Nhập câu hỏi'});
+  const originType = $('#questionImportOrigin')?.value === 'academy' ? 'academy' : 'lecturer';
+  const sourceLabel = originType === 'academy' ? 'câu hỏi Học viện chờ Admin xác nhận' : 'câu hỏi do giảng viên biên soạn';
+  const accepted = await confirmAction('Nhập câu hỏi', `Lưu ${good.length} ${sourceLabel} vào học phần hiện tại? Các dòng lỗi sẽ bị bỏ qua.`, {confirmLabel: 'Nhập câu hỏi'});
   if (!accepted) return;
 
   button.disabled = true;
@@ -243,7 +247,7 @@ async function importRows(parsed, subjectId, button, preview) {
     const item = good[index];
     button.textContent = `Đang nhập ${index + 1}/${good.length}…`;
     try {
-      await insertOne(item, subjectId);
+      await insertOne(item, subjectId, originType);
       success++;
     } catch (error) {
       console.error('Bulk question import row failed', item.rowNo, error);
