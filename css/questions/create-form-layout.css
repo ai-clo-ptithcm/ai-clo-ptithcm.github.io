@@ -1,0 +1,47 @@
+/* AI-CLO PTITHCM V11.6.6 — Add question workspace layout */
+.question-edit-page #qForm[data-aiclo-create-layout="1"]{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0}
+.question-edit-page #qForm[data-aiclo-create-layout="1"]>.wide{grid-column:1/-1}
+.question-edit-page #qForm[data-aiclo-create-layout="1"]>.question-create-import{display:none!important}
+
+.question-create-mode{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:4px;border:1px solid #dfe5ee;border-radius:12px;background:#f2f4f7}
+.question-create-mode-btn{min-height:42px;border:0;border-radius:9px;background:transparent;color:#475467;font-weight:850}
+.question-create-mode-btn.active{background:#fff;color:var(--red);box-shadow:0 2px 8px #10182812}
+.question-create-mode-btn:not(.active):hover{background:#ffffffa8;color:#253858}
+
+.question-create-section{display:grid;gap:12px;padding:15px 16px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.question-create-section-head{display:grid;gap:3px;padding-bottom:10px;border-bottom:1px solid #edf0f4}
+.question-create-section-head b{font-size:14px;color:#253858}
+.question-create-section-head small{font-size:11px;line-height:1.4;color:var(--muted);font-weight:500}
+.question-create-section-body{display:grid;gap:12px}
+
+.question-create-compose textarea[name="content"]{min-height:118px}
+.question-create-compose .option-grid{grid-column:auto;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0}
+.question-create-compose .option-grid .field{margin:0}
+.question-create-answer-row{display:grid;grid-template-columns:minmax(180px,260px) 1fr;gap:10px;align-items:end}
+.question-create-answer-row>.field{grid-column:1}
+.question-create-compose textarea[name="explanation"]{min-height:96px}
+
+.question-create-classify-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.question-create-classify-grid .field{margin:0}
+.question-create-classify-grid .field:has(select[name="approval_status"]){grid-column:1}
+
+.question-create-scope{margin:0!important;padding:14px 16px!important;border:1px solid var(--line)!important;border-radius:12px;background:#fff}
+.question-create-scope legend{padding:0 5px;font-size:13px;color:#253858}
+.question-create-scope .v105-scope-options{gap:8px}
+.question-create-scope .v105-scope-option{padding:10px 11px;min-height:78px}
+.question-create-scope .v105-scope-option small{font-size:11px}
+
+.question-create-actions{margin:0!important;padding-top:2px;justify-content:flex-end}
+
+@media(max-width:820px){
+ .question-create-classify-grid{grid-template-columns:1fr 1fr}
+ .question-create-classify-grid .field:has(select[name="approval_status"]){grid-column:auto}
+}
+@media(max-width:620px){
+ .question-edit-page #qForm[data-aiclo-create-layout="1"]{grid-template-columns:1fr}
+ .question-create-mode{grid-template-columns:1fr 1fr}
+ .question-create-compose .option-grid,.question-create-classify-grid{grid-template-columns:1fr}
+ .question-create-answer-row{grid-template-columns:1fr}
+ .question-create-answer-row>.field{grid-column:auto}
+ .question-create-scope{padding:12px!important}
+}
