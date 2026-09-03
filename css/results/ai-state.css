@@ -1,0 +1,5 @@
+/* AI-CLO PTITHCM V11.6.27 — distinguish unavailable AI actions from active loading. */
+.ai-btn:disabled{cursor:not-allowed}
+.ai-btn.is-loading,.ai-btn[data-ai-loading="1"]{cursor:wait;opacity:.88}
+.ai-btn.is-loading::before,.ai-btn[data-ai-loading="1"]::before{content:"";display:inline-block;width:12px;height:12px;margin-right:7px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:-2px;animation:aiclo-ai-spin .8s linear infinite}
+@keyframes aiclo-ai-spin{to{transform:rotate(360deg)}}
