@@ -71,9 +71,9 @@ async function systemDashboard(c){
 async function courseDashboard(c){
  const r=role(),s=activeSubject();if(!s){c.replaceChildren(empty());return}
  const [chapters,topics,clos,questions,exams,members]=await Promise.all([
-  count('chapters',x=>x.eq('subject_id',state.subjectId)),
-  safe(async()=>{const ch=await q('chapters','id',x=>x.eq('subject_id',state.subjectId));return ch.length?await count('topics',x=>x.in('chapter_id',ch.map(v=>v.id))):0},0),
-  count('clos',x=>x.eq('subject_id',state.subjectId)),count('questions',x=>x.eq('subject_id',state.subjectId)),
+  count('chapters',x=>contentFilter(x)),
+  safe(async()=>{const ch=await q('chapters','id',x=>contentFilter(x));return ch.length?await count('topics',x=>x.in('chapter_id',ch.map(v=>v.id))):0},0),
+  count('clos',x=>contentFilter(x)),count('questions',x=>contentFilter(x)),
   count('exams',x=>x.eq('subject_id',state.subjectId)),count('subject_members',x=>x.eq('subject_id',state.subjectId).eq('role','student'))
  ]);
  let cards,lead,quick;
@@ -85,8 +85,8 @@ async function courseDashboard(c){
   lead='Xem bài kiểm tra đang mở, kết quả cá nhân và mức độ đạt CLO trong học phần này.';
   quick=`<button class="primary" data-go="exams">Làm bài kiểm tra</button><button class="secondary" data-go="results">Xem kết quả CLO</button>`;
  }else{
-  const practice=await count('questions',x=>x.eq('subject_id',state.subjectId).in('question_scope',['practice','both']));
-  const secure=await count('questions',x=>x.eq('subject_id',state.subjectId).in('question_scope',['secure_exam','both']));
+  const practice=await count('questions',x=>contentFilter(x).in('question_scope',['practice','both']));
+  const secure=await count('questions',x=>contentFilter(x).in('question_scope',['secure_exam','both']));
   cards=[['Chương · Chủ đề · CLO',`${chapters} · ${topics} · ${clos}`],['Câu luyện tập',practice],['Câu đề thi',secure],['Sinh viên',members]];
   lead=r==='admin'?'Kiểm tra cấu trúc, thành viên, ngân hàng câu hỏi và hoạt động đánh giá của học phần.':'Quản lý nội dung, câu hỏi, đánh giá trực tuyến, đề thi cuối kỳ và kết quả CLO.';
   quick=`<button class="primary" data-go="questions">Thêm câu hỏi</button><button class="secondary" data-go="exams">Mở Đánh giá</button><button class="secondary" data-go="results">Xem kết quả CLO</button>`;
@@ -147,7 +147,7 @@ window.exams=async function(c){
 
 async function enhanceOnlineAssessmentMatrix(c){
  const form=$('#assessmentForm',c);if(!form)return;
- const [chapters,clos]=await Promise.all([q('chapters','*',x=>x.eq('subject_id',state.subjectId).order('order_index')),q('clos','*',x=>x.eq('subject_id',state.subjectId).order('code'))]),chapterIds=chapters.map(x=>x.id),topics=chapterIds.length?await q('topics','*',x=>x.in('chapter_id',chapterIds).order('order_index')):[],questions=await q('questions','id,chapter_id,topic_id,clo_id,content,correct_answer,explanation,question_scope,approval_status,status,question_options(id,option_key,content)',x=>x.eq('subject_id',state.subjectId).eq('status','active').eq('approval_status','approved'));
+ const [chapters,clos]=await Promise.all([q('chapters','*',x=>contentFilter(x).order('order_index')),q('clos','*',x=>contentFilter(x).order('code'))]),chapterIds=chapters.map(x=>x.id),topics=chapterIds.length?await q('topics','*',x=>x.in('chapter_id',chapterIds).order('order_index')):[],questions=await q('questions','id,question_bank_id,display_code,chapter_id,topic_id,clo_id,content,correct_answer,explanation,question_scope,approval_status,status,question_options(id,option_key,content)',x=>contentFilter(x).eq('status','active').eq('approval_status','approved'));
  const usable=questions.filter(x=>['practice','both'].includes(x.question_scope)&&['A','B','C','D'].every(k=>(x.question_options||[]).some(o=>String(o.option_key).toUpperCase()===k)));
  const oldTopic=$('#examTopic',form)?.closest('.field'),oldBox=$('.clo-count-box',form);oldTopic?.classList.add('hidden');oldBox?.classList.add('hidden');$$('input,select',oldBox).forEach(x=>x.disabled=true);
  const box=document.createElement('section');box.className='wide online-matrix-box';box.innerHTML='<div class="clo-count-title"><b>Ma trận câu hỏi theo Mục · CLO</b><span>Nhập số câu vào từng ô như ma trận đề thi cuối kỳ.</span></div><div id="onlineMatrix"></div><div id="onlineMatrixCheck" class="bank-check"></div>';oldBox.before(box);
