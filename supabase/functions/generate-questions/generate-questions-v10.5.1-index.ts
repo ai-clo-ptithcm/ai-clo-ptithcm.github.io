@@ -587,25 +587,28 @@ export default {
         }
 
         /* Đọc học phần, chương và CLO. */
-        const [subjectResult, chapterResult, cloResult] = await Promise.all([
-          ctx.supabase
-            .from("subjects")
-            .select("id, name, semester, academic_year")
-            .eq("id", subjectId)
-            .single(),
-
+        const subjectResult = await ctx.supabase
+          .from("subjects")
+          .select("id, name, semester, academic_year, question_bank_id")
+          .eq("id", subjectId)
+          .single();
+        if (subjectResult.error || !subjectResult.data?.question_bank_id) {
+          return jsonError("Học phần chưa được gán ngân hàng câu hỏi.");
+        }
+        const bankId = subjectResult.data.question_bank_id;
+        const [chapterResult, cloResult] = await Promise.all([
           ctx.supabase
             .from("chapters")
-            .select("id, subject_id, name, order_index")
+            .select("id, question_bank_id, name, order_index")
             .eq("id", chapterId)
-            .eq("subject_id", subjectId)
+            .eq("question_bank_id", bankId)
             .single(),
 
           ctx.supabase
             .from("clos")
-            .select("id, subject_id, code, description")
+            .select("id, question_bank_id, code, description")
             .eq("id", cloId)
-            .eq("subject_id", subjectId)
+            .eq("question_bank_id", bankId)
             .single(),
         ]);
 
@@ -675,7 +678,7 @@ export default {
         let existingQuery = ctx.supabase
           .from("questions")
           .select("id, content")
-          .eq("subject_id", subjectId)
+          .eq("question_bank_id", subject.question_bank_id)
           .eq("chapter_id", chapterId)
           .eq("clo_id", cloId)
           .neq("approval_status", "archived")
