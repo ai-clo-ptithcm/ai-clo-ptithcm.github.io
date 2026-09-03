@@ -143,7 +143,18 @@ async function aiHistory(){
 }
 
 async function reviewBatch(batchId,index=0){
- let [batches,drafts]=await Promise.all([q('ai_generation_batches','*, chapters(name), clos(code,description)',x=>x.eq('id',batchId)),q('ai_question_drafts','*',x=>x.eq('batch_id',batchId).order('order_index'))]);let batch=batches[0];if(!batch||!drafts.length)return toast('Không tìm thấy câu hỏi trong phiên này',true);let pending=drafts.filter(d=>d.review_status==='pending'),current=pending[index]||pending[0]||drafts[0],pos=drafts.findIndex(d=>d.id===current.id);showDraft(batch,drafts,current,pos);
+ let [batches,drafts]=await Promise.all([q('ai_generation_batches','*, chapters(name), clos(code,description)',x=>x.eq('id',batchId)),q('ai_question_drafts','*',x=>x.eq('batch_id',batchId).order('order_index'))]);
+ let batch=batches[0];
+ if(!batch||!drafts.length)return toast('Không tìm thấy câu hỏi trong phiên này',true);
+ let pending=drafts.filter(d=>d.review_status==='pending');
+ if(!pending.length){
+  window.AICLO_AI_REVIEW_STATE?.clear?.();
+  let approved=drafts.filter(d=>d.review_status==='approved').length,rejected=drafts.filter(d=>d.review_status==='rejected').length;
+  questionWorkspace('Phiên Gemini đã hoàn tất',`Đã xử lý ${drafts.length}/${drafts.length} câu.`,`<div class="panel ai-review-completed"><h3>Đã duyệt xong phiên câu hỏi</h3><div class="review-progress"><b>${drafts.length}/${drafts.length} câu</b><span>Đã lưu: ${approved} · Bỏ qua: ${rejected} · Chờ duyệt: 0</span></div><button id="completedReviewBack" class="primary">← Quay lại ngân hàng câu hỏi</button></div>`);
+  $('#completedReviewBack').onclick=backToQuestionList;
+  return;
+ }
+ let current=pending[index]||pending[0],pos=drafts.findIndex(d=>d.id===current.id);showDraft(batch,drafts,current,pos);
 }
 
 function showDraft(batch,drafts,d,pos){
