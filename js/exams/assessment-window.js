@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V11.6.29 — create-assessment app window, fixed exam type and shared draggable/resizable controller. */
+/* AI-CLO PTITHCM V11.7 — create-assessment app window + CLO assessment builder loader. */
 (()=>{
 'use strict';
 let queued=false,observer=null,modalHookInstalled=false;
@@ -53,11 +53,20 @@ function installModalHook(){
  window.modal=wrapped;
  modalHookInstalled=true;
 }
+function loadCloAssessmentBuilder(){
+ if(!document.querySelector('link[data-aiclo-clo-assessment]')){
+  const link=document.createElement('link');link.rel='stylesheet';link.href='css/exams/clo-assessment-builder.css?v=11.7.0';link.dataset.aicloCloAssessment='1';document.head.append(link);
+ }
+ if(!document.querySelector('script[data-aiclo-clo-assessment]')){
+  const script=document.createElement('script');script.src='js/exams/clo-assessment-builder.js?v=11.7.0';script.defer=true;script.dataset.aicloCloAssessment='1';document.head.append(script);
+ }
+}
 function init(){
  installModalHook();
+ loadCloAssessmentBuilder();
  const modal=document.querySelector('#modal');if(modal&&!observer){observer=new MutationObserver(queueEnhance);observer.observe(modal,{childList:true,subtree:true})}
  queueEnhance();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
-window.AICLO_ASSESSMENT_WINDOW=Object.freeze({version:'11.6.29',enhance:enhanceAssessmentWindow,open:enhanceAssessmentWindow});
+window.AICLO_ASSESSMENT_WINDOW=Object.freeze({version:'11.7.0',enhance:enhanceAssessmentWindow,open:enhanceAssessmentWindow});
 })();
