@@ -1,8 +1,8 @@
-/* AI-CLO PTITHCM V12.0.6 — lightweight Assessment subpage consistency.
+/* AI-CLO PTITHCM V12.0.7 — lightweight Assessment subpage consistency.
    No continuous MutationObserver, no background database polling. */
 (()=>{
 'use strict';
-const VERSION='12.0.6';
+const VERSION='12.0.7';
 const $=s=>document.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 
 function normalizeLegacyText(root=document){
@@ -21,23 +21,40 @@ function activeExamId(){
 }
 
 async function ensureGradeSwitch(){
- const form=$('#ubInfoForm');if(!form||form.querySelector('[data-v12-grade-switch]'))return;
+ const form=$('#ubInfoForm');if(!form)return;
+ form.classList.add('assessment-window-form');
+ const existing=$$('[data-v12-grade-switch]',form);
+ if(existing.length){existing.slice(1).forEach(x=>x.remove());return}
+ if(form.dataset.v12GradeLoading==='1')return;
  const examId=activeExamId();if(!examId)return;
- let r=await db.from('exams').select('id,exam_type,counts_toward_grade,allow_ai_feedback').eq('id',examId).maybeSingle();
- if(r.error||!r.data||r.data.exam_type==='final_exam')return;
+ form.dataset.v12GradeLoading='1';
+ let r;
+ try{r=await db.from('exams').select('id,exam_type,counts_toward_grade,allow_ai_feedback').eq('id',examId).maybeSingle()}
+ finally{delete form.dataset.v12GradeLoading}
+ if(r?.error||!r?.data||r.data.exam_type==='final_exam'||!document.body.contains(form))return;
+ if(form.querySelector('[data-v12-grade-switch]'))return;
  const row=document.createElement('label');row.className='aiclo-switch-row assessment-v12-grade-switch';row.dataset.v12GradeSwitch='1';
  row.innerHTML=`<span>Tính vào kết quả CLO học phần</span><span class="aiclo-switch"><input type="checkbox" ${r.data.counts_toward_grade!==false?'checked':''}><i></i></span>`;
- form.querySelector('.form-actions')?.before(row);
- const input=row.querySelector('input');input.onchange=async()=>{
-  const next=input.checked,payload={counts_toward_grade:next};if(!next)payload.allow_ai_feedback=false;
-  input.disabled=true;let save=await db.from('exams').update(payload).eq('id',examId);input.disabled=false;
-  if(save.error){input.checked=!next;window.err?.(save.error);return}
-  if(!next){const ai=form.querySelector('[name="allow_ai_feedback"]');if(ai)ai.checked=false}
-  window.toast?.(next?'Bài kiểm tra sẽ được tính vào kết quả CLO học phần.':'Bài kiểm tra không tính vào kết quả CLO học phần.');
+ const grid=form.querySelector('.clo-switch-grid');
+ if(grid)grid.appendChild(row);else form.querySelector('.form-actions')?.before(row);
+ const input=row.querySelector('input');
+ input.onchange=()=>{
+  if(!input.checked){const ai=form.querySelector('[name="allow_ai_feedback"]');if(ai)ai.checked=false}
  };
+ if(form.dataset.v12GradeSubmitBound!=='1'){
+  form.dataset.v12GradeSubmitBound='1';
+  form.addEventListener('submit',()=>{
+   const grade=form.querySelector('[data-v12-grade-switch] input');if(!grade)return;
+   const id=activeExamId();if(!id)return;
+   const payload={counts_toward_grade:grade.checked};
+   if(!grade.checked)payload.allow_ai_feedback=false;
+   db.from('exams').update(payload).eq('id',id).then(({error})=>{if(error)window.err?.(error)});
+  },true);
+ }
 }
 
 function normalizeBuilderInfo(){
+ const form=$('#ubInfoForm');if(form)form.classList.add('assessment-window-form');
  const input=$('#ubInfoForm [name="total_questions"]');
  if(input){
   input.readOnly=true;input.setAttribute('aria-readonly','true');
