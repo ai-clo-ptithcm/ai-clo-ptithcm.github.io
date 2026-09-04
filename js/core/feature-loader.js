@@ -8,7 +8,7 @@ const FINAL_WORKFLOW='js/exams/final-workflow.js?v=11.6.22';
 const UNIFIED_EXAM_BUILDER='js/exams/unified-builder.js?v=11.8.0';
 const UNIFIED_EXAM_LIST='js/exams/unified-list-adapter.js?v=11.8.0';
 const APP_WINDOW_GEOMETRY='js/ui/app-window-geometry.js?v=11.8.5';
-const SCROLL_STABILITY='js/ui/scroll-stability.js?v=11.8.7';
+const SCROLL_STABILITY='js/ui/scroll-stability.js?v=11.8.8';
 
 function loadScript(src){
  if(loaded.has(src))return Promise.resolve();
