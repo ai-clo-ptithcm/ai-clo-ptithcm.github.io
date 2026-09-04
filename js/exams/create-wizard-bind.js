@@ -1,7 +1,7 @@
-/* AI-CLO PTITHCM V11.9.6 — isolate the visible create button from every legacy #addExam handler. */
+/* AI-CLO PTITHCM V11.9.7 — isolate the visible create button from every legacy #addExam handler. */
 (()=>{
 'use strict';
-const VERSION='11.9.6';
+const VERSION='11.9.7';
 const WIZARD_SRC='js/exams/create-wizard.js?v=11.9.1';
 const NEW_ID='createExamWizardV119';
 let loading=null,observer=null,modalGuardInstalled=false;
@@ -59,8 +59,6 @@ function installModalGuard(){
 function installDedicatedButton(){
  const legacy=document.querySelector('#addExam');
  if(!legacy)return false;
- // Keep #addExam only as an invisible compatibility hook. Legacy modules may bind it,
- // but users can never click it. The visible button has a new ID unknown to legacy code.
  legacy.hidden=true;
  legacy.style.display='none';
  legacy.setAttribute('aria-hidden','true');
@@ -71,7 +69,7 @@ function installDedicatedButton(){
   fresh.id=NEW_ID;
   fresh.type='button';
   fresh.className=legacy.className||'primary';
-  fresh.textContent='+ Tạo bài kiểm tra';
+  fresh.textContent='+ Tạo bài kiểm tra · 4 bước';
   fresh.dataset.aicloWizard='4-step';
   legacy.parentNode?.insertBefore(fresh,legacy);
   fresh.addEventListener('click',event=>{
