@@ -1,9 +1,9 @@
-/* AI-CLO PTITHCM V11.8.2 — shared subpage/workspace persistence.
+/* AI-CLO PTITHCM V11.8.3 — shared subpage/workspace persistence.
    One state contract for every full-page child workspace.
    Module-specific draft stores remain the source of form data; this layer restores WHERE the user was. */
 (()=>{
 'use strict';
-const VERSION='11.8.2';
+const VERSION='11.8.3';
 const TTL=24*60*60*1000;
 let restoring=false,queued=false,observer=null,pendingStudentId='',navigationInstalled=false;
 const registry=new Map();
@@ -40,7 +40,14 @@ async function restore(reason='auto'){
  try{ok=!!(await spec.restore(x));if(ok&&Number.isFinite(+x.scrollY)){const y=Math.max(0,+x.scrollY);requestAnimationFrame(()=>requestAnimationFrame(()=>window.scrollTo({top:y,left:0,behavior:'auto'})))}}catch(e){console.warn(`AI-CLO subpage restore (${reason}/${x.kind})`,e)}finally{restoring=false}
  return ok
 }
-function queueRestore(reason){if(queued||document.hidden)return;queued=true;setTimeout(async()=>{queued=false;await restore(reason)},55)}
+function liveChildWorkspace(){return !!document.querySelector('.ub-workspace,.assessment-detail-page,.academic-profile-page,.question-workspace')}
+function queueRestore(reason){
+ if(queued||document.hidden)return;
+ /* If the child page is still mounted, do not reopen it just because Chrome resumed the tab.
+    Also never restore underneath an active modal. This prevents duplicate builder contexts and stale async handlers. */
+ if(liveChildWorkspace()||document.querySelector('#modal[open],#confirmDialog[open]'))return;
+ queued=true;setTimeout(async()=>{queued=false;if(document.hidden||liveChildWorkspace()||document.querySelector('#modal[open],#confirmDialog[open]'))return;await restore(reason)},55)
+}
 function applyStartupLocation(){const x=read();if(!x)return false;if(x.subjectId){state.subjectId=x.subjectId;try{localStorage.setItem('aiclo_subject',x.subjectId)}catch{}}if(x.space){state.space=x.space;try{localStorage.setItem('aiclo_space',x.space)}catch{}}if(x.view)state.view=x.view;return true}
 async function fetchExam(id){if(!id)return null;try{const {data,error}=await db.from('exams').select('*').eq('id',id).maybeSingle();if(error)throw error;return data||null}catch(e){console.warn('AI-CLO subpage: cannot load exam',e);return null}}
 register('exam-detail',{
