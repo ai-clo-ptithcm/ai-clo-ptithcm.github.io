@@ -1,13 +1,22 @@
-/* AI-CLO PTITHCM V12.0 — list/detail adapter for unified Assessment framework. */
+/* AI-CLO PTITHCM V12.0.3 — one-shot list adapter; no continuous DB observer loop. */
 (()=>{
 'use strict';
-let obs=null,busy=false;
+const VERSION='12.0.3';
+let observer=null,armed=false,busy=false;
 const onlineTypes=new Set(['chapter_test','clo_assessment','review_exam']);
-async function enhanceRows(){let body=document.querySelector('#examRows');if(!body)return;let buttons=[...body.querySelectorAll('[data-attempts]')],ids=[...new Set(buttons.map(x=>x.dataset.attempts).filter(Boolean))];if(!ids.length)return;let {data,error}=await db.from('exams').select('id,exam_type').in('id',ids);if(error)return;for(let e of data||[]){let row=body.querySelector(`[data-attempts="${e.id}"]`)?.closest('tr');if(!row)continue;let title=row.querySelector('.exam-title-link b');if(title&&!row.querySelector('.ub-type-badge'))title.insertAdjacentHTML('afterend',` <span class="badge red ub-type-badge">${onlineTypes.has(e.exam_type)?'Bài kiểm tra':'Bài thi cuối kỳ'}</span>`);else if(row.querySelector('.ub-type-badge')&&onlineTypes.has(e.exam_type))row.querySelector('.ub-type-badge').textContent='Bài kiểm tra';let actions=row.querySelector('.row-actions');if(actions){[...actions.querySelectorAll('button')].forEach(b=>{if(/Chỉnh CLO|Cấu trúc/i.test(b.textContent||''))b.remove()})}}
+const $=s=>document.querySelector(s);
+function stop(){if(observer){observer.disconnect();observer=null}armed=false}
+async function enhanceRows(){
+ const body=$('#examRows');if(!body)return;
+ const buttons=[...body.querySelectorAll('[data-attempts]')],ids=[...new Set(buttons.map(x=>x.dataset.attempts).filter(Boolean))];if(!ids.length)return;
+ const {data,error}=await db.from('exams').select('id,exam_type').in('id',ids);if(error)return;
+ for(const e of data||[]){const row=body.querySelector(`[data-attempts="${e.id}"]`)?.closest('tr');if(!row)continue;const title=row.querySelector('.exam-title-link b'),label=onlineTypes.has(e.exam_type)?'Bài kiểm tra':'Bài thi cuối kỳ';let badge=row.querySelector('.ub-type-badge');if(!badge&&title){title.insertAdjacentHTML('afterend',` <span class="badge red ub-type-badge">${label}</span>`);badge=row.querySelector('.ub-type-badge')}if(badge)badge.textContent=label;const actions=row.querySelector('.row-actions');actions?.querySelectorAll('button').forEach(b=>{if(/Chỉnh CLO|Cấu trúc/i.test(b.textContent||''))b.remove()})}
 }
-function lockFinalSource(){let select=document.querySelector('#finalExamForm [name="source_scope"]');if(!select||select.dataset.ubSecureLocked)return;select.dataset.ubSecureLocked='1';select.innerHTML='<option value="secure_exam">Ngân hàng đề thi – bảo mật</option>';select.value='secure_exam';select.style.pointerEvents='none';select.setAttribute('aria-readonly','true');let label=select.closest('label');if(label&&!label.querySelector('.ub-secure-note')){let small=document.createElement('small');small.className='hint ub-secure-note';small.textContent='Bài thi cuối kỳ chỉ sử dụng Ngân hàng đề thi – bảo mật.';label.appendChild(small)}}
-function normalizeStatus(){document.querySelectorAll('#content .badge').forEach(x=>{let t=x.textContent.trim();if(t==='Đã đóng')x.textContent='Tạm đóng';if(/^Đã tạo \d+ mã đề$/.test(t))x.textContent=t.replace(/^Đã tạo /,'Đã khóa · ')})}
-async function run(){if(busy)return;busy=true;try{lockFinalSource();await enhanceRows();normalizeStatus()}finally{busy=false}}
-function init(){let c=document.querySelector('#content');if(c&&!obs){obs=new MutationObserver(()=>requestAnimationFrame(run));obs.observe(c,{childList:true,subtree:true})}run()}
+function normalizeStatus(){document.querySelectorAll('#content .badge').forEach(x=>{const t=x.textContent.trim();if(t==='Đã đóng')x.textContent='Tạm đóng'})}
+async function run(){if(busy)return;busy=true;try{await enhanceRows();normalizeStatus()}finally{busy=false}}
+function apply(){stop();run()}
+function arm(){stop();const host=$('#content');if(!host)return;if($('#examRows'))return apply();armed=true;observer=new MutationObserver(()=>{if($('#examRows'))apply()});observer.observe(host,{childList:true,subtree:true});setTimeout(()=>{if(armed)stop()},2500)}
+function init(){document.addEventListener('click',e=>{if(e.target?.closest?.('[data-view="exams"]'))queueMicrotask(arm)},true);arm()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+window.AICLO_UNIFIED_LIST=Object.freeze({version:VERSION,arm,run});
 })();
