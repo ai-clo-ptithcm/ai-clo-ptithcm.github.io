@@ -1,0 +1,86 @@
+/* AI-CLO PTITHCM V11.8.3 — shared responsive layout system.
+   Centralizes KPI grids, action grids and filter toolbars so modules do not invent their own desktop breakpoints. */
+
+:root{
+  --aiclo-layout-gap:12px;
+}
+
+.aiclo-kpi-grid{
+  display:grid!important;
+  grid-template-columns:repeat(var(--aiclo-cols,4),minmax(0,1fr))!important;
+  gap:var(--aiclo-layout-gap)!important;
+  width:100%;
+  min-width:0;
+}
+.aiclo-kpi-grid>*{min-width:0}
+.aiclo-kpi-grid b,.aiclo-kpi-grid strong{overflow-wrap:anywhere}
+
+.aiclo-action-grid{
+  display:grid!important;
+  grid-template-columns:repeat(var(--aiclo-action-cols,4),minmax(0,1fr))!important;
+  gap:8px!important;
+  align-items:stretch!important;
+  width:100%;
+  min-width:0;
+}
+.aiclo-action-grid>button,
+.aiclo-action-grid>a.button,
+.aiclo-action-grid>.button{
+  width:100%!important;
+  min-width:0!important;
+  margin:0!important;
+  white-space:normal;
+  line-height:1.2;
+}
+.aiclo-action-grid>.aiclo-action-meta{
+  grid-column:1/-1;
+}
+
+.aiclo-filter-bar{
+  display:grid!important;
+  grid-template-columns:minmax(260px,1.45fr) minmax(150px,.72fr) minmax(170px,.8fr) minmax(150px,.65fr)!important;
+  gap:10px!important;
+  align-items:center!important;
+  width:100%;
+  min-width:0;
+}
+.aiclo-filter-bar>*{min-width:0!important;width:100%!important;margin:0!important}
+.aiclo-filter-bar>button{justify-self:stretch}
+
+/* Known summary/KPI groups use the shared contract even before JS tagging completes. */
+.assessment-detail-stats,
+.stats,
+.v109-stats,
+.assessment-summary,
+.academic-profile-summary{
+  min-width:0;
+}
+
+/* Desktop/laptop: 5 or 6 compact cards/actions stay on one row. */
+@media(min-width:1001px){
+  .aiclo-kpi-grid[style*="--aiclo-cols:5"],
+  .aiclo-kpi-grid[style*="--aiclo-cols:6"]{
+    grid-template-columns:repeat(var(--aiclo-cols),minmax(0,1fr))!important;
+  }
+  .aiclo-action-grid[style*="--aiclo-action-cols:5"],
+  .aiclo-action-grid[style*="--aiclo-action-cols:6"]{
+    grid-template-columns:repeat(var(--aiclo-action-cols),minmax(0,1fr))!important;
+  }
+}
+
+/* Tablet: compact but readable. */
+@media(max-width:1000px){
+  .aiclo-kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .aiclo-action-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .aiclo-filter-bar{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+
+/* Phone / narrow tablet. */
+@media(max-width:700px){
+  .aiclo-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .aiclo-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .aiclo-filter-bar{grid-template-columns:1fr!important}
+}
+@media(max-width:430px){
+  .aiclo-kpi-grid{grid-template-columns:1fr!important}
+}
