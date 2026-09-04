@@ -1,13 +1,13 @@
-/* AI-CLO PTITHCM V11.6.29 — compact create-assessment app window without page-level horizontal overflow. */
+/* AI-CLO PTITHCM V12.0.7 — compact assessment app window with no horizontal overflow. */
 #modal.assessment-window-modal{max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px)}
-#modal.assessment-window-modal #modalBody{background:#fff;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
-#modal.assessment-window-modal .assessment-window-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 16px;padding:18px 20px 0;min-height:100%;align-content:start;max-width:100%;overflow:visible}
+#modal.assessment-window-modal #modalBody{background:#fff;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain;scrollbar-gutter:stable}
+#modal.assessment-window-modal .assessment-window-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px 16px;padding:18px 20px 0;min-height:100%;width:100%;max-width:100%;min-width:0;box-sizing:border-box;align-content:start;overflow-x:hidden;overflow-y:visible}
 #modal.assessment-window-modal .assessment-window-form>*{min-width:0;max-width:100%;box-sizing:border-box}
 #modal.assessment-window-modal .assessment-window-form>.wide{grid-column:1/-1}
-#modal.assessment-window-modal .assessment-window-form .field{margin:0;min-width:0}
+#modal.assessment-window-modal .assessment-window-form .field{margin:0;min-width:0;max-width:100%;box-sizing:border-box}
 #modal.assessment-window-modal .assessment-window-form input:not([type="checkbox"]):not([type="radio"]),
 #modal.assessment-window-modal .assessment-window-form select,
-#modal.assessment-window-modal .assessment-window-form textarea{width:100%;max-width:100%;box-sizing:border-box}
+#modal.assessment-window-modal .assessment-window-form textarea{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
 #modal.assessment-window-modal .assessment-window-form textarea[name="description"]{min-height:74px;max-height:120px}
 #modal.assessment-window-modal .assessment-bank-fixed{align-self:stretch;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:#f8fafc;display:grid;gap:3px}
 #modal.assessment-window-modal .assessment-bank-fixed>span{font-size:12px;color:var(--muted);font-weight:800}
@@ -16,7 +16,10 @@
 #modal.assessment-window-modal .clo-count-box,#modal.assessment-window-modal .online-matrix-box{margin:0}
 #modal.assessment-window-modal .matrix-builder-panel,#modal.assessment-window-modal .matrix-builder-wrap{min-width:0;max-width:100%}
 #modal.assessment-window-modal .matrix-builder-wrap{overflow-x:auto;overflow-y:hidden}
-#modal.assessment-window-modal .assessment-window-footer{position:sticky;bottom:0;z-index:5;grid-column:1/-1;margin:4px -20px 0;padding:13px 20px 14px;background:#fff;border-top:1px solid var(--line);box-shadow:0 -8px 18px #fff;display:flex;justify-content:flex-end;gap:8px}
+#modal.assessment-window-modal .clo-switch-grid{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
+#modal.assessment-window-modal .clo-switch-grid>.aiclo-switch-row{min-width:0;max-width:100%;box-sizing:border-box}
+#modal.assessment-window-modal .clo-switch-grid>.aiclo-switch-row>span:first-child{min-width:0;overflow-wrap:anywhere;line-height:1.35}
+#modal.assessment-window-modal .assessment-window-footer{position:sticky;bottom:0;z-index:5;grid-column:1/-1;width:auto;max-width:none;margin:4px -20px 0;padding:13px 20px 14px;background:#fff;border-top:1px solid var(--line);box-shadow:0 -8px 18px #fff;display:flex;justify-content:flex-end;gap:8px;box-sizing:border-box}
 #modal.assessment-window-modal .assessment-window-footer button{min-width:108px}
 #modal.assessment-window-modal .modal-head h3{max-width:calc(100% - 48px)}
 @media(max-width:700px){
