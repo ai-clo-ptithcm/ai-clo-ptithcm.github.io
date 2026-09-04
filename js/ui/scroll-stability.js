@@ -1,14 +1,17 @@
-/* AI-CLO PTITHCM V11.8.7 — small scroll/focus stability guard.
+/* AI-CLO PTITHCM V11.8.8 — small scroll/focus stability guard.
    Scope: assessment structure matrix + already-mounted exam detail/builder on Chrome tab resume.
    No data writes. */
 (()=>{
 'use strict';
-const VERSION='11.8.7';
+const VERSION='11.8.8';
 let matrixRestore=null;
 let resumeState=null;
 let modalObserver=null;
 let resumeCancelled=false;
 let resumeLockUntil=0;
+let resumeRenderArmed=false;
+let resumeRenderUntil=0;
+let guardedKind='';
 
 const modalBody=()=>document.querySelector('#modalBody');
 const liveKind=()=>document.querySelector('.ub-workspace')?'exam-builder':document.querySelector('.assessment-detail-page')?'exam-detail':'';
@@ -54,17 +57,58 @@ function rememberResumePosition(){
  if(!kind)return;
  const p=scrollPoint();
  resumeState={kind,x:p.x,y:p.y,at:Date.now()};
+ guardedKind=kind;
+ resumeRenderArmed=true;
+ resumeRenderUntil=0;
  try{window.AICLO_SUBPAGE_STATE?.savePosition?.()}catch{}
 }
 
+function shouldSuppressResumeRender(){
+ if(resumeCancelled||state?.view!=='exams')return false;
+ const kind=liveKind();
+ if(!kind||kind!==guardedKind)return false;
+ if(resumeRenderArmed)return true;
+ return Date.now()<resumeRenderUntil;
+}
+
+function wrapResumeRender(name){
+ const base=window[name];
+ if(typeof base!=='function'||base.__aicloResumeRenderGuard)return;
+ const wrapped=function(...args){
+  if(shouldSuppressResumeRender()){
+   console.debug(`AI-CLO: giữ nguyên ${guardedKind} khi Chrome khôi phục tab; bỏ qua ${name}() nền.`);
+   return Promise.resolve();
+  }
+  return base.apply(this,args);
+ };
+ wrapped.__aicloResumeRenderGuard=true;
+ wrapped.__aicloBase=base;
+ window[name]=wrapped;
+}
+
+function installResumeRenderGuards(){
+ wrapResumeRender('render');
+ wrapResumeRender('exams');
+}
+
 function cancelResumeOnUserIntent(){
- if(Date.now()<resumeLockUntil)resumeCancelled=true;
+ if(Date.now()<resumeLockUntil||resumeRenderArmed||Date.now()<resumeRenderUntil){
+  resumeCancelled=true;
+  resumeRenderArmed=false;
+  resumeRenderUntil=0;
+ }
 }
 
 function restoreResumePosition(){
  const s=resumeState;
- if(!s||Date.now()-s.at>15*60*1000||liveKind()!==s.kind)return;
+ if(!s||Date.now()-s.at>15*60*1000||liveKind()!==s.kind){
+  resumeRenderArmed=false;
+  resumeRenderUntil=0;
+  return;
+ }
  resumeCancelled=false;
+ resumeRenderArmed=false;
+ resumeRenderUntil=Date.now()+1250;
  resumeLockUntil=Date.now()+1400;
  const restore=()=>{
   if(resumeCancelled||Date.now()>resumeLockUntil||liveKind()!==s.kind)return;
@@ -73,6 +117,7 @@ function restoreResumePosition(){
  };
  requestAnimationFrame(()=>requestAnimationFrame(restore));
  [70,160,300,520,820,1150,1350].forEach(ms=>setTimeout(restore,ms));
+ setTimeout(()=>{resumeRenderUntil=0},1350);
 }
 
 function keyScrollIntent(e){
@@ -81,6 +126,7 @@ function keyScrollIntent(e){
 
 function init(){
  installModalObserver();
+ installResumeRenderGuards();
  document.addEventListener('input',rememberMatrixInput,true);
  document.addEventListener('wheel',cancelResumeOnUserIntent,{capture:true,passive:true});
  document.addEventListener('touchstart',cancelResumeOnUserIntent,{capture:true,passive:true});
