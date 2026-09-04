@@ -62,6 +62,7 @@ Giữ đúng 2 kiểu ma trận:
 - Các bài online legacy được gắn nhãn thống nhất **Bài kiểm tra**.
 - Bài không tính CLO học phần có badge **Không tính CLO học phần**.
 - Trang chi tiết Bài kiểm tra hiển thị rõ nguồn **Ngân hàng luyện tập – kiểm tra**.
+- Trong trang chỉnh sửa, Tổng số câu là read-only và hai kiểu ma trận vẫn dùng lại được; với kiểu CLO chung, chỉ các Mục được tick mới tham gia pool.
 
 ## Kết quả CLO
 
@@ -70,7 +71,7 @@ Giữ đúng 2 kiểu ma trận:
 - Nếu Supabase có `counts_toward_grade`, bài có giá trị `false` bị loại khỏi tổng hợp học phần.
 - Nếu chưa có cột này, frontend fallback về hành vi cũ và không làm hỏng trang.
 
-SQL cần chạy một lần nếu chưa chạy trước đó: `docs/assessment-v11.9-migration.sql`.
+SQL cần chạy một lần nếu chưa chạy trước đó: `docs/assessment-v12.0-migration.sql`.
 
 ## File chính
 
