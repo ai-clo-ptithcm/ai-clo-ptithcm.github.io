@@ -6,7 +6,7 @@ let observer=null,busy=false;
 const ONLINE_TYPES=new Set(['chapter_test','clo_assessment','review_exam']);
 const $=s=>document.querySelector(s);
 function hideLegacyCreateButtons(){
- ['#addExam','#addCloAssessment','#createReviewExam','#createFinalExam'].forEach(sel=>{let b=$(sel);if(b){b.hidden=true;b.style.display='none';b.tabIndex=-1;b.setAttribute('aria-hidden','true')}});
+ ['#addExam','#addCloAssessment','#createReviewExam','#createFinalExam','#createExamWizardV119'].forEach(sel=>{let b=$(sel);if(b){b.hidden=true;b.style.display='none';b.tabIndex=-1;b.setAttribute('aria-hidden','true')}});
 }
 function ensureCreateButtons(){
  const legacy=$('#addExam');
@@ -35,7 +35,7 @@ function normalizeDetail(){
  let badge=page.querySelector('.assessment-detail-head .ub-type-badge');if(badge)badge.textContent='Bài kiểm tra';
  let source=page.querySelector('.assessment-v12-detail-source');if(!source){let meta=page.querySelector('.assessment-detail-head .detail-meta,.assessment-detail-head');if(meta){source=document.createElement('span');source.className='badge assessment-v12-detail-source';source.textContent='Ngân hàng luyện tập – kiểm tra';meta.appendChild(source)}}
 }
-function pageHeading(){let title=$('#pageTitle'),sub=$('#pageSub');if(title&&state?.view==='exams'){title.textContent='Đánh giá';if(sub)sub.textContent='Bài kiểm tra trực tuyến và đề thi cuối kỳ theo cùng một quy trình AI-CLO'}}
+function pageHeading(){let nav=$('[data-view="exams"]');if(nav)nav.textContent='✎ Đánh giá';let title=$('#pageTitle'),sub=$('#pageSub');if(title&&state?.view==='exams'){title.textContent='Đánh giá';if(sub)sub.textContent='Bài kiểm tra trực tuyến và đề thi cuối kỳ theo cùng một quy trình AI-CLO'}}
 async function run(){if(busy)return;busy=true;try{hideLegacyCreateButtons();ensureCreateButtons();await normalizeRows();normalizeDetail();pageHeading()}finally{busy=false}}
 function init(){let c=$('#content');if(c&&!observer){observer=new MutationObserver(()=>requestAnimationFrame(run));observer.observe(c,{childList:true,subtree:true})}run()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
