@@ -9,8 +9,8 @@ const UNIFIED_EXAM_BUILDER='js/exams/unified-builder.js?v=11.8.0';
 const UNIFIED_EXAM_LIST='js/exams/unified-list-adapter.js?v=11.8.0';
 const APP_WINDOW_GEOMETRY='js/ui/app-window-geometry.js?v=11.8.6';
 const SCROLL_STABILITY='js/ui/scroll-stability.js?v=11.8.8';
-const CREATE_WIZARD='js/exams/create-wizard.js?v=11.9.1';
-const CREATE_WIZARD_BIND='js/exams/create-wizard-bind.js?v=11.9.7';
+const CREATE_WIZARD='js/exams/create-wizard.js?v=12.0.0';
+const ASSESSMENT_V12='js/exams/assessment-unified-v12.js?v=12.0.0';
 
 function loadScript(src){
  if(loaded.has(src))return Promise.resolve();
@@ -115,7 +115,7 @@ async function ensureView(view){
    await loadScript(UNIFIED_EXAM_LIST);
    await loadScript(SCROLL_STABILITY);
    await loadScript(CREATE_WIZARD);
-   await loadScript(CREATE_WIZARD_BIND);
+   await loadScript(ASSESSMENT_V12);
   }
   await loadScript('js/exams/attempt-autosave.js');
   return;
