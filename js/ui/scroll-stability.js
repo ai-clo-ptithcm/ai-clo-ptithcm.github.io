@@ -1,12 +1,14 @@
-/* AI-CLO PTITHCM V11.8.8 — small scroll/focus stability guard.
-   Scope: assessment structure matrix + already-mounted exam detail/builder on Chrome tab resume.
+/* AI-CLO PTITHCM V11.8.9 — small scroll/focus stability guard.
+   Scope: assessment structure matrix + builder question replacement + already-mounted exam detail/builder on Chrome tab resume.
    No data writes. */
 (()=>{
 'use strict';
-const VERSION='11.8.8';
+const VERSION='11.8.9';
 let matrixRestore=null;
 let resumeState=null;
 let modalObserver=null;
+let contentObserver=null;
+let builderRestore=null;
 let resumeCancelled=false;
 let resumeLockUntil=0;
 let resumeRenderArmed=false;
@@ -50,6 +52,35 @@ function installModalObserver(){
   if(matrixRestore)requestAnimationFrame(restoreMatrixPosition);
  });
  modalObserver.observe(body,{childList:true,subtree:true});
+}
+
+function rememberBuilderAction(e){
+ const button=e.target?.closest?.('[data-ub-replace],#ubAiUse');
+ if(!button||!document.querySelector('.ub-workspace'))return;
+ const p=scrollPoint();
+ builderRestore={x:p.x,y:p.y,at:Date.now(),until:Date.now()+1800};
+}
+
+function restoreBuilderPosition(){
+ const s=builderRestore;
+ if(!s||Date.now()>s.until||!document.querySelector('.ub-workspace'))return;
+ const restore=()=>{
+  if(!builderRestore||Date.now()>builderRestore.until||!document.querySelector('.ub-workspace'))return;
+  window.scrollTo({top:s.y,left:s.x,behavior:'auto'});
+  const el=scroller();if(el){el.scrollTop=s.y;el.scrollLeft=s.x}
+ };
+ requestAnimationFrame(()=>requestAnimationFrame(restore));
+ [40,100,180,320].forEach(ms=>setTimeout(restore,ms));
+ setTimeout(()=>{if(builderRestore===s)builderRestore=null},420);
+}
+
+function installContentObserver(){
+ const content=document.querySelector('#content');
+ if(!content||contentObserver)return;
+ contentObserver=new MutationObserver(()=>{
+  if(builderRestore)restoreBuilderPosition();
+ });
+ contentObserver.observe(content,{childList:true,subtree:true});
 }
 
 function rememberResumePosition(){
@@ -126,8 +157,10 @@ function keyScrollIntent(e){
 
 function init(){
  installModalObserver();
+ installContentObserver();
  installResumeRenderGuards();
  document.addEventListener('input',rememberMatrixInput,true);
+ document.addEventListener('click',rememberBuilderAction,true);
  document.addEventListener('wheel',cancelResumeOnUserIntent,{capture:true,passive:true});
  document.addEventListener('touchstart',cancelResumeOnUserIntent,{capture:true,passive:true});
  document.addEventListener('pointerdown',cancelResumeOnUserIntent,true);
