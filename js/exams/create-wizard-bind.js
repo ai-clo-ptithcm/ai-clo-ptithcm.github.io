@@ -1,7 +1,9 @@
-/* AI-CLO PTITHCM V11.9.5 — hard-disable legacy create form at its modal entry point and route creation to the 4-step wizard. */
+/* AI-CLO PTITHCM V11.9.6 — isolate the visible create button from every legacy #addExam handler. */
 (()=>{
 'use strict';
+const VERSION='11.9.6';
 const WIZARD_SRC='js/exams/create-wizard.js?v=11.9.1';
+const NEW_ID='createExamWizardV119';
 let loading=null,observer=null,modalGuardInstalled=false;
 
 async function ensureWizard(){
@@ -40,10 +42,8 @@ function installModalGuard(){
  if(typeof base!=='function')return false;
  if(base.__aicloWizardGuard){modalGuardInstalled=true;return true}
  const guarded=function(title,html,...args){
-  const t=String(title||'').trim();
-  const h=String(html||'');
-  const legacyCreate=/id=["']assessmentForm["']/i.test(h)&&/Tạo bài kiểm tra/i.test(t);
-  if(legacyCreate){
+  const t=String(title||'').trim(),h=String(html||'');
+  if(/id=["']assessmentForm["']/i.test(h)&&/Tạo bài kiểm tra/i.test(t)){
    queueMicrotask(launch);
    return null;
   }
@@ -56,29 +56,56 @@ function installModalGuard(){
  return true;
 }
 
-function hardTakeover(){
- const old=document.querySelector('#addExam');
- if(!old)return;
- if(old.dataset.cwHard==='1')return;
- const add=old.cloneNode(true);
- add.dataset.cwHard='1';
- old.replaceWith(add);
- add.addEventListener('click',event=>{event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();launch()},{capture:true});
+function installDedicatedButton(){
+ const legacy=document.querySelector('#addExam');
+ if(!legacy)return false;
+ // Keep #addExam only as an invisible compatibility hook. Legacy modules may bind it,
+ // but users can never click it. The visible button has a new ID unknown to legacy code.
+ legacy.hidden=true;
+ legacy.style.display='none';
+ legacy.setAttribute('aria-hidden','true');
+ legacy.tabIndex=-1;
+ let fresh=document.querySelector('#'+NEW_ID);
+ if(!fresh){
+  fresh=document.createElement('button');
+  fresh.id=NEW_ID;
+  fresh.type='button';
+  fresh.className=legacy.className||'primary';
+  fresh.textContent='+ Tạo bài kiểm tra';
+  fresh.dataset.aicloWizard='4-step';
+  legacy.parentNode?.insertBefore(fresh,legacy);
+  fresh.addEventListener('click',event=>{
+   event.preventDefault();
+   event.stopPropagation();
+   launch();
+  });
+ }
+ return true;
 }
 
 function schedule(){
  installModalGuard();
- queueMicrotask(hardTakeover);
- requestAnimationFrame(hardTakeover);
- setTimeout(hardTakeover,0);
+ queueMicrotask(installDedicatedButton);
+ requestAnimationFrame(installDedicatedButton);
+ setTimeout(installDedicatedButton,30);
+ setTimeout(installDedicatedButton,120);
 }
 function init(){
  installModalGuard();
  const content=document.querySelector('#content');
- if(content&&!observer){observer=new MutationObserver(schedule);observer.observe(content,{childList:true,subtree:true})}
+ if(content&&!observer){
+  observer=new MutationObserver(schedule);
+  observer.observe(content,{childList:true,subtree:true});
+ }
  schedule();
- let tries=0;const timer=setInterval(()=>{tries++;if(installModalGuard()||tries>=40)clearInterval(timer)},50);
+ let tries=0;
+ const timer=setInterval(()=>{
+  tries++;
+  installModalGuard();
+  installDedicatedButton();
+  if(tries>=80)clearInterval(timer);
+ },100);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
-window.AICLO_CREATE_WIZARD_BIND=Object.freeze({version:'11.9.5',launch,hardTakeover,installModalGuard});
+window.AICLO_CREATE_WIZARD_BIND=Object.freeze({version:VERSION,launch,installDedicatedButton,installModalGuard});
 })();
