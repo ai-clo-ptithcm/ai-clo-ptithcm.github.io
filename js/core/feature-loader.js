@@ -10,7 +10,7 @@ const UNIFIED_EXAM_LIST='js/exams/unified-list-adapter.js?v=11.8.0';
 const APP_WINDOW_GEOMETRY='js/ui/app-window-geometry.js?v=11.8.6';
 const SCROLL_STABILITY='js/ui/scroll-stability.js?v=11.8.8';
 const CREATE_WIZARD='js/exams/create-wizard.js?v=11.9.1';
-const CREATE_WIZARD_BIND='js/exams/create-wizard-bind.js?v=11.9.6';
+const CREATE_WIZARD_BIND='js/exams/create-wizard-bind.js?v=11.9.7';
 
 function loadScript(src){
  if(loaded.has(src))return Promise.resolve();
