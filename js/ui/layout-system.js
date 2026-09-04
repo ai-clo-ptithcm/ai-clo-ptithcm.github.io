@@ -12,7 +12,6 @@ function setCols(el,varName,count){
  if(!el||count<1)return;
  el.style.setProperty(varName,String(Math.min(6,Math.max(1,count))));
 }
-
 function tagKpi(el){
  if(!el)return;
  const kids=directElements(el);
@@ -20,7 +19,6 @@ function tagKpi(el){
  el.classList.add('aiclo-kpi-grid');
  setCols(el,'--aiclo-cols',kids.length);
 }
-
 function tagAction(el){
  if(!el)return;
  const buttons=directButtons(el);
@@ -31,28 +29,28 @@ function tagAction(el){
  setCols(el,'--aiclo-action-cols',buttons.length);
  others.forEach(x=>x.classList.add('aiclo-action-meta'));
 }
-
 function tagFilter(el){
  if(!el)return;
  const direct=directElements(el),inputs=direct.filter(x=>x.matches?.('input,select')),buttons=direct.filter(x=>x.matches?.('button'));
  if(inputs.length>=3&&buttons.length>=1&&direct.length<=5)el.classList.add('aiclo-filter-bar');
 }
-
+function selectWithin(root,selector){
+ const out=[];
+ if(root?.matches?.(selector))out.push(root);
+ if(root?.querySelectorAll)out.push(...root.querySelectorAll(selector));
+ return out;
+}
 function scan(root=document){
- const q=s=>root.matches?.(s)?[root,...root.querySelectorAll?.(s)||[]]:[...root.querySelectorAll?.(s)||[]];
  const seen=new Set();
  [
   '.assessment-detail-stats','.stats','.v109-stats','.assessment-summary','.academic-profile-summary'
- ].forEach(sel=>q(sel).forEach(el=>{if(!seen.has(el)){seen.add(el);tagKpi(el)}}));
-
+ ].forEach(sel=>selectWithin(root,sel).forEach(el=>{if(!seen.has(el)){seen.add(el);tagKpi(el)}}));
  [
   '.assessment-detail-actions','.bank-actions','.toolbar','.drawer-actions','.student-exam-actions','.ub-export-actions'
- ].forEach(sel=>q(sel).forEach(tagAction));
-
- q('.attempt-page-toolbar').forEach(el=>el.classList.add('aiclo-filter-bar'));
- q('.toolbar').forEach(tagFilter);
+ ].forEach(sel=>selectWithin(root,sel).forEach(tagAction));
+ selectWithin(root,'.attempt-page-toolbar').forEach(el=>el.classList.add('aiclo-filter-bar'));
+ selectWithin(root,'.toolbar').forEach(tagFilter);
 }
-
 function queue(root=document){
  if(queued)return;queued=true;
  requestAnimationFrame(()=>{queued=false;scan(root)});
@@ -60,7 +58,12 @@ function queue(root=document){
 function init(){
  scan(document);
  const host=document.querySelector('#content');
- if(host&&!observer){observer=new MutationObserver(muts=>{for(const m of muts)for(const n of m.addedNodes)if(n.nodeType===1)queue(n)});observer.observe(host,{childList:true,subtree:true})}
+ if(host&&!observer){
+  observer=new MutationObserver(muts=>{
+   for(const m of muts)for(const n of m.addedNodes)if(n.nodeType===1)queue(n);
+  });
+  observer.observe(host,{childList:true,subtree:true});
+ }
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 window.AICLO_LAYOUT_SYSTEM=Object.freeze({version:VERSION,scan:()=>scan(document)});
