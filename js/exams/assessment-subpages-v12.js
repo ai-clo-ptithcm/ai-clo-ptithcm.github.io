@@ -1,8 +1,8 @@
-/* AI-CLO PTITHCM V12.0.5 — lightweight Assessment subpage consistency.
+/* AI-CLO PTITHCM V12.0.6 — lightweight Assessment subpage consistency.
    No continuous MutationObserver, no background database polling. */
 (()=>{
 'use strict';
-const VERSION='12.0.5';
+const VERSION='12.0.6';
 const $=s=>document.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 
 function normalizeLegacyText(root=document){
@@ -12,12 +12,35 @@ function normalizeLegacyText(root=document){
   if(/Bài đánh giá CLO|Bài ôn tập thi/i.test(b.textContent||''))b.textContent='Bài kiểm tra';
  });
 }
+function activeExamId(){
+ try{
+  const direct=sessionStorage.getItem(`aiclo:v115:active-exam:${state.subjectId}`);if(direct)return direct;
+  const user=state?.user?.id||'user',raw=localStorage.getItem(`aiclo:v118:active:${user}:${state.subjectId}`),meta=JSON.parse(raw||'null');
+  return meta?.examId||null;
+ }catch{return null}
+}
+
+async function ensureGradeSwitch(){
+ const form=$('#ubInfoForm');if(!form||form.querySelector('[data-v12-grade-switch]'))return;
+ const examId=activeExamId();if(!examId)return;
+ let r=await db.from('exams').select('id,exam_type,counts_toward_grade,allow_ai_feedback').eq('id',examId).maybeSingle();
+ if(r.error||!r.data||r.data.exam_type==='final_exam')return;
+ const row=document.createElement('label');row.className='aiclo-switch-row assessment-v12-grade-switch';row.dataset.v12GradeSwitch='1';
+ row.innerHTML=`<span>Tính vào kết quả CLO học phần</span><span class="aiclo-switch"><input type="checkbox" ${r.data.counts_toward_grade!==false?'checked':''}><i></i></span>`;
+ form.querySelector('.form-actions')?.before(row);
+ const input=row.querySelector('input');input.onchange=async()=>{
+  const next=input.checked,payload={counts_toward_grade:next};if(!next)payload.allow_ai_feedback=false;
+  input.disabled=true;let save=await db.from('exams').update(payload).eq('id',examId);input.disabled=false;
+  if(save.error){input.checked=!next;window.err?.(save.error);return}
+  if(!next){const ai=form.querySelector('[name="allow_ai_feedback"]');if(ai)ai.checked=false}
+  window.toast?.(next?'Bài kiểm tra sẽ được tính vào kết quả CLO học phần.':'Bài kiểm tra không tính vào kết quả CLO học phần.');
+ };
+}
 
 function normalizeBuilderInfo(){
  const input=$('#ubInfoForm [name="total_questions"]');
  if(input){
-  input.readOnly=true;
-  input.setAttribute('aria-readonly','true');
+  input.readOnly=true;input.setAttribute('aria-readonly','true');
   const label=input.closest('label');
   if(label&&!label.dataset.v12Total){
    label.dataset.v12Total='1';
@@ -28,15 +51,21 @@ function normalizeBuilderInfo(){
  }
  const ai=$('#ubInfoForm [name="allow_ai_feedback"]')?.closest('.aiclo-switch-row')?.querySelector('span:first-child');
  if(ai)ai.textContent='Cho phép sinh viên nhận xét AI';
+ ensureGradeSwitch();
 }
 
-function normalizeDetail(){
+async function normalizeDetail(){
  const page=$('.assessment-detail-page');if(!page)return;
  normalizeLegacyText(page);
- const source=page.querySelector('.assessment-v12-detail-source');
- if(!source){
+ if(!page.querySelector('.assessment-v12-detail-source')){
   const head=page.querySelector('.assessment-detail-head');
   if(head){const badge=document.createElement('span');badge.className='badge assessment-v12-detail-source';badge.textContent='Ngân hàng luyện tập – kiểm tra';head.appendChild(badge)}
+ }
+ if(page.dataset.v12GradeLoaded)return;page.dataset.v12GradeLoaded='1';
+ const examId=activeExamId();if(!examId)return;
+ const r=await db.from('exams').select('counts_toward_grade').eq('id',examId).maybeSingle();if(r.error||!r.data)return;
+ if(r.data.counts_toward_grade===false&&!page.querySelector('.assessment-v12-no-grade')){
+  const head=page.querySelector('.assessment-detail-head');if(head){const badge=document.createElement('span');badge.className='badge assessment-v12-no-grade';badge.textContent='Không tính CLO học phần';head.appendChild(badge)}
  }
 }
 
@@ -49,9 +78,7 @@ function normalizeFinalTab(){
  $$('[data-open-final]',section).forEach(b=>{b.textContent='Chi tiết →'});
 }
 
-function enhanceNow(){
- normalizeLegacyText(document);normalizeBuilderInfo();normalizeDetail();normalizeFinalTab();
-}
+function enhanceNow(){normalizeLegacyText(document);normalizeBuilderInfo();normalizeDetail();normalizeFinalTab()}
 function enhanceSoon(){requestAnimationFrame(()=>requestAnimationFrame(enhanceNow));setTimeout(enhanceNow,120)}
 
 function interceptFinalCreate(e){
@@ -61,17 +88,14 @@ function interceptFinalCreate(e){
  const start=window.AICLO_CREATE_WIZARD?.start;
  if(typeof start==='function')start('final');else window.toast?.('Chưa tải được trình tạo đề thi cuối kỳ. Vui lòng thử lại.',true);
 }
-
 function clickHooks(e){
  if(e.target?.closest?.('#ubEditInfo,#detailStructure,[data-open-final],[data-attempts],.exam-title-link,[data-assessment-tab]'))enhanceSoon();
 }
-
 function init(){
  document.addEventListener('click',interceptFinalCreate,true);
  document.addEventListener('click',clickHooks,true);
  document.addEventListener('focusin',e=>{if(e.target?.closest?.('#ubInfoForm'))normalizeBuilderInfo()},true);
- window.addEventListener('pageshow',enhanceSoon);
- enhanceSoon();
+ window.addEventListener('pageshow',enhanceSoon);enhanceSoon();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 window.AICLO_ASSESSMENT_SUBPAGES_V12=Object.freeze({version:VERSION,enhance:enhanceNow});
