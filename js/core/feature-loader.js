@@ -5,6 +5,7 @@
 const pending=new Map();
 const loaded=new Set();
 const FINAL_WORKFLOW='js/exams/final-workflow.js?v=11.6.22';
+const UNIFIED_EXAM_BUILDER='js/exams/unified-builder.js?v=11.8.0';
 
 function loadScript(src){
  if(loaded.has(src))return Promise.resolve();
@@ -54,8 +55,6 @@ function installFinalWorkflowRaceGuard(){
 
 async function loadFinalWorkflow(){
  if(loaded.has(FINAL_WORKFLOW)){installFinalWorkflowRaceGuard();return}
- /* final-workflow still contains a legacy importer. Preserve the semantic importer/stub
-    that is already active so script load order cannot downgrade bulk import. */
  const importHandler=window.v102BulkImportQuestions;
  await loadScript(FINAL_WORKFLOW);
  installFinalWorkflowRaceGuard();
@@ -104,7 +103,10 @@ window.openQuestionDuplicateScan=lazyDuplicateScan;
 
 async function ensureView(view){
  if(view==='exams'){
-  if(canTeach())await loadFinalWorkflow();
+  if(canTeach()){
+   await loadFinalWorkflow();
+   await loadScript(UNIFIED_EXAM_BUILDER);
+  }
   await loadScript('js/exams/attempt-autosave.js');
   return;
  }
