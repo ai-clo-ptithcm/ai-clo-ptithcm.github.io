@@ -1,8 +1,9 @@
-/* AI-CLO PTITHCM V11.8.3 — shared layout adapter.
-   Tags recurring KPI/action/filter patterns so the CSS framework controls responsive layout centrally. */
+/* AI-CLO PTITHCM V11.8.4 — shared layout adapter.
+   Tags recurring KPI/action/filter patterns so the CSS framework controls responsive layout centrally.
+   Auto-tagging is deliberately conservative; known page layouts also have direct CSS aliases. */
 (()=>{
 'use strict';
-const VERSION='11.8.3';
+const VERSION='11.8.4';
 let observer=null,queued=false;
 
 const directElements=el=>[...el.children].filter(x=>!x.hidden&&getComputedStyle(x).display!=='none');
@@ -21,9 +22,9 @@ function tagKpi(el){
 }
 function tagAction(el){
  if(!el)return;
- const buttons=directButtons(el);
+ const direct=directElements(el),buttons=direct.filter(x=>x.matches?.('button,a.button,.button'));
  if(buttons.length<4||buttons.length>6)return;
- const others=directElements(el).filter(x=>!buttons.includes(x));
+ const others=direct.filter(x=>!buttons.includes(x));
  if(others.length>1)return;
  el.classList.add('aiclo-action-grid');
  setCols(el,'--aiclo-action-cols',buttons.length);
@@ -31,8 +32,14 @@ function tagAction(el){
 }
 function tagFilter(el){
  if(!el)return;
- const direct=directElements(el),inputs=direct.filter(x=>x.matches?.('input,select')),buttons=direct.filter(x=>x.matches?.('button'));
- if(inputs.length>=3&&buttons.length>=1&&direct.length<=5)el.classList.add('aiclo-filter-bar');
+ const direct=directElements(el);
+ const controls=direct.filter(x=>x.matches?.('input,select'));
+ const buttons=direct.filter(x=>x.matches?.('button'));
+ const unsupported=direct.filter(x=>!x.matches?.('input,select,button'));
+ /* Standard filter bar = search + 2 selects + one export/action button. */
+ if(controls.length===3&&buttons.length===1&&unsupported.length===0&&direct.length===4){
+  el.classList.add('aiclo-filter-bar');
+ }
 }
 function selectWithin(root,selector){
  const out=[];
@@ -45,23 +52,29 @@ function scan(root=document){
  [
   '.assessment-detail-stats','.stats','.v109-stats','.assessment-summary','.academic-profile-summary'
  ].forEach(sel=>selectWithin(root,sel).forEach(el=>{if(!seen.has(el)){seen.add(el);tagKpi(el)}}));
+
+ /* Do not auto-convert every generic .toolbar into an action grid. */
  [
-  '.assessment-detail-actions','.bank-actions','.toolbar','.drawer-actions','.student-exam-actions','.ub-export-actions'
+  '.assessment-detail-actions','.bank-actions','.drawer-actions','.student-exam-actions','.ub-export-actions'
  ].forEach(sel=>selectWithin(root,sel).forEach(tagAction));
+
  selectWithin(root,'.attempt-page-toolbar').forEach(el=>el.classList.add('aiclo-filter-bar'));
  selectWithin(root,'.toolbar').forEach(tagFilter);
 }
-function queue(root=document){
- if(queued)return;queued=true;
- requestAnimationFrame(()=>{queued=false;scan(root)});
+function queue(){
+ if(queued)return;
+ queued=true;
+ requestAnimationFrame(()=>{
+  queued=false;
+  const host=document.querySelector('#content');
+  scan(host||document);
+ });
 }
 function init(){
  scan(document);
  const host=document.querySelector('#content');
  if(host&&!observer){
-  observer=new MutationObserver(muts=>{
-   for(const m of muts)for(const n of m.addedNodes)if(n.nodeType===1)queue(n);
-  });
+  observer=new MutationObserver(()=>queue());
   observer.observe(host,{childList:true,subtree:true});
  }
 }
