@@ -11,7 +11,7 @@ const APP_WINDOW_GEOMETRY='js/ui/app-window-geometry.js?v=11.8.6';
 const SCROLL_STABILITY='js/ui/scroll-stability.js?v=11.8.9';
 const CREATE_WIZARD='js/exams/create-wizard.js?v=12.0.0';
 const ASSESSMENT_V12='js/exams/assessment-unified-v12.js?v=12.0.3';
-const ASSESSMENT_SUBPAGES='js/exams/assessment-subpages-v12.js?v=12.0.5';
+const ASSESSMENT_SUBPAGES='js/exams/assessment-subpages-v12.js?v=12.0.7';
 const GRADE_SCOPE='js/results/grade-scope-v119.js?v=12.0.0';
 
 function loadScript(src){
