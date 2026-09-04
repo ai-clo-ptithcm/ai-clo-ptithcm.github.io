@@ -7,6 +7,7 @@ const loaded=new Set();
 const FINAL_WORKFLOW='js/exams/final-workflow.js?v=11.6.22';
 const UNIFIED_EXAM_BUILDER='js/exams/unified-builder.js?v=11.8.0';
 const UNIFIED_EXAM_LIST='js/exams/unified-list-adapter.js?v=11.8.0';
+const APP_WINDOW_GEOMETRY='js/ui/app-window-geometry.js?v=11.8.5';
 
 function loadScript(src){
  if(loaded.has(src))return Promise.resolve();
@@ -106,6 +107,7 @@ async function ensureView(view){
  if(view==='exams'){
   if(canTeach()){
    await loadFinalWorkflow();
+   await loadScript(APP_WINDOW_GEOMETRY);
    await loadScript(UNIFIED_EXAM_BUILDER);
    await loadScript(UNIFIED_EXAM_LIST);
   }
