@@ -6,6 +6,7 @@ const pending=new Map();
 const loaded=new Set();
 const FINAL_WORKFLOW='js/exams/final-workflow.js?v=11.6.22';
 const UNIFIED_EXAM_BUILDER='js/exams/unified-builder.js?v=11.8.0';
+const UNIFIED_EXAM_LIST='js/exams/unified-list-adapter.js?v=11.8.0';
 
 function loadScript(src){
  if(loaded.has(src))return Promise.resolve();
@@ -106,6 +107,7 @@ async function ensureView(view){
   if(canTeach()){
    await loadFinalWorkflow();
    await loadScript(UNIFIED_EXAM_BUILDER);
+   await loadScript(UNIFIED_EXAM_LIST);
   }
   await loadScript('js/exams/attempt-autosave.js');
   return;
