@@ -8,6 +8,9 @@
 .v119-list-heading h3{margin:0;font-size:17px;color:#111827}
 .v119-list-heading span{font-size:12px;color:#6b7280}
 .v119-list-panel{margin-top:16px}
+.assessment-table td,.assessment-table th{color:#374151!important}
+.assessment-table .exam-title-link,.assessment-table .exam-title-link b{color:#111827!important;opacity:1!important;font-weight:750!important}
+.assessment-table small{color:#667085!important;opacity:1!important}
 .v119-config-btn,.assessment-detail-actions button,#examRows .row-actions button,#v119MultiRows .row-actions button{opacity:1!important;color:#1f2937!important;background:#fff!important;border:1px solid #b8c0cc!important;font-weight:700!important}
 .assessment-detail-actions .primary,#examRows .row-actions .primary,#v119MultiRows .row-actions .primary{background:#b91c1c!important;border-color:#b91c1c!important;color:#fff!important}
 .assessment-detail-actions .danger{color:#991b1b!important;border-color:#fecaca!important;background:#fff7f7!important}
