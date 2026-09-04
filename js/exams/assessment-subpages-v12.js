@@ -1,8 +1,8 @@
-/* AI-CLO PTITHCM V12.0.7 — lightweight Assessment subpage consistency.
+/* AI-CLO PTITHCM V12.0.8 — lightweight Assessment subpage consistency.
    No continuous MutationObserver, no background database polling. */
 (()=>{
 'use strict';
-const VERSION='12.0.7';
+const VERSION='12.0.8';
 const $=s=>document.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 
 function normalizeLegacyText(root=document){
@@ -88,9 +88,11 @@ async function normalizeDetail(){
 
 function normalizeFinalTab(){
  const section=$('.v102-final-list');if(!section)return;
- const head=section.querySelector('.panel-head'),button=$('#createFinalExam');
+ const legacy=$('#createFinalExam');
+ if(legacy){legacy.hidden=true;legacy.style.setProperty('display','none','important');legacy.setAttribute('aria-hidden','true');legacy.tabIndex=-1}
+ const head=section.querySelector('.panel-head'),button=$('#createFinalAssessmentV12');
  if(button&&head&&button.parentElement!==head)head.appendChild(button);
- if(button){button.hidden=false;button.style.display='';button.removeAttribute('aria-hidden');button.tabIndex=0;button.textContent='+ Tạo bài thi cuối kỳ';button.className='ai-btn'}
+ if(button){button.hidden=false;button.style.removeProperty('display');button.removeAttribute('aria-hidden');button.tabIndex=0;button.textContent='+ Tạo bài thi cuối kỳ';button.className='ai-btn'}
  const hint=head?.querySelector('.hint');if(hint)hint.textContent='Ngân hàng đề thi – bảo mật · BM06 · BM07 · BM08 · đáp án CLO';
  $$('[data-open-final]',section).forEach(b=>{b.textContent='Chi tiết →'});
 }
@@ -99,14 +101,14 @@ function enhanceNow(){normalizeLegacyText(document);normalizeBuilderInfo();norma
 function enhanceSoon(){requestAnimationFrame(()=>requestAnimationFrame(enhanceNow));setTimeout(enhanceNow,120)}
 
 function interceptFinalCreate(e){
- const b=e.target?.closest?.('#createFinalExam');if(!b)return;
+ const b=e.target?.closest?.('#createFinalAssessmentV12,#createFinalExam');if(!b)return;
  e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
  try{sessionStorage.setItem(`aiclo:v109:assessment:${state.subjectId}`,'final')}catch{}
  const start=window.AICLO_CREATE_WIZARD?.start;
  if(typeof start==='function')start('final');else window.toast?.('Chưa tải được trình tạo đề thi cuối kỳ. Vui lòng thử lại.',true);
 }
 function clickHooks(e){
- if(e.target?.closest?.('#ubEditInfo,#detailStructure,[data-open-final],[data-attempts],.exam-title-link,[data-assessment-tab]'))enhanceSoon();
+ if(e.target?.closest?.('#ubEditInfo,#detailStructure,[data-open-final],[data-attempts],.exam-title-link,[data-assessment-tab],#createFinalAssessmentV12'))enhanceSoon();
 }
 function init(){
  document.addEventListener('click',interceptFinalCreate,true);
