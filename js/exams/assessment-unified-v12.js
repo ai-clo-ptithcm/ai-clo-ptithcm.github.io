@@ -1,7 +1,7 @@
 /* AI-CLO PTITHCM V12.0 — Assessment page: only Bài kiểm tra and Bài thi cuối kỳ. */
 (()=>{
 'use strict';
-const VERSION='12.0.1';
+const VERSION='12.0.2';
 let observer=null,busy=false,topicCache=null;
 const ONLINE_TYPES=new Set(['chapter_test','clo_assessment','review_exam']);
 const $=s=>document.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -35,14 +35,22 @@ function normalizeDetail(){
  let badge=page.querySelector('.assessment-detail-head .ub-type-badge');if(badge)badge.textContent='Bài kiểm tra';
  let source=page.querySelector('.assessment-v12-detail-source');if(!source){let meta=page.querySelector('.assessment-detail-head .detail-meta,.assessment-detail-head');if(meta){source=document.createElement('span');source.className='badge assessment-v12-detail-source';source.textContent='Ngân hàng luyện tập – kiểm tra';meta.appendChild(source)}}
 }
-function activeBuilderState(){try{let user=state?.user?.id||'user',subject=state?.subjectId;if(!subject)return null;let a=JSON.parse(localStorage.getItem(`aiclo:v118:active:${user}:${subject}`)||'null');if(!a)return null;return JSON.parse(localStorage.getItem(`aiclo:v118:builder:${user}:${subject}:${a.type||'exam'}:${a.examId||'new'}`)||'null')}catch{return null}}
+function activeBuilderMeta(){try{let user=state?.user?.id||'user',subject=state?.subjectId;if(!subject)return null;let a=JSON.parse(localStorage.getItem(`aiclo:v118:active:${user}:${subject}`)||'null');return a?{...a,user,subject}:null}catch{return null}}
+function activeBuilderState(){try{let a=activeBuilderMeta();if(!a)return null;return JSON.parse(localStorage.getItem(`aiclo:v118:builder:${a.user}:${a.subject}:${a.type||'exam'}:${a.examId||'new'}`)||'null')}catch{return null}}
 async function topics(){if(topicCache)return topicCache;try{topicCache=await q('topics','*',x=>contentFilter(x).order('order_index'));return topicCache}catch{return []}}
 function normalizeBuilderLabels(){
  let title=$('#pageTitle');if(title&&/ôn tập thi|đánh giá clo/i.test(title.textContent||''))title.textContent=title.textContent.replace(/ôn tập thi|đánh giá clo/ig,'bài kiểm tra');
  let top=$('.ub-top h3');if(top&&/ôn tập thi|đánh giá clo/i.test(top.textContent||''))top.textContent=top.textContent.replace(/ôn tập thi|đánh giá clo/ig,'bài kiểm tra');
  $$('.ub-badges .badge').forEach(b=>{if(/Bài ôn tập thi|Bài đánh giá CLO/i.test(b.textContent||''))b.textContent='Bài kiểm tra'});
  let info=$('#ubInfoForm [name="total_questions"]');if(info&&!info.readOnly){info.readOnly=true;info.setAttribute('aria-readonly','true');let label=info.closest('label');if(label){let text=[...label.childNodes].find(n=>n.nodeType===3);if(text)text.textContent='Tổng số câu (tự tính từ ma trận)';let small=document.createElement('small');small.className='hint assessment-v12-total-note';small.textContent='Tổng này được lấy từ ma trận câu hỏi, không chỉnh độc lập.';label.appendChild(small)}}
+ let ai=$('#ubInfoForm [name="allow_ai_feedback"]')?.closest('.aiclo-switch-row')?.querySelector('span:first-child');if(ai)ai.textContent='Cho phép sinh viên nhận xét AI';
 }
+async function enhanceGradeSwitch(){
+ let form=$('#ubInfoForm');if(!form||form.querySelector('[data-assessment-v12-grade]'))return;let meta=activeBuilderMeta();if(!meta?.examId||meta.type==='final_exam')return;
+ let {data,error}=await db.from('exams').select('id,counts_toward_grade,allow_ai_feedback').eq('id',meta.examId).maybeSingle();if(error&&/counts_toward_grade/i.test(String(error.message||'')))return;if(error||!data)return;
+ let actions=form.querySelector('.form-actions'),row=document.createElement('label');row.dataset.assessmentV12Grade='1';row.className='aiclo-switch-row assessment-v12-grade-switch';row.innerHTML=`<span>Tính vào kết quả CLO học phần</span><span class="aiclo-switch"><input type="checkbox" ${data.counts_toward_grade!==false?'checked':''}><i></i></span>`;actions?.before(row);let input=row.querySelector('input');input.onchange=async()=>{let next=input.checked,payload={counts_toward_grade:next};if(!next)payload.allow_ai_feedback=false;input.disabled=true;let r=await db.from('exams').update(payload).eq('id',meta.examId);input.disabled=false;if(r.error){input.checked=!next;return window.err?err(r.error):window.toast?.('Không lưu được thiết lập tính CLO.',true)}if(!next){let ai=form.querySelector('[name="allow_ai_feedback"]');if(ai)ai.checked=false}window.toast?.(next?'Bài kiểm tra sẽ được tính vào kết quả CLO học phần.':'Bài kiểm tra chỉ dùng tham khảo, không tính vào kết quả CLO học phần.')};
+}
+async function enhanceInfoSummary(){let list=$('.ub-info-list');if(!list||list.querySelector('[data-assessment-v12-grade-summary]'))return;let meta=activeBuilderMeta();if(!meta?.examId||meta.type==='final_exam')return;let {data,error}=await db.from('exams').select('counts_toward_grade').eq('id',meta.examId).maybeSingle();if(error||!data)return;let line=document.createElement('div');line.dataset.assessmentV12GradeSummary='1';line.innerHTML=`<b>Kết quả CLO học phần:</b> ${data.counts_toward_grade===false?'Không tính':'Có tính'}`;list.appendChild(line)}
 async function enhanceStructureEditor(){
  let form=$('#ubStructureForm');if(!form||form.dataset.assessmentV12==='1')return;let fixed=form.querySelector('.ub-fixed-mode'),scope=form.querySelector('.ub-scope-list');if(!scope)return;
  form.dataset.assessmentV12='1';let saved=activeBuilderState(),mode=saved?.structureMode||(/CLO chung/i.test(fixed?.textContent||'')?'chapter_pool':'topic_clo');
@@ -51,7 +59,7 @@ async function enhanceStructureEditor(){
  for(let article of [...scope.querySelectorAll('article')]){let ch=article.querySelector('[data-ub-chapter]');if(!ch||article.querySelector('.ub-topic-checks'))continue;let box=document.createElement('div');box.className='ub-topic-checks assessment-v12-topic-checks';let list=allTopics.filter(t=>t.chapter_id===ch.dataset.ubChapter);box.innerHTML=list.map(t=>`<label><input type="checkbox" data-ub-topic="${t.id}" data-chapter="${ch.dataset.ubChapter}" ${selected.has(t.id)?'checked':''} ${ch.checked?'':'disabled'}> ${window.esc?window.esc(t.name):t.name}</label>`).join('')||'<small class="hint">Chương này chưa có mục.</small>';article.appendChild(box)}
 }
 function pageHeading(){let nav=$('[data-view="exams"]');if(nav)nav.textContent='✎ Đánh giá';let title=$('#pageTitle'),sub=$('#pageSub');if(title&&state?.view==='exams'&&!$('.ub-workspace')&&!$('.assessment-detail-page')){title.textContent='Đánh giá';if(sub)sub.textContent='Bài kiểm tra trực tuyến và đề thi cuối kỳ theo cùng một quy trình AI-CLO'}}
-async function run(){if(busy)return;busy=true;try{hideLegacyCreateButtons();ensureCreateButtons();await normalizeRows();normalizeDetail();normalizeBuilderLabels();await enhanceStructureEditor();pageHeading()}finally{busy=false}}
+async function run(){if(busy)return;busy=true;try{hideLegacyCreateButtons();ensureCreateButtons();await normalizeRows();normalizeDetail();normalizeBuilderLabels();await enhanceGradeSwitch();await enhanceInfoSummary();await enhanceStructureEditor();pageHeading()}finally{busy=false}}
 function init(){let c=$('#content');if(c&&!observer){observer=new MutationObserver(()=>requestAnimationFrame(run));observer.observe(c,{childList:true,subtree:true})}run()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 window.AICLO_ASSESSMENT_V12=Object.freeze({version:VERSION,run});
