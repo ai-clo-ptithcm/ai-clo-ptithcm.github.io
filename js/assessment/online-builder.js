@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.3 — Online Assessment Builder module. */
+/* AI-CLO PTITHCM V12.3.2 — Online Assessment Builder module. */
 (() => {
   "use strict";
   window.AICLO_ASSESSMENT_MODULES = window.AICLO_ASSESSMENT_MODULES || {};
@@ -42,6 +42,7 @@
           locked: false,
           sets: null,
           frozenPool: new Map(),
+          draftOverrides: new Map(),
           selectionDirty: false,
         };
       }
@@ -78,6 +79,7 @@
       function designPool(ctx) {
         const merged = new Map(ctx.sets.questions.map((q) => [q.id, q]));
         for (const [id, q] of ctx.frozenPool || []) merged.set(id, q);
+        for (const [id, q] of ctx.draftOverrides || []) merged.set(id, q);
         return [...merged.values()].filter(
           (q) =>
             ctx.selectedChapters.has(q.chapter_id) &&
@@ -214,6 +216,11 @@
         const total = matrixTotal(ctx);
         c.innerHTML = `<div class="assessment-builder-v122"><div class="subpage-head"><div><button id="v122BuilderBack" class="secondary compact">← Quay lại</button><small>${ctx.examId ? "CHỈNH SỬA" : "TẠO"} BÀI KIỂM TRA</small><h3>${escapeHtml(ctx.settings.title || "Bài kiểm tra mới")}</h3><p>Ngân hàng luyện tập – kiểm tra · ${ctx.locked ? "Cấu trúc đã khóa vì có lượt làm" : "Cấu trúc được lưu atomic cùng pool đóng băng"}</p></div><span class="badge">${total} câu</span></div>${builderInfo(ctx)}${builderStructure(ctx)}${builderQuestions(ctx)}<div class="form-actions assessment-builder-footer"><button id="v122BuilderCancel" class="secondary">Hủy</button><button id="v122Draw" class="secondary" ${ctx.locked ? "disabled" : ""}>Rút câu hỏi</button><button id="v122Save" class="primary">${ctx.examId ? "Lưu thay đổi" : "Tạo bài kiểm tra"}</button></div></div>`;
         bindBuilder(ctx);
+        renderMathIn(c);
+      }
+      function renderMathIn(root) {
+        if (typeof window.renderMath !== "function") return;
+        requestAnimationFrame(() => window.renderMath(root || getAssessmentRoot()));
       }
       function builderInfo(ctx) {
         const s = ctx.settings,
@@ -291,12 +298,17 @@
           ]),
         );
       }
+      function questionCode(ctx, q) {
+        const bank = findById(ctx.sets.questions, q?.id);
+        return q?.display_code || bank?.display_code || (q?.id ? `Q-${String(q.id).slice(0, 8)}` : "—");
+      }
       function questionCard(ctx, q, index) {
         const opts = optionMap(q),
           clo = findById(ctx.sets.clos, q.clo_id),
           ch = findById(ctx.sets.chapters, q.chapter_id),
-          tp = findById(ctx.sets.topics, q.topic_id);
-        return `<article class="ub-question-card v122-question-card"><div class="ub-question-head"><div><b>Câu ${index + 1}</b><span class="badge red">${escapeHtml(clo?.code || "—")}</span><span class="badge">${escapeHtml(ch?.name || "—")}</span><span class="badge">${escapeHtml(tp?.name || "—")}</span></div>${ctx.locked ? "" : `<div><button type="button" class="secondary compact" data-v122-replace="${index}">Đổi câu</button><button type="button" class="ai-btn compact" data-v122-ai="${index}">✦ Gemini sinh câu</button></div>`}</div><div class="detail-question">${escapeHtml(q.content || "")}</div><div class="detail-options">${["A", "B", "C", "D"].map((k) => `<div class="${String(q.correct_answer || "").toUpperCase() === k ? "correct" : ""}"><b>${k}</b><span>${escapeHtml(opts[k] || "")}</span></div>`).join("")}</div>${q.explanation ? `<p class="hint"><b>Lời giải:</b> ${escapeHtml(q.explanation)}</p>` : ""}</article>`;
+          tp = findById(ctx.sets.topics, q.topic_id),
+          code = questionCode(ctx, q);
+        return `<article class="ub-question-card v122-question-card"><div class="ub-question-head"><div><b>Câu ${index + 1}</b><span class="ub-question-code">${escapeHtml(code)}</span><span class="badge red">${escapeHtml(clo?.code || "—")}</span><span class="badge">${escapeHtml(ch?.name || "—")}</span><span class="badge">${escapeHtml(tp?.name || "—")}</span></div>${ctx.locked ? "" : `<div class="ub-question-actions"><button type="button" class="secondary compact" data-v122-replace="${index}">Đổi câu</button><button type="button" class="secondary compact" data-v123-pick="${index}">Tự chọn</button><button type="button" class="secondary compact" data-v123-quick-edit="${index}">Sửa nhanh</button><button type="button" class="ai-btn compact" data-v122-ai="${index}">✦ Gemini sinh câu</button></div>`}</div><div class="detail-question">${escapeHtml(q.content || "")}</div><div class="detail-options">${["A", "B", "C", "D"].map((k) => `<div class="${String(q.correct_answer || "").toUpperCase() === k ? "correct" : ""}"><b>${k}</b><span>${escapeHtml(opts[k] || "")}</span></div>`).join("")}</div>${q.explanation ? `<p class="hint"><b>Lời giải:</b> ${escapeHtml(q.explanation)}</p>` : ""}</article>`;
       }
       function builderQuestions(ctx) {
         return `<section class="panel"><div class="panel-head"><div><h3>3. Bộ câu mẫu</h3><p class="hint">Câu đang hiển thị của bài cũ được đọc từ snapshot đóng băng. Đổi câu/Gemini chỉ sửa bản nháp; bấm Lưu mới thay snapshot trong DB.</p></div></div>${
@@ -334,6 +346,58 @@
                 ctx.selectedTopics.has(q.topic_id)),
         );
       }
+      function closeBuilderDrawer() {
+        document.querySelector("#drawerClose")?.click();
+      }
+      function openManualPicker(ctx, index) {
+        if (typeof openDrawer !== "function") return notify("Không mở được panel tự chọn câu.", true);
+        const old = ctx.selected[index], pool = replacementCandidates(ctx, index);
+        const clo = findById(ctx.sets.clos, old?.clo_id), ch = findById(ctx.sets.chapters, old?.chapter_id), tp = findById(ctx.sets.topics, old?.topic_id);
+        const html = `<div class="ub-picker"><p class="hint">Chỉ hiển thị câu hợp lệ cho đúng ô ma trận hiện tại: <b>${escapeHtml(clo?.code || "—")}</b> · ${escapeHtml(ch?.name || "—")}${ctx.structureMode === "topic_clo" ? ` · ${escapeHtml(tp?.name || "—")}` : ""}.</p><label class="field">Tìm câu<input id="v123PickSearch" placeholder="Mã câu hoặc nội dung"></label><div class="ub-picker-list">${pool.length ? pool.map((q,i) => `<article data-v123-pick-row data-search="${escapeHtml(`${questionCode(ctx,q)} ${q.content || ""}`.toLowerCase())}"><div><b>${escapeHtml(questionCode(ctx,q))}</b><span class="badge red">${escapeHtml(findById(ctx.sets.clos,q.clo_id)?.code || "—")}</span></div><div class="ub-picker-content">${escapeHtml(q.content || "")}</div><button type="button" class="primary compact" data-v123-pick-use="${i}">Chọn câu này</button></article>`).join("") : '<div class="empty"><b>Không còn câu phù hợp</b><span>Không có phương án thay thế khác cho ô ma trận này.</span></div>'}</div></div>`;
+        openDrawer(`Tự chọn · Câu ${index + 1}`, html, () => {
+          const search = document.querySelector("#v123PickSearch");
+          if (search) search.oninput = () => {
+            const term = search.value.trim().toLowerCase();
+            document.querySelectorAll("[data-v123-pick-row]").forEach((row) => { row.hidden = !!term && !String(row.dataset.search || "").includes(term); });
+          };
+          document.querySelectorAll("[data-v123-pick-use]").forEach((button) => button.onclick = () => {
+            const picked = pool[+button.dataset.v123PickUse];
+            if (!picked) return;
+            ctx.selected[index] = ctx.frozenPool?.get(picked.id) || picked;
+            ctx.selectionDirty = true;
+            closeBuilderDrawer();
+            renderBuilder(ctx);
+            notify(`Đã tự chọn ${questionCode(ctx,picked)} cho Câu ${index + 1}. Bấm Lưu thay đổi để cập nhật snapshot.`);
+          });
+          renderMathIn(document.querySelector("#sideDrawer"));
+        }, { wide: true, eyebrow: "NGÂN HÀNG CÂU HỎI" });
+      }
+      function openQuickEdit(ctx, index) {
+        if (typeof openDrawer !== "function") return notify("Không mở được panel sửa nhanh.", true);
+        const q = ctx.selected[index]; if (!q) return;
+        const opts = optionMap(q), code = questionCode(ctx,q);
+        const html = `<div class="ub-quick-edit"><p class="hint"><b>${escapeHtml(code)}</b> · Chỉ sửa bản nháp của bài kiểm tra này; ngân hàng câu hỏi không thay đổi.</p><label class="field">Nội dung câu hỏi<textarea id="v123EditContent" rows="5">${escapeHtml(q.content || "")}</textarea></label><div class="ub-edit-options">${["A","B","C","D"].map((k) => `<label><span><input type="radio" name="v123EditCorrect" value="${k}" ${String(q.correct_answer || "").toUpperCase() === k ? "checked" : ""}> <b>${k}</b></span><textarea data-v123-edit-option="${k}" rows="2">${escapeHtml(opts[k] || "")}</textarea></label>`).join("")}</div><label class="field">Lời giải<textarea id="v123EditExplanation" rows="4">${escapeHtml(q.explanation || "")}</textarea></label><div class="form-actions"><button type="button" class="secondary" id="v123EditCancel">Hủy</button><button type="button" class="primary" id="v123EditSave">Áp dụng vào bản nháp</button></div></div>`;
+        openDrawer(`Sửa nhanh · Câu ${index + 1}`, html, () => {
+          document.querySelector("#v123EditCancel")?.addEventListener("click", closeBuilderDrawer);
+          document.querySelector("#v123EditSave")?.addEventListener("click", () => {
+            const content = document.querySelector("#v123EditContent")?.value.trim() || "";
+            const explanation = document.querySelector("#v123EditExplanation")?.value.trim() || "";
+            const correct = document.querySelector('input[name="v123EditCorrect"]:checked')?.value || "";
+            const optionRows = ["A","B","C","D"].map((k) => ({ key:k, content: document.querySelector(`[data-v123-edit-option="${k}"]`)?.value.trim() || "" }));
+            if (!content) return notify("Nội dung câu hỏi không được để trống.", true);
+            if (optionRows.some((x) => !x.content)) return notify("Cần nhập đủ 4 phương án A–D.", true);
+            if (!correct) return notify("Cần chọn đáp án đúng.", true);
+            const updated = { ...q, content, explanation: explanation || null, correct_answer: correct, question_options: optionRows.map((x) => ({ option_key:x.key, content:x.content })) };
+            ctx.selected[index] = updated;
+            ctx.draftOverrides.set(updated.id, updated);
+            ctx.selectionDirty = true;
+            closeBuilderDrawer();
+            renderBuilder(ctx);
+            notify(`Đã sửa nhanh ${code} trong bản nháp. Ngân hàng câu hỏi chưa bị thay đổi.`);
+          });
+        }, { wide: true, eyebrow: "SỬA BẢN NHÁP" });
+      }
+
       function replaceSelectedQuestion(ctx, index) {
         const pool = replacementCandidates(ctx, index);
         if (!pool.length)
@@ -387,6 +451,7 @@
           if (typeof closeModal === "function") closeModal();
           renderBuilder(ctx);
         });
+        renderMathIn(document.querySelector("#modal"));
         qs("#v122AiUse")?.addEventListener("click", () =>
           acceptAiQuestion(ctx, index, g),
         );
@@ -539,6 +604,12 @@
           (el) =>
             (el.onclick = () =>
               replaceSelectedQuestion(ctx, +el.dataset.v122Replace)),
+        );
+        qsa("[data-v123-pick]", c).forEach(
+          (el) => (el.onclick = () => openManualPicker(ctx, +el.dataset.v123Pick)),
+        );
+        qsa("[data-v123-quick-edit]", c).forEach(
+          (el) => (el.onclick = () => openQuickEdit(ctx, +el.dataset.v123QuickEdit)),
         );
         qsa("[data-v122-ai]", c).forEach(
           (el) =>
