@@ -9,16 +9,17 @@ const sources={
 };
 const pending=new Map();
 const ready=kind=>kind==='xlsx'?!!window.XLSX:kind==='zip'?!!window.JSZip:!!window.ExcelJS;
+const value=kind=>kind==='xlsx'?window.XLSX:kind==='zip'?window.JSZip:window.ExcelJS;
 
 function load(kind){
- if(ready(kind))return Promise.resolve(kind==='xlsx'?window.XLSX:window.JSZip);
+ if(ready(kind))return Promise.resolve(value(kind));
  if(pending.has(kind))return pending.get(kind);
  const promise=new Promise((resolve,reject)=>{
   const script=document.createElement('script');
   script.src=sources[kind];
   script.async=true;
   script.dataset.aicloOfficeLib=kind;
-  script.onload=()=>ready(kind)?resolve(kind==='xlsx'?window.XLSX:kind==='zip'?window.JSZip:window.ExcelJS):reject(new Error(`Không khởi tạo được thư viện ${kind}.`));
+  script.onload=()=>ready(kind)?resolve(value(kind)):reject(new Error(`Không khởi tạo được thư viện ${kind}.`));
   script.onerror=()=>reject(new Error(`Không tải được thư viện ${kind}.`));
   document.head.appendChild(script);
  }).catch(error=>{pending.delete(kind);throw error});
