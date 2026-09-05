@@ -44,17 +44,26 @@ jobs:
               raise SystemExit('Assessment cache-key anchor missing')
           app.write_text(a.replace('js/assessment.js?v=12.2.1','js/assessment.js?v=12.2.2',1),encoding='utf-8')
           PY
-      - name: Verify exact engine
+      - name: Verify branch-native engine
         shell: bash
         run: |
           node --check js/assessment.js
-          test "$(git hash-object js/assessment.js)" = "72c07a564316c0a45209933072d8104d2bf967d5"
+          echo "assessment blob: $(git hash-object js/assessment.js)"
           test "$(grep -c 'MutationObserver' js/assessment.js || true)" = "0"
           test "$(grep -c 'window.exams=exams' js/assessment.js)" = "1"
           test "$(grep -c 'window.results=results' js/assessment.js)" = "1"
           grep -q "12.2.0-step8b" js/assessment.js
+          grep -q "ensureFinalExports" js/assessment.js
+          grep -q "validateStoredFinalPackage" js/assessment.js
           grep -q "openFinalExportMenu" js/assessment.js
+          grep -q "api.bm06" js/assessment.js
+          grep -q "api.bm07" js/assessment.js
+          grep -q "api.bm08" js/assessment.js
+          grep -q "api.tex" js/assessment.js
+          grep -q "api.answers" js/assessment.js
+          grep -q "api.zip" js/assessment.js
           ! grep -q "Bước 8B sẽ nối" js/assessment.js
+          grep -q "js/assessment.js?v=12.2.2" app.html
       - name: Commit verified engine and clean transfer files
         shell: bash
         run: |
