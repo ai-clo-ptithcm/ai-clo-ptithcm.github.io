@@ -17,6 +17,12 @@ alter table public.exams add constraint exams_structure_mode_check check (struct
 alter table public.exams drop constraint if exists exams_score_policy_check;
 alter table public.exams add constraint exams_score_policy_check check (score_policy in ('highest','latest','average'));
 
+-- V12.3.1: canonical online assessment lifecycle.
+-- Keep known legacy values readable while all V12.3 writes use draft/active/closed.
+alter table public.exams drop constraint if exists exams_status_check;
+alter table public.exams add constraint exams_status_check
+  check (status in ('draft','active','closed','published','paused','archived'));
+
 create or replace function public.assessment_schema_version()
 returns text language sql stable security definer set search_path=public,pg_temp
 as $$ select '12.2'::text $$;

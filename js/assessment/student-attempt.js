@@ -8,6 +8,7 @@
       throw new Error("Assessment Student Attempt dependencies are incomplete");
     }
           let liveTimer = null;
+      let listRoot = null;
 
       const attemptLocalKey = (id) =>
         `aiclo:v122:attempt:${state.user?.id || "user"}:${id}`;
@@ -45,6 +46,7 @@
         return `${String(Math.floor(sec / 60)).padStart(2, "0")}:${String(sec % 60).padStart(2, "0")}`;
       }
       async function studentExamList(c) {
+        listRoot = c || listRoot;
         try {
           clearLiveTimer();
           const [items, { data: attempts, error }] = await Promise.all([
@@ -98,6 +100,14 @@
           showError(e);
         }
       }
+      async function refreshStudentExamList() {
+        if (!listRoot || !listRoot.isConnected) return;
+        try {
+          await studentExamList(listRoot);
+        } catch (e) {
+          console.warn("Assessment student list refresh", e);
+        }
+      }
       async function startStudentAttempt(examId, button) {
         if (
           !(await ask(
@@ -143,6 +153,7 @@
             });
             if (done.error) throw done.error;
             clearAttemptLocal(attemptId);
+            await refreshStudentExamList();
             return showStudentResult(data.exam, done.data);
           }
           const local = readAttemptLocal(attemptId) || {},
@@ -289,6 +300,7 @@
           });
           if (error) throw error;
           clearAttemptLocal(payload.attempt_id);
+          await refreshStudentExamList();
           showStudentResult(payload.exam, data);
         } catch (e) {
           showError(e);
