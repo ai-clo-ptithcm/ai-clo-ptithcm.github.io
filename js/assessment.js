@@ -12,7 +12,7 @@
     if (root) runtime.root = root;
     return getAssessmentRoot();
   };
-  const VERSION = "12.3.4";
+  const VERSION = "12.3.1";
   const {
     qs,
     qsa,
