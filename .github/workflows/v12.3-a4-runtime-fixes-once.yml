@@ -1,0 +1,88 @@
+name: V12.3 A4 Runtime Fixes Once
+
+on:
+  push:
+    branches: [v12.3-assessment-modular]
+    paths: ['.github/workflows/v12.3-a4-runtime-fixes-once.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  runtime-fixes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v12.3-assessment-modular
+          fetch-depth: 0
+
+      - name: Fix Student Attempt question collection and teacher preview CLO
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          let a=fs.readFileSync('js/assessment/student-attempt.js','utf8');
+          const old='''      function showStudentQuestion(payload, answers, index, first = false) {\n        clearLiveTimer();\n        const x = qs[index];''';
+          const neu='''      function showStudentQuestion(payload, answers, index, first = false) {\n        clearLiveTimer();\n        const questions = payload.questions || [];\n        const x = questions[index];''';
+          if(!a.includes(old)) throw new Error('Student question anchor not found');
+          a=a.replace(old,neu);
+          a=a.replace(/\$\{index \+ 1\}\/\$\{qs\.length\}/g,'${index + 1}/${questions.length}');
+          a=a.replace(/\$\{qs\.map\(\(q, i\) =>/g,'${questions.map((q, i) =>');
+          if(a.includes('const x = qs[index]')) throw new Error('qs[index] remains');
+          if(a.includes('${index + 1}/${qs.length}')) throw new Error('qs.length remains in question counter');
+          if(a.includes('${qs.map((q, i) =>')) throw new Error('qs.map remains in question jump');
+          fs.writeFileSync('js/assessment/student-attempt.js',a);
+
+          let o=fs.readFileSync('js/assessment.js','utf8');
+          const bad='const right = qs.filter(\n        (q) => answers[q.question_id] === q.correct_answer,\n      ).length;';
+          const good='const right = questions.filter(\n        (q) => answers[q.question_id] === q.correct_answer,\n      ).length;';
+          if(!o.includes(bad)) throw new Error('Teacher preview CLO bug anchor not found');
+          o=o.replace(bad,good);
+          o=o.replace(/const runtime = \{\n    root: null,\n    liveTimer: null,\n  \};/,'const runtime = { root: null };');
+          if(o.includes('runtime.liveTimer')) throw new Error('runtime.liveTimer usage remains');
+          o=o.replace('const VERSION = "12.3.0-a4";','const VERSION = "12.3.0-a4.1";');
+          fs.writeFileSync('js/assessment.js',o);
+
+          let app=fs.readFileSync('app.html','utf8');
+          app=app.replace(/js\/assessment\/student-attempt\.js\?v=12\.3\.0-a3/g,'js/assessment/student-attempt.js?v=12.3.0-a4.1');
+          app=app.replace(/js\/assessment\.js\?v=12\.3\.0-a4/g,'js/assessment.js?v=12.3.0-a4.1');
+          fs.writeFileSync('app.html',app);
+          NODE
+
+      - name: Static verification
+        shell: bash
+        run: |
+          node --check js/assessment/common.js
+          node --check js/assessment/online-builder.js
+          node --check js/assessment/student-attempt.js
+          node --check js/assessment/results.js
+          node --check js/assessment.js
+          node <<'NODE'
+          const fs=require('fs');
+          const a=fs.readFileSync('js/assessment/student-attempt.js','utf8');
+          const o=fs.readFileSync('js/assessment.js','utf8');
+          const app=fs.readFileSync('app.html','utf8');
+          const must=(x,m)=>{if(!x)throw new Error(m)};
+          must(a.includes('const questions = payload.questions || [];'),'Attempt question collection not normalized');
+          must(!a.includes('const x = qs[index]'),'Attempt still indexes DOM helper');
+          must(o.includes('const right = questions.filter('),'Teacher preview CLO not fixed');
+          must(!o.includes('runtime.liveTimer'),'Owner still references live timer');
+          must(o.includes('const runtime = { root: null };'),'Owner runtime not root-only');
+          must(o.includes('12.3.0-a4.1'),'Owner version not A4.1');
+          must(app.includes('student-attempt.js?v=12.3.0-a4.1'),'Attempt cache key not updated');
+          must(app.includes('assessment.js?v=12.3.0-a4.1'),'Owner cache key not updated');
+          must((o.match(/window\.exams\s*=/g)||[]).length===1,'window.exams ownership invalid');
+          must((o.match(/window\.results\s*=/g)||[]).length===1,'window.results ownership invalid');
+          console.log('V12.3 A4.1 runtime fixes PASS');
+          NODE
+
+      - name: Commit fixes and remove workflow
+        shell: bash
+        run: |
+          git config user.name 'AI-CLO V12.3 Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git rm .github/workflows/v12.3-a4-runtime-fixes-once.yml
+          git add js/assessment.js js/assessment/student-attempt.js app.html
+          git commit -m 'fix(assessment): correct V12.3 attempt and preview runtime references'
+          git push origin HEAD:v12.3-assessment-modular
