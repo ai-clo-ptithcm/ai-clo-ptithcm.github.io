@@ -101,10 +101,16 @@ Deno.serve(async (req) => {
     if (scope === "student" && !studentId) studentId = userId;
     if (scope === "student" && studentId !== userId && !mayAnalyzeOthers) return json({ success: false, error: "Không có quyền phân tích sinh viên khác." }, 403);
 
-    const { data: exams, error: examError } = await admin.from("exams").select("id,title").eq("subject_id", subjectId);
+    const { data: exams, error: examError } = await admin.from("exams").select("id,title,counts_toward_grade").eq("subject_id", subjectId);
     if (examError) throw examError;
-    const examIds = (exams || []).map(x => x.id);
-    if (scope === "exam" && (!examId || !examIds.includes(examId))) return json({ success: false, error: "Không tìm thấy bài kiểm tra trong học phần." }, 404);
+    const allExams = exams || [];
+    // V12.1: aggregate CLO analysis must use the same scope as the Results page.
+    // Exam/attempt-specific feedback remains available even for practice-only exams.
+    const eligibleExams = (scope === "class" || scope === "student")
+      ? allExams.filter(x => x.counts_toward_grade !== false)
+      : allExams;
+    const examIds = eligibleExams.map(x => x.id);
+    if (scope === "exam" && (!examId || !allExams.some(x => x.id === examId))) return json({ success: false, error: "Không tìm thấy bài kiểm tra trong học phần." }, 404);
     let attempts: any[] = [];
     if (examIds.length) {
       let query = admin.from("exam_attempts").select("id,exam_id,student_id,attempt_number,score,submitted_at").in("exam_id", examIds).not("submitted_at", "is", null);
@@ -157,7 +163,7 @@ Deno.serve(async (req) => {
     if (studentId) {
       const { data } = await admin.from("profiles").select("full_name,mssv").eq("id", studentId).maybeSingle(); studentInfo = data;
     }
-    const metrics = { scope, subject_id: subjectId, exam_id: scope === "exam" ? examId : null, exam_title: scope === "exam" ? exams?.find(x => x.id === examId)?.title : null, student: studentInfo, attempts: attempts.length, average_score: avgScore, clos: cloMetrics, chapters: chapterMetrics, topics: topicMetrics, difficult_questions: scope === "exam" ? difficultQuestions : [], latest_submission: attempts.map(a=>a.submitted_at).sort().at(-1) };
+    const metrics = { scope, subject_id: subjectId, exam_id: scope === "exam" ? examId : null, exam_title: scope === "exam" ? allExams.find(x => x.id === examId)?.title : null, student: studentInfo, attempts: attempts.length, average_score: avgScore, clos: cloMetrics, chapters: chapterMetrics, topics: topicMetrics, difficult_questions: scope === "exam" ? difficultQuestions : [], latest_submission: attempts.map(a=>a.submitted_at).sort().at(-1) };
     const fingerprint = await digest(JSON.stringify(metrics));
 
     let cacheQuery = admin.from("assessment_ai_feedback").select("analysis,generated_at").eq("subject_id", subjectId).eq("scope", scope).eq("source_fingerprint", fingerprint).limit(1);
