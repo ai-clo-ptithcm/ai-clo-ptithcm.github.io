@@ -1,24 +1,42 @@
-/* AI-CLO PTITHCM V11.8.3 — shared subpage/workspace persistence.
+/* AI-CLO PTITHCM V12.3.6 — shared subpage/workspace persistence.
    One state contract for every full-page child workspace.
    Module-specific draft stores remain the source of form data; this layer restores WHERE the user was. */
 (()=>{
 'use strict';
-const VERSION='11.8.4';
+const VERSION='12.3.6';
 const TTL=24*60*60*1000;
+const SCROLL_IDLE_MS=400;
+const DETECT_IDLE_MS=90;
 let restoring=false,queued=false,observer=null,pendingStudentId='',navigationInstalled=false;
+let detectTimer=null,scrollTimer=null,cacheKey='',cacheValue=null,cacheSignature='';
 const registry=new Map();
 const userId=()=>state?.user?.id||'guest';
 const storageKey=()=>`aiclo:v1182:subpage:${userId()}`;
 const legacyKey=()=>`aiclo:v1181:subpage:${userId()}`;
 const safeParse=v=>{try{return JSON.parse(v||'null')}catch{return null}};
-function readRaw(){try{return safeParse(sessionStorage.getItem(storageKey()))||safeParse(sessionStorage.getItem(legacyKey()))}catch{return null}}
+const normalize=x=>{if(!x)return null;const {updated_at,...rest}=x;return rest};
+const signature=x=>{try{return JSON.stringify(normalize(x))}catch{return''}};
+function resetCache(){cacheKey='';cacheValue=null;cacheSignature=''}
+function readRaw(){
+ const key=storageKey();
+ if(cacheKey===key&&cacheValue)return cacheValue;
+ try{
+  const value=safeParse(sessionStorage.getItem(key))||safeParse(sessionStorage.getItem(legacyKey()));
+  cacheKey=key;cacheValue=value;cacheSignature=signature(value);return value;
+ }catch{return null}
+}
 function read(){const x=readRaw();if(!x)return null;if(Date.now()-(+x.updated_at||0)>TTL){clear();return null}return x}
-function write(x){try{sessionStorage.setItem(storageKey(),JSON.stringify({...x,updated_at:Date.now()}));sessionStorage.removeItem(legacyKey())}catch{}}
-function clear(){try{sessionStorage.removeItem(storageKey());sessionStorage.removeItem(legacyKey())}catch{}pendingStudentId=''}
+function write(x){
+ const key=storageKey(),sig=signature(x);
+ if(cacheKey===key&&sig&&sig===cacheSignature)return false;
+ const value={...normalize(x),updated_at:Date.now()};
+ try{sessionStorage.setItem(key,JSON.stringify(value));sessionStorage.removeItem(legacyKey());cacheKey=key;cacheValue=value;cacheSignature=sig;return true}catch{return false}
+}
+function clear(){try{sessionStorage.removeItem(storageKey());sessionStorage.removeItem(legacyKey())}catch{}pendingStudentId='';resetCache()}
 const context=()=>({space:state?.space||'system',view:state?.view||'dashboard',subjectId:state?.subjectId||null});
-function remember(kind,payload={}){if(restoring||!kind)return;write({...context(),kind,...payload,scrollY:Math.max(0,Math.round(window.scrollY||0))})}
+function remember(kind,payload={}){if(restoring||!kind)return false;return write({...context(),kind,...payload,scrollY:Math.max(0,Math.round(window.scrollY||0))})}
 function sameContext(x){return !!x&&x.space===(state?.space||'system')&&x.view===(state?.view||'dashboard')&&(x.subjectId||null)===(state?.subjectId||null)}
-function savePosition(){const x=read();if(!x||!sameContext(x))return;write({...x,scrollY:Math.max(0,Math.round(window.scrollY||0))})}
+function savePosition(){const x=read();if(!x||!sameContext(x))return false;const y=Math.max(0,Math.round(window.scrollY||0));if(Math.abs((+x.scrollY||0)-y)<4)return false;return write({...x,scrollY:y})}
 function waitFor(fn,timeout=3500){return new Promise(resolve=>{const start=Date.now(),tick=()=>{let v;try{v=fn()}catch{}if(v)return resolve(v);if(Date.now()-start>=timeout)return resolve(null);setTimeout(tick,60)};tick()})}
 function register(kind,spec={}){if(!kind||typeof spec.restore!=='function')return()=>{};registry.set(kind,{detect:typeof spec.detect==='function'?spec.detect:null,isActive:typeof spec.isActive==='function'?spec.isActive:null,restore:spec.restore});return()=>registry.delete(kind)}
 function unregister(kind){registry.delete(kind)}
@@ -28,9 +46,14 @@ function activeBuilder(){try{return safeParse(localStorage.getItem(`aiclo:v118:a
 function questionWorkspace(){try{return window.AICLO_QUESTION_WORKSPACE?.current?.()||window.AICLO_QUESTION_WORKSPACE?.review?.()||null}catch{return null}}
 function finalWorkspace(){try{return safeParse(sessionStorage.getItem(`ai-clo:v11:final-workspace:${userId()}:${state.subjectId||'subject'}`))}catch{return null}}
 function detect(){
- if(restoring)return;
- const marker=genericMarker();if(marker?.kind){remember(marker.kind,marker);return}
- for(const [kind,spec] of registry){if(!spec.detect)continue;let payload=null;try{payload=spec.detect()}catch{}if(payload){remember(kind,payload===true?{}:payload);return}}
+ if(restoring)return false;
+ const marker=genericMarker();if(marker?.kind){remember(marker.kind,marker);return true}
+ for(const [kind,spec] of registry){if(!spec.detect)continue;let payload=null;try{payload=spec.detect()}catch{}if(payload){remember(kind,payload===true?{}:payload);return true}}
+ return false
+}
+function scheduleDetect(reason='mutation'){
+ clearTimeout(detectTimer);
+ detectTimer=setTimeout(()=>{detectTimer=null;detect();queueRestore(reason)},DETECT_IDLE_MS)
 }
 async function restore(reason='auto'){
  if(restoring)return false;const x=read();if(!x||!sameContext(x))return false;
@@ -40,11 +63,9 @@ async function restore(reason='auto'){
  try{ok=!!(await spec.restore(x));if(ok&&Number.isFinite(+x.scrollY)){const y=Math.max(0,+x.scrollY);requestAnimationFrame(()=>requestAnimationFrame(()=>window.scrollTo({top:y,left:0,behavior:'auto'})))}}catch(e){console.warn(`AI-CLO subpage restore (${reason}/${x.kind})`,e)}finally{restoring=false}
  return ok
 }
-function liveChildWorkspace(){return !!document.querySelector('.ub-workspace,.assessment-detail-page,.assessment-detail-v122,.assessment-final-builder-v122,.assessment-final-detail-v122,.academic-profile-page,.question-workspace,#sideDrawer:not(.hidden)')}
+function liveChildWorkspace(){return !!document.querySelector('.ub-workspace,.assessment-builder-v122,.assessment-detail-page,.assessment-detail-v122,.assessment-final-builder-v122,.assessment-final-detail-v122,.assessment-export-center,.academic-profile-page,.question-workspace,.live-exam,#sideDrawer:not(.hidden)')}
 function queueRestore(reason){
  if(queued||document.hidden)return;
- /* If the child page is still mounted, do not reopen it just because Chrome resumed the tab.
-    Also never restore underneath an active modal. This prevents duplicate builder contexts and stale async handlers. */
  if(liveChildWorkspace()||document.querySelector('#modal[open],#confirmDialog[open]'))return;
  queued=true;setTimeout(async()=>{queued=false;if(document.hidden||liveChildWorkspace()||document.querySelector('#modal[open],#confirmDialog[open]'))return;await restore(reason)},55)
 }
@@ -78,7 +99,7 @@ register('final-workspace',{
 function installEnterApp(){const base=window.enterApp;if(typeof base!=='function'||base.__aicloSubpageState)return;const wrapped=function(...args){applyStartupLocation();const r=base.apply(this,args);Promise.resolve(r).finally(()=>queueRestore('enter-app'));return r};wrapped.__aicloSubpageState=true;wrapped.__aicloBase=base;window.enterApp=wrapped}
 function installNavigation(){if(navigationInstalled)return;navigationInstalled=true;const base=window.navigate;if(typeof base!=='function'||base.__aicloSubpageNavigation)return;const wrapped=function(view,...args){if(!restoring){const x=read();if(x&&view!==state.view)clear()}return base.call(this,view,...args)};wrapped.__aicloSubpageNavigation=true;wrapped.__aicloBase=base;window.navigate=wrapped}
 function explicitLeaveTarget(el){return el?.closest?.('#nav [data-view],#systemHomeBtn,#courseSystemReturn,#logoutBtn,[data-open-course],#examDetailBack,#academicProfileBack,#questionBack,#finalAssessmentListBack,[data-aiclo-subpage-back]')}
-function isBuilderBack(el){const b=el?.closest?.('.ub-workspace button');if(!b)return false;return /quay lại|danh sách/i.test(String(b.textContent||''))}
+function isBuilderBack(el){const b=el?.closest?.('.ub-workspace button,.assessment-builder-v122 button');if(!b)return false;return /quay lại|danh sách|hủy/i.test(String(b.textContent||''))}
 document.addEventListener('click',e=>{
  const target=e.target.closest?.('[data-attempts],[data-profile],[data-student-profile]');
  if(target?.dataset.attempts&&!document.querySelector('.assessment-detail-page'))remember('exam-detail',{entityType:'exam',entityId:target.dataset.attempts});
@@ -86,11 +107,16 @@ document.addEventListener('click',e=>{
  if(explicitLeaveTarget(e.target)||isBuilderBack(e.target))clear();
 },true);
 document.addEventListener('change',e=>{if(e.target?.matches?.('#subjectSelect'))clear()},true);
-document.addEventListener('visibilitychange',()=>{if(document.hidden){detect();savePosition()}else queueRestore('visible')});
-window.addEventListener('pagehide',()=>{detect();savePosition()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTimeout(detectTimer);detect();savePosition()}else queueRestore('visible')});
+window.addEventListener('pagehide',()=>{clearTimeout(detectTimer);detect();savePosition()});
 window.addEventListener('pageshow',()=>queueRestore('pageshow'));
-window.addEventListener('scroll',()=>{clearTimeout(window.__aicloSubpageScrollTimer);window.__aicloSubpageScrollTimer=setTimeout(savePosition,120)},{passive:true});
-function init(){installEnterApp();installNavigation();const host=document.querySelector('#content');if(host&&!observer){observer=new MutationObserver(()=>{requestAnimationFrame(()=>{detect();queueRestore('content-change')})});observer.observe(host,{childList:true,subtree:true})}detect();queueRestore('init')}
+window.addEventListener('scroll',()=>{clearTimeout(scrollTimer);scrollTimer=setTimeout(()=>{scrollTimer=null;savePosition()},SCROLL_IDLE_MS)},{passive:true});
+function init(){
+ installEnterApp();installNavigation();
+ const host=document.querySelector('#content');
+ if(host&&!observer){observer=new MutationObserver(records=>{if(records.some(r=>r.addedNodes.length||r.removedNodes.length))scheduleDetect('content-change')});observer.observe(host,{childList:true,subtree:true})}
+ detect();queueRestore('init')
+}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 window.AICLO_SUBPAGE_STATE=Object.freeze({version:VERSION,remember,clear,current:read,restore:()=>restore('api'),detect,savePosition,isRestoring:()=>restoring,register,unregister,applyStartupLocation});
 })();
