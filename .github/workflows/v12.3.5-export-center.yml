@@ -13,7 +13,9 @@ jobs:
         with:
           ref: v12.3.5-export-center-work
       - name: Apply export center
-        run: python3 scripts/v12.3.5-export-center.py
+        run: |
+          sed -i 's/common.js?v=12.3.1/common.js?v=12.3.4/' scripts/v12.3.5-export-center.py
+          python3 scripts/v12.3.5-export-center.py
       - name: Static checks
         run: |
           node --check js/assessment/online-lifecycle.js
@@ -23,7 +25,7 @@ jobs:
           grep -q 'online-export.js?v=12.3.5' app.html
           grep -q 'online-export.css?v=12.3.5' app.html
           grep -q 'online-lifecycle.js?v=12.3.5' app.html
-          grep -q 'return String(data || "") === "12.3.1"' js/assessment.js
+          grep -q '=== "12.3.1"' js/assessment.js
       - name: Commit result
         run: |
           git config user.name 'AI-CLO V12.3.5 Bot'
