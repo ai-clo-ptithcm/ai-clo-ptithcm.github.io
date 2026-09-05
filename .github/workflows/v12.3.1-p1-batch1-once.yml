@@ -1,0 +1,85 @@
+name: V12.3.1 P1 Batch 1 Once
+
+on:
+  push:
+    branches: [v12.3.1-p1-batch1-clean]
+    paths: ['.github/workflows/v12.3.1-p1-batch1-once.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v12.3.1-p1-batch1-clean
+          fetch-depth: 0
+
+      - name: Patch Assessment P1 batch 1
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+
+          const sqlPath = 'docs/assessment-v12.2-migration.sql';
+          let sql = fs.readFileSync(sqlPath, 'utf8');
+          const sqlAnchor = "alter table public.exams add constraint exams_score_policy_check check (score_policy in ('highest','latest','average'));";
+          if (!sql.includes('exams_status_check')) {
+            if (!sql.includes(sqlAnchor)) throw new Error('SQL anchor missing');
+            const statusPatch = `${sqlAnchor}\n\n-- V12.3.1: canonical online assessment lifecycle.\n-- Keep known legacy values readable while all V12.3 writes use draft/active/closed.\nalter table public.exams drop constraint if exists exams_status_check;\nalter table public.exams add constraint exams_status_check\n  check (status in ('draft','active','closed','published','paused','archived'));`;
+            sql = sql.replace(sqlAnchor, statusPatch);
+          }
+          fs.writeFileSync(sqlPath, sql);
+
+          const attemptPath = 'js/assessment/student-attempt.js';
+          let s = fs.readFileSync(attemptPath, 'utf8');
+          if (!s.includes('let listRoot = null;')) {
+            s = s.replace('          let liveTimer = null;', '          let liveTimer = null;\n      let listRoot = null;');
+          }
+          s = s.replace('      async function studentExamList(c) {\n        try {', '      async function studentExamList(c) {\n        listRoot = c || listRoot;\n        try {');
+          if (!s.includes('async function refreshStudentExamList()')) {
+            const marker = '      async function startStudentAttempt(examId, button) {';
+            const helper = `      async function refreshStudentExamList() {\n        if (!listRoot || !listRoot.isConnected) return;\n        try {\n          await studentExamList(listRoot);\n        } catch (e) {\n          console.warn("Assessment student list refresh", e);\n        }\n      }\n`;
+            if (!s.includes(marker)) throw new Error('Attempt helper anchor missing');
+            s = s.replace(marker, helper + marker);
+          }
+          s = s.replace('            clearAttemptLocal(attemptId);\n            return showStudentResult(data.exam, done.data);', '            clearAttemptLocal(attemptId);\n            await refreshStudentExamList();\n            return showStudentResult(data.exam, done.data);');
+          s = s.replace('          clearAttemptLocal(payload.attempt_id);\n          showStudentResult(payload.exam, data);', '          clearAttemptLocal(payload.attempt_id);\n          await refreshStudentExamList();\n          showStudentResult(payload.exam, data);');
+          fs.writeFileSync(attemptPath, s);
+
+          let app = fs.readFileSync('app.html', 'utf8');
+          app = app.replace(/js\/assessment\/student-attempt\.js\?v=[^\"]+/g, 'js/assessment/student-attempt.js?v=12.3.1-b1');
+          fs.writeFileSync('app.html', app);
+          NODE
+
+      - name: Static verification
+        shell: bash
+        run: |
+          node --check js/assessment/student-attempt.js
+          node <<'NODE'
+          const fs=require('fs');
+          const s=fs.readFileSync('js/assessment/student-attempt.js','utf8');
+          const sql=fs.readFileSync('docs/assessment-v12.2-migration.sql','utf8');
+          const app=fs.readFileSync('app.html','utf8');
+          const must=(x,m)=>{if(!x) throw new Error(m)};
+          must(sql.includes("'closed'"),'closed status not allowed');
+          must(sql.includes('drop constraint if exists exams_status_check'),'status constraint patch missing');
+          must(s.includes('let listRoot = null;'),'list root missing');
+          must(s.includes('async function refreshStudentExamList()'),'refresh helper missing');
+          must((s.match(/await refreshStudentExamList\(\);/g)||[]).length>=2,'submit refresh calls missing');
+          must(app.includes('js/assessment/student-attempt.js?v=12.3.1-b1'),'cache key missing');
+          must(!s.includes('MutationObserver'),'attempt module must not own observer');
+          console.log('V12.3.1 P1 batch 1 PASS');
+          NODE
+
+      - name: Commit and remove workflow
+        shell: bash
+        run: |
+          git config user.name 'AI-CLO V12.3.1 Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git rm .github/workflows/v12.3.1-p1-batch1-once.yml
+          git add docs/assessment-v12.2-migration.sql js/assessment/student-attempt.js app.html
+          git commit -m 'fix(assessment): close pause and post-submit P1 issues'
+          git push origin HEAD:v12.3.1-p1-batch1-clean
