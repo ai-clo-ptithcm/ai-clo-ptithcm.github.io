@@ -5,17 +5,14 @@
 
   /* App-shell dependencies: db, state, canTeach, toast, err, modal, closeModal,
    openDrawer, replaceDrawer and confirmAction. Assessment remains the only runtime owner. */
-  const runtime = {
-    root: null,
-    liveTimer: null,
-  };
+  const runtime = { root: null };
   const getAssessmentRoot = () =>
     runtime.root || document.querySelector("#content");
   const setAssessmentRoot = (root) => {
     if (root) runtime.root = root;
     return getAssessmentRoot();
   };
-  const VERSION = "12.3.0-a4";
+  const VERSION = "12.3.0-a4.1";
   const {
     qs,
     qsa,
@@ -581,7 +578,7 @@
       ).length,
       codes = [...new Set(questions.map((q) => q.clo_code).filter(Boolean))];
     const byClo = codes.map((code) => {
-      const right = qs.filter(
+      const right = questions.filter(
         (q) => answers[q.question_id] === q.correct_answer,
       ).length;
       return {
