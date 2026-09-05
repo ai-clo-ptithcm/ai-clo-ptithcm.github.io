@@ -337,6 +337,6 @@
       }
 
 
-    return Object.freeze({ studentExamList, openStudentAttemptResult, clearLiveTimer });
+    return Object.freeze({ studentExamList, openStudentAttemptResult, clearLiveTimer, studentResultHtml });
   };
 })();
