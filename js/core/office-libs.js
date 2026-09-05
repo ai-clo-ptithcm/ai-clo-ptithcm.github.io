@@ -4,10 +4,11 @@
 
 const sources={
  xlsx:'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
- zip:'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js'
+ zip:'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
+ exceljs:'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js'
 };
 const pending=new Map();
-const ready=kind=>kind==='xlsx'?!!window.XLSX:!!window.JSZip;
+const ready=kind=>kind==='xlsx'?!!window.XLSX:kind==='zip'?!!window.JSZip:!!window.ExcelJS;
 
 function load(kind){
  if(ready(kind))return Promise.resolve(kind==='xlsx'?window.XLSX:window.JSZip);
@@ -17,7 +18,7 @@ function load(kind){
   script.src=sources[kind];
   script.async=true;
   script.dataset.aicloOfficeLib=kind;
-  script.onload=()=>ready(kind)?resolve(kind==='xlsx'?window.XLSX:window.JSZip):reject(new Error(`Không khởi tạo được thư viện ${kind}.`));
+  script.onload=()=>ready(kind)?resolve(kind==='xlsx'?window.XLSX:kind==='zip'?window.JSZip:window.ExcelJS):reject(new Error(`Không khởi tạo được thư viện ${kind}.`));
   script.onerror=()=>reject(new Error(`Không tải được thư viện ${kind}.`));
   document.head.appendChild(script);
  }).catch(error=>{pending.delete(kind);throw error});
@@ -28,6 +29,7 @@ function load(kind){
 const api=Object.freeze({
  xlsx:()=>load('xlsx'),
  zip:()=>load('zip'),
+ exceljs:()=>load('exceljs'),
  all:()=>Promise.all([load('xlsx'),load('zip')]),
  isReady:kind=>ready(kind)
 });
