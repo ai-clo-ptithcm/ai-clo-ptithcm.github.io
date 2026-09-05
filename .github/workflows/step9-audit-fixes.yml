@@ -1,0 +1,97 @@
+name: Apply Assessment Step 9 audit fixes
+
+on:
+  push:
+    branches: [v12.2-assessment-stability]
+    paths: [.github/workflows/step9-audit-fixes.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v12.2-assessment-stability
+          fetch-depth: 0
+      - name: Apply audit fixes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p=Path('js/assessment.js')
+          s=p.read_text(encoding='utf-8')
+          reps=[
+            ("const VERSION='12.2.0-step8b';","const VERSION='12.2.0-step9';"),
+            ("const visible=items.filter(x=>x.status==='active'||rows.some(a=>a.exam_id===x.id&&!a.submitted_at));","const visible=items.filter(x=>x.status==='active'||rows.some(a=>a.exam_id===x.id));"),
+            ("function validateFinalCtx(ctx){if(!ctx.title.trim())throw new Error('Cần nhập tên hồ sơ đề thi');const codes=(ctx.metadata.variant_codes||[]).map(x=>String(x).trim()).filter(Boolean);if(codes.length<1||codes.length>20)throw new Error('Số mã đề phải từ 1 đến 20');if(new Set(codes).size!==codes.length)throw new Error('Mã đề không được trùng');if(!ctx.selectedTopics.size)throw new Error('Cần chọn ít nhất một mục');",
+             "function validateFinalIdentity(ctx){if(!ctx.title.trim())throw new Error('Cần nhập tên hồ sơ đề thi');const codes=(ctx.metadata.variant_codes||[]).map(x=>String(x).trim()).filter(Boolean);if(codes.length<1||codes.length>20)throw new Error('Số mã đề phải từ 1 đến 20');if(new Set(codes).size!==codes.length)throw new Error('Mã đề không được trùng');return codes}\nfunction validateFinalCtx(ctx){validateFinalIdentity(ctx);if(!ctx.selectedTopics.size)throw new Error('Cần chọn ít nhất một mục');"),
+            ("try{const total=validateFinalCtx(ctx);if(ctx.selected.length!==total)throw new Error('Cần rút đủ bộ câu theo ma trận trước khi lưu');if(generate)ctx.variants=generateFinalVariants(ctx);",
+             "try{let total=finalMatrixTotal(ctx);if(generate){total=validateFinalCtx(ctx);if(ctx.selected.length!==total)throw new Error('Cần rút đủ bộ câu theo ma trận trước khi sinh mã đề');ctx.variants=generateFinalVariants(ctx)}else validateFinalIdentity(ctx);"),
+            ("const c=$1('#content');if(!c)return;const meta=pkg.metadata||{},codes=meta.variant_codes||pkg.variants?.map(v=>v.code)||[],selected=Array.isArray(pkg.selected_questions)?pkg.selected_questions:[],matrixRows=canonicalFinalMatrixRows(pkg.matrix),summary=finalMatrixSummary(pkg);",
+             "const c=$1('#content');if(!c)return;const sets=await loadSecureSets(),meta=pkg.metadata||{},codes=meta.variant_codes||pkg.variants?.map(v=>v.code)||[],selected=Array.isArray(pkg.selected_questions)?pkg.selected_questions:[],matrixRows=canonicalFinalMatrixRows(pkg.matrix),summary=finalMatrixSummary(pkg);"),
+            ("<td>${esc2(r.topic_id||'')}</td><td>${esc2(r.clo_id||'')}</td>","<td>${esc2(byId(sets.topics,r.topic_id)?.name||r.topic_id||'')}</td><td>${esc2(byId(sets.clos,r.clo_id)?.code||r.clo_id||'')}</td>"),
+          ]
+          for old,new in reps:
+              if old not in s:
+                  raise SystemExit('assessment anchor missing: '+old[:120])
+              s=s.replace(old,new,1)
+
+          old="function buildOfficialMetrics(bundle){const {attempts,clos,answers,questions}=bundle,answerMap=new Map(answers.map(a=>[`${a.attempt_id}|${a.question_id}`,a])),attemptMap=new Map(attempts.map(a=>[a.id,a]));const classMetric=freshMetric(clos),students=new Map();for(const a of attempts){const m=students.get(a.student_id)||freshMetric(clos);m.attempts++;m.examIds.add(a.exam_id);m.scoreSum+=Number(a.score||0);m.scoreCount++;students.set(a.student_id,m);classMetric.attempts++;classMetric.examIds.add(a.exam_id);classMetric.scoreSum+=Number(a.score||0);classMetric.scoreCount++}for(const q of questions){"
+          new="function buildOfficialMetrics(bundle){const {attempts,clos,answers,questions}=bundle,answerMap=new Map(answers.map(a=>[`${a.attempt_id}|${a.question_id}`,a])),attemptMap=new Map(attempts.map(a=>[a.id,a]));const classMetric=freshMetric(clos),students=new Map(),scoreGroups=new Map();for(const a of attempts){const m=students.get(a.student_id)||freshMetric(clos);m.attempts++;m.examIds.add(a.exam_id);students.set(a.student_id,m);classMetric.attempts++;classMetric.examIds.add(a.exam_id);const key=`${a.student_id}|${a.exam_id}`,g=scoreGroups.get(key)||{student_id:a.student_id,scores:[]};g.scores.push(Number(a.score||0));scoreGroups.set(key,g)}for(const g of scoreGroups.values()){const m=students.get(g.student_id);if(!m)continue;m.scoreSum+=g.scores.reduce((sum,x)=>sum+x,0)/g.scores.length;m.scoreCount++}for(const q of questions){"
+          if old not in s: raise SystemExit('buildOfficialMetrics anchor missing')
+          s=s.replace(old,new,1)
+
+          end_anchor="async function teacherClassList(c){return results(c)}\nwindow.exams=exams;"
+          end_new="async function teacherClassList(c){return results(c)}\ndocument.addEventListener('click',e=>{if(e.target?.closest?.('#drawerClose'))clearLiveTimer()});\nwindow.exams=exams;"
+          if end_anchor not in s: raise SystemExit('assessment end anchor missing')
+          s=s.replace(end_anchor,end_new,1)
+          p.write_text(s,encoding='utf-8')
+
+          app=Path('app.html'); a=app.read_text(encoding='utf-8')
+          if 'js/assessment.js?v=12.2.2' not in a: raise SystemExit('app cache anchor missing')
+          app.write_text(a.replace('js/assessment.js?v=12.2.2','js/assessment.js?v=12.2.3',1),encoding='utf-8')
+
+          ai=Path('supabase/functions/analyze-assessment/index.ts'); t=ai.read_text(encoding='utf-8')
+          old='''    let avgScore = 0;\n    if (scope === "class") {\n      const byStudent = new Map<string, number[]>();\n      for (const a of attempts) {\n        const rows = byStudent.get(a.student_id) || []; rows.push(Number(a.score || 0)); byStudent.set(a.student_id, rows);\n      }\n      const studentAverages = [...byStudent.values()].map(rows => rows.reduce((s, x) => s + x, 0) / rows.length);\n      avgScore = studentAverages.length ? Math.round(studentAverages.reduce((s, x) => s + x, 0) * 100 / studentAverages.length) / 100 : 0;\n    } else {\n      avgScore = Math.round(attempts.reduce((s, a) => s + Number(a.score || 0), 0) * 100 / attempts.length) / 100;\n    }'''
+          new='''    let avgScore = 0;\n    if (scope === "class" || scope === "student") {\n      const byStudentExam = new Map<string, { studentId: string; scores: number[] }>();\n      for (const a of attempts) {\n        const key = `${a.student_id}|${a.exam_id}`;\n        const g = byStudentExam.get(key) || { studentId: a.student_id, scores: [] };\n        g.scores.push(Number(a.score || 0)); byStudentExam.set(key, g);\n      }\n      const byStudent = new Map<string, number[]>();\n      for (const g of byStudentExam.values()) {\n        const examScore = g.scores.reduce((s, x) => s + x, 0) / g.scores.length;\n        const rows = byStudent.get(g.studentId) || []; rows.push(examScore); byStudent.set(g.studentId, rows);\n      }\n      const studentAverages = [...byStudent.values()].map(rows => rows.reduce((s, x) => s + x, 0) / rows.length);\n      avgScore = studentAverages.length ? Math.round(studentAverages.reduce((s, x) => s + x, 0) * 100 / studentAverages.length) / 100 : 0;\n    } else {\n      avgScore = Math.round(attempts.reduce((s, a) => s + Number(a.score || 0), 0) * 100 / attempts.length) / 100;\n    }'''
+          if old not in t: raise SystemExit('AI average-score anchor missing')
+          ai.write_text(t.replace(old,new,1),encoding='utf-8')
+
+          sql=Path('docs/assessment-v12.2-migration.sql'); q=sql.read_text(encoding='utf-8')
+          old="""  if v_pool_count<p_total_questions then raise exception 'Pool câu hỏi nhỏ hơn bộ đề'; end if;\n\n  delete from public.exam_questions where exam_id=p_exam_id;"""
+          new="""  if v_pool_count<p_total_questions then raise exception 'Pool câu hỏi nhỏ hơn bộ đề'; end if;\n\n  -- Server-side bank boundary: an online assessment can never freeze secure-only questions.\n  if exists(\n    select 1\n    from jsonb_array_elements(p_pool) x\n    left join public.questions q on q.id=(x->>'question_id')::uuid\n    where q.id is null\n       or q.subject_id<>v_exam.subject_id\n       or q.status<>'active'\n       or coalesce(q.approval_status,'')<>'approved'\n       or coalesce(q.question_scope,'practice') not in ('practice','both')\n  ) then\n    raise exception 'Pool bài trực tuyến chỉ được dùng câu đã duyệt từ Ngân hàng luyện tập - kiểm tra';\n  end if;\n\n  delete from public.exam_questions where exam_id=p_exam_id;"""
+          if old not in q: raise SystemExit('online pool SQL anchor missing')
+          q=q.replace(old,new,1)
+          old="""  if coalesce(jsonb_typeof(p_variants),'')<>'array' then raise exception 'Danh sách mã đề đã sinh không hợp lệ'; end if;\n\n  if p_package_id is null then"""
+          new="""  if coalesce(jsonb_typeof(p_variants),'')<>'array' then raise exception 'Danh sách mã đề đã sinh không hợp lệ'; end if;\n\n  -- Server-side bank boundary: final packages may only snapshot approved secure-exam questions.\n  if exists(\n    select 1\n    from jsonb_array_elements(p_selected_questions) x\n    left join public.questions q on q.id=(x->>'question_id')::uuid\n    where q.id is null\n       or q.subject_id<>p_subject_id\n       or q.status<>'active'\n       or coalesce(q.approval_status,'')<>'approved'\n       or coalesce(q.question_scope,'') not in ('secure_exam','both')\n  ) then\n    raise exception 'Hồ sơ đề cuối kỳ chỉ được dùng câu đã duyệt từ Ngân hàng đề thi - bảo mật';\n  end if;\n\n  if p_status='generated' then\n    if jsonb_array_length(p_selected_questions)=0 then raise exception 'Không thể sinh đề khi chưa có bộ câu'; end if;\n    if jsonb_array_length(p_variants)<>jsonb_array_length(coalesce(p_metadata->'variant_codes','[]'::jsonb)) then\n      raise exception 'Số phiên bản đã sinh không khớp danh sách mã đề';\n    end if;\n  end if;\n\n  if p_package_id is null then"""
+          if old not in q: raise SystemExit('final package SQL anchor missing')
+          sql.write_text(q.replace(old,new,1),encoding='utf-8')
+          PY
+      - name: Verify Step 9
+        shell: bash
+        run: |
+          node --check js/assessment.js
+          test "$(grep -c 'MutationObserver' js/assessment.js || true)" = "0"
+          test "$(grep -c 'window.exams=exams' js/assessment.js)" = "1"
+          test "$(grep -c 'window.results=results' js/assessment.js)" = "1"
+          grep -q "12.2.0-step9" js/assessment.js
+          grep -q "scoreGroups=new Map" js/assessment.js
+          grep -q "rows.some(a=>a.exam_id===x.id)" js/assessment.js
+          grep -q "validateFinalIdentity" js/assessment.js
+          grep -q "byStudentExam" supabase/functions/analyze-assessment/index.ts
+          grep -q "online assessment can never freeze secure-only questions" docs/assessment-v12.2-migration.sql
+          grep -q "final packages may only snapshot approved secure-exam questions" docs/assessment-v12.2-migration.sql
+          grep -q "js/assessment.js?v=12.2.3" app.html
+      - name: Commit and clean one-shot workflow
+        shell: bash
+        run: |
+          rm -f .github/workflows/step9-audit-fixes.yml
+          git config user.name 'AI-CLO V12.2 Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add js/assessment.js app.html docs/assessment-v12.2-migration.sql supabase/functions/analyze-assessment/index.ts .github/workflows/step9-audit-fixes.yml
+          git commit -m 'fix(assessment): close V12.2 Step 9 audit findings'
+          git push origin HEAD:v12.2-assessment-stability
