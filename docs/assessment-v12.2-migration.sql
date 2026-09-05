@@ -6,14 +6,61 @@ begin;
 alter table public.exams add column if not exists counts_toward_grade boolean not null default true;
 alter table public.exams add column if not exists structure_mode text not null default 'topic_clo';
 alter table public.exams add column if not exists question_blueprint jsonb not null default '{"version":1,"source":"legacy","matrix":{}}'::jsonb;
+alter table public.exams add column if not exists score_policy text not null default 'highest';
+
+update public.exams
+set score_policy='highest'
+where score_policy is null or score_policy not in ('highest','latest','average');
 
 alter table public.exams drop constraint if exists exams_structure_mode_check;
 alter table public.exams add constraint exams_structure_mode_check check (structure_mode in ('topic_clo','chapter_pool'));
+alter table public.exams drop constraint if exists exams_score_policy_check;
+alter table public.exams add constraint exams_score_policy_check check (score_policy in ('highest','latest','average'));
 
 create or replace function public.assessment_schema_version()
 returns text language sql stable security definer set search_path=public,pg_temp
 as $$ select '12.2'::text $$;
 grant execute on function public.assessment_schema_version() to authenticated;
+
+-- Canonical official-attempt scope for course CLO results.
+-- highest: one highest-score attempt per student/exam (latest wins a tie).
+-- latest: one latest submitted attempt per student/exam.
+-- average: every submitted attempt for that student/exam participates.
+-- Exams excluded from course CLO aggregation never appear in this view.
+create or replace view public.assessment_effective_attempts
+with (security_invoker=true)
+as
+select id,exam_id,subject_id,student_id,attempt_number,started_at,submitted_at,score,score_policy
+from (
+  select ea.id,
+         ea.exam_id,
+         e.subject_id,
+         ea.student_id,
+         ea.attempt_number,
+         ea.started_at,
+         ea.submitted_at,
+         ea.score,
+         coalesce(e.score_policy,'highest') as score_policy,
+         row_number() over (
+           partition by ea.exam_id,ea.student_id
+           order by ea.score desc nulls last,ea.submitted_at desc nulls last,ea.attempt_number desc
+         ) as rn_highest,
+         row_number() over (
+           partition by ea.exam_id,ea.student_id
+           order by ea.submitted_at desc nulls last,ea.attempt_number desc
+         ) as rn_latest
+  from public.exam_attempts ea
+  join public.exams e on e.id=ea.exam_id
+  where ea.submitted_at is not null
+    and coalesce(e.counts_toward_grade,true)=true
+) ranked
+where score_policy='average'
+   or (score_policy='highest' and rn_highest=1)
+   or (score_policy='latest' and rn_latest=1);
+
+grant select on public.assessment_effective_attempts to authenticated;
+comment on view public.assessment_effective_attempts is
+  'Canonical submitted-attempt scope for course CLO/GPA aggregation. Applies exams.counts_toward_grade and exams.score_policy.';
 
 -- Canonical lock: after the first attempt, freeze only fields that can change what
 -- students saw or how the attempt was measured. Operational fields remain editable.
