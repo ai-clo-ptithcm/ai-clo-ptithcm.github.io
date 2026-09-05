@@ -32,16 +32,12 @@ jobs:
           if(!body.includes('async function studentExamList')) throw new Error('studentExamList missing');
           if(!body.includes('async function openStudentAttemptResult')) throw new Error('openStudentAttemptResult missing');
           if(!body.includes('function clearLiveTimer')) throw new Error('clearLiveTimer missing');
-
-          // Student Attempt owns its own timer state.
           body=body.replace(/runtime\.liveTimer/g,'liveTimer');
           body='      let liveTimer = null;\n'+body;
           body=body.replace(/^  /gm,'      ');
-
           const module=`/* AI-CLO PTITHCM V12.3 — Student Attempt module. */\n(() => {\n  "use strict";\n  window.AICLO_ASSESSMENT_MODULES = window.AICLO_ASSESSMENT_MODULES || {};\n  window.AICLO_ASSESSMENT_MODULES.createStudentAttemptModule = function createStudentAttemptModule(ctx) {\n    const { db, state, fetchExams, statusMeta, escapeHtml, qs, qsa, ask, showError, notify, openDrawer, replaceDrawer } = ctx;\n    if (!db || !state || !fetchExams || !statusMeta || !escapeHtml || !qs || !qsa || !ask || !showError || !notify) {\n      throw new Error("Assessment Student Attempt dependencies are incomplete");\n    }\n${body}\n    return Object.freeze({ studentExamList, openStudentAttemptResult, clearLiveTimer });\n  };\n})();\n`;
           fs.mkdirSync('js/assessment',{recursive:true});
           fs.writeFileSync('js/assessment/student-attempt.js',module);
-
           const bridge=`  /* SECTION 5/7 moved to js/assessment/student-attempt.js */\n  const studentAttemptModule = window.AICLO_ASSESSMENT_MODULES?.createStudentAttemptModule?.({\n    db,\n    state,\n    fetchExams,\n    statusMeta,\n    escapeHtml,\n    qs,\n    qsa,\n    ask,\n    showError,\n    notify,\n    openDrawer: typeof openDrawer === "function" ? openDrawer : null,\n    replaceDrawer: typeof replaceDrawer === "function" ? replaceDrawer : null,\n  });\n  if (!studentAttemptModule) throw new Error("Assessment Student Attempt module was not loaded");\n  const { studentExamList, openStudentAttemptResult, clearLiveTimer } = studentAttemptModule;\n\n`;
           s=s.slice(0,a)+bridge+s.slice(b);
           s=s.replace('const runtime = { root: null, liveTimer: null };','const runtime = { root: null };');
@@ -56,10 +52,11 @@ jobs:
           const fs=require('fs');
           const p='app.html';
           let s=fs.readFileSync(p,'utf8');
-          const old='<script defer src="js/assessment/common.js?v=12.3.0-a1"></script><script defer src="js/assessment/results.js?v=12.3.0-a2"></script><script defer src="js/assessment.js?v=12.3.0-a2"></script>';
-          const neu='<script defer src="js/assessment/common.js?v=12.3.0-a1"></script><script defer src="js/assessment/student-attempt.js?v=12.3.0-a3"></script><script defer src="js/assessment/results.js?v=12.3.0-a2"></script><script defer src="js/assessment.js?v=12.3.0-a3"></script>';
-          if(!s.includes(old)) throw new Error('Expected A2 script chain not found');
-          s=s.replace(old,neu);
+          const re=/(<script defer src="js\/assessment\/common\.js\?v=[^"]+"><\/script>)(<script defer src="js\/assessment\/results\.js\?v=[^"]+"><\/script>)(<script defer src="js\/assessment\.js\?v=[^"]+"><\/script>)/;
+          const m=s.match(re);
+          if(!m) throw new Error('Expected Assessment common/results/owner chain not found');
+          const neu=`${m[1]}<script defer src="js/assessment/student-attempt.js?v=12.3.0-a3"></script>${m[2].replace(/\?v=[^"]+/, '?v=12.3.0-a2')}<script defer src="js/assessment.js?v=12.3.0-a3"></script>`;
+          s=s.replace(re,neu);
           fs.writeFileSync(p,s);
           NODE
 
