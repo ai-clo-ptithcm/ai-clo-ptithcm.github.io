@@ -1,5 +1,5 @@
 /* AI-CLO PTITHCM V12.2.1 — Assessment single-owner engine.
-   Refactor only: formatted source, explicit runtime/root state, same V12.2 behavior. */
+   Refactor only: formatted source, explicit runtime/root state, sectioned domains and clearer helper names; same V12.2 behavior. */
 (() => {
   "use strict";
 
@@ -14,9 +14,9 @@
     return getAssessmentRoot();
   };
   const VERSION = "12.2.1";
-  const $1 = (s, r = document) => r.querySelector(s);
-  const $$1 = (s, r = document) => [...r.querySelectorAll(s)];
-  const esc2 = (s) =>
+  const qs = (s, r = document) => r.querySelector(s);
+  const qsa = (s, r = document) => [...r.querySelectorAll(s)];
+  const escapeHtml = (s) =>
     window.esc
       ? esc(s)
       : String(s ?? "").replace(
@@ -30,7 +30,7 @@
               "'": "&#39;",
             })[c],
         );
-  const fmt = (v) =>
+  const formatDateTime = (v) =>
     v
       ? new Intl.DateTimeFormat("vi-VN", {
           timeZone: "Asia/Ho_Chi_Minh",
@@ -44,11 +44,11 @@
       off = d.getTimezoneOffset();
     return new Date(d.getTime() - off * 60000).toISOString().slice(0, 16);
   };
-  const iso = (v) => (v ? new Date(v).toISOString() : null);
+  const toIsoOrNull = (v) => (v ? new Date(v).toISOString() : null);
   const isTeacher = () => typeof canTeach === "function" && canTeach();
   const subjectId = () => state?.subjectId || null;
-  const byId = (rows, id) => rows.find((x) => x.id === id);
-  const shuf = (rows) => {
+  const findById = (rows, id) => rows.find((x) => x.id === id);
+  const shuffle = (rows) => {
     const a = [...rows];
     for (let i = a.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -87,6 +87,9 @@
     return { code: "active", label: "Đang mở", className: "green" };
   };
 
+  /* ============================================================
+   * SECTION 1/7 — Core runtime, schema, shared data and list rendering
+   * ============================================================ */
   async function schemaReady() {
     try {
       const { data, error } = await db.rpc("assessment_schema_version");
@@ -197,11 +200,11 @@
       question_id: q.id,
       display_code: q.display_code || null,
       chapter_id: q.chapter_id,
-      chapter_name: byId(sets.chapters, q.chapter_id)?.name || null,
+      chapter_name: findById(sets.chapters, q.chapter_id)?.name || null,
       topic_id: q.topic_id,
-      topic_name: byId(sets.topics, q.topic_id)?.name || null,
+      topic_name: findById(sets.topics, q.topic_id)?.name || null,
       clo_id: q.clo_id,
-      clo_code: byId(sets.clos, q.clo_id)?.code || null,
+      clo_code: findById(sets.clos, q.clo_id)?.code || null,
       content: q.content,
       correct_answer: String(q.correct_answer || "").toUpperCase(),
       explanation: q.explanation || null,
@@ -242,7 +245,7 @@
         .map((x) => {
           const s = statusMeta(x),
             n = counts.get(x.id) || { all: 0, submitted: 0 };
-          return `<tr><td><button type="button" class="exam-title-link" data-v122-detail="${x.id}"><b>${esc2(x.title || "Bài kiểm tra")}</b></button><br><small>${esc2(x.description || "")}</small></td><td><b>${Number(x.total_questions || 0)}</b> câu<br><small>${esc2(structureLabel(x.structure_mode))}</small></td><td><span class="badge">${esc2(modeLabel(x.question_mode))}</span></td><td>${x.duration_minutes || "—"} phút<br><small>${x.opens_at ? fmt(x.opens_at) : "Khi phát hành"} → ${x.closes_at ? fmt(x.closes_at) : "Không giới hạn"}</small></td><td><b>${n.submitted}</b> đã nộp<br><small>${n.all} lượt</small></td><td><span class="badge ${s.className}">${s.label}</span></td><td><button type="button" class="primary" data-v122-detail="${x.id}">Chi tiết →</button></td></tr>`;
+          return `<tr><td><button type="button" class="exam-title-link" data-v122-detail="${x.id}"><b>${escapeHtml(x.title || "Bài kiểm tra")}</b></button><br><small>${escapeHtml(x.description || "")}</small></td><td><b>${Number(x.total_questions || 0)}</b> câu<br><small>${escapeHtml(structureLabel(x.structure_mode))}</small></td><td><span class="badge">${escapeHtml(modeLabel(x.question_mode))}</span></td><td>${x.duration_minutes || "—"} phút<br><small>${x.opens_at ? formatDateTime(x.opens_at) : "Khi phát hành"} → ${x.closes_at ? formatDateTime(x.closes_at) : "Không giới hạn"}</small></td><td><b>${n.submitted}</b> đã nộp<br><small>${n.all} lượt</small></td><td><span class="badge ${s.className}">${s.label}</span></td><td><button type="button" class="primary" data-v122-detail="${x.id}">Chi tiết →</button></td></tr>`;
         })
         .join("") ||
       '<tr><td colspan="7" class="empty">Chưa có bài kiểm tra.</td></tr>'
@@ -259,7 +262,7 @@
     );
   }
   function finalTable(items) {
-    return `<div class="toolbar"><span class="hint">Đề cuối kỳ chỉ dùng Ngân hàng đề thi – bảo mật.</span><button id="v122CreateFinal" class="primary">+ Tạo đề thi cuối kỳ</button></div><div class="panel table-wrap"><table><thead><tr><th>Hồ sơ đề</th><th>Số mã đề</th><th>Nguồn câu</th><th>Cập nhật</th><th>Trạng thái</th><th></th></tr></thead><tbody>${items.map((x) => `<tr><td><b>${esc2(x.title || x.metadata?.title || "Đề thi cuối kỳ")}</b><br><small>${esc2(x.metadata?.exam_code || "")}</small></td><td><b>${Number(x.metadata?.variant_count || x.metadata?.variant_codes?.length || x.variants?.length || 0) || "—"}</b></td><td>Ngân hàng đề thi – bảo mật</td><td>${fmt(x.updated_at || x.created_at)}</td><td><span class="badge ${x.status === "generated" ? "green" : ""}">${esc2(finalStatusLabel(x.status))}</span></td><td><button type="button" class="secondary" data-v122-final="${x.id}">Chi tiết →</button></td></tr>`).join("") || '<tr><td colspan="6" class="empty">Chưa có hồ sơ đề thi cuối kỳ.</td></tr>'}</tbody></table></div>`;
+    return `<div class="toolbar"><span class="hint">Đề cuối kỳ chỉ dùng Ngân hàng đề thi – bảo mật.</span><button id="v122CreateFinal" class="primary">+ Tạo đề thi cuối kỳ</button></div><div class="panel table-wrap"><table><thead><tr><th>Hồ sơ đề</th><th>Số mã đề</th><th>Nguồn câu</th><th>Cập nhật</th><th>Trạng thái</th><th></th></tr></thead><tbody>${items.map((x) => `<tr><td><b>${escapeHtml(x.title || x.metadata?.title || "Đề thi cuối kỳ")}</b><br><small>${escapeHtml(x.metadata?.exam_code || "")}</small></td><td><b>${Number(x.metadata?.variant_count || x.metadata?.variant_codes?.length || x.variants?.length || 0) || "—"}</b></td><td>Ngân hàng đề thi – bảo mật</td><td>${formatDateTime(x.updated_at || x.created_at)}</td><td><span class="badge ${x.status === "generated" ? "green" : ""}">${escapeHtml(finalStatusLabel(x.status))}</span></td><td><button type="button" class="secondary" data-v122-final="${x.id}">Chi tiết →</button></td></tr>`).join("") || '<tr><td colspan="6" class="empty">Chưa có hồ sơ đề thi cuối kỳ.</td></tr>'}</tbody></table></div>`;
   }
   async function teacherExamList(c) {
     const [items, finals] = await Promise.all([
@@ -275,7 +278,7 @@
       active = tab;
       sessionStorage.setItem(`aiclo:v122:assessment-tab:${subjectId()}`, tab);
       c.innerHTML = `${topTabs(tab)}<div id="v122AssessmentBody">${tab === "online" ? onlineTable(items, counts) : finalTable(finals)}</div>`;
-      $$1("[data-v122-tab]", c).forEach(
+      qsa("[data-v122-tab]", c).forEach(
         (b) => (b.onclick = () => renderTab(b.dataset.v122Tab)),
       );
       if (tab === "online") bindOnlineList(c, items);
@@ -284,20 +287,20 @@
     renderTab(active);
   }
   function bindOnlineList(root, items) {
-    $$1("[data-v122-detail]", root).forEach(
+    qsa("[data-v122-detail]", root).forEach(
       (b) =>
         (b.onclick = () => {
           const x = items.find((v) => v.id === b.dataset.v122Detail);
           if (x) openExamDetail(x);
         }),
     );
-    const add = $1("#v122CreateExam", root);
+    const add = qs("#v122CreateExam", root);
     if (add) add.onclick = () => openExamBuilder(null);
   }
   function bindFinalList(root, items) {
-    const add = $1("#v122CreateFinal", root);
+    const add = qs("#v122CreateFinal", root);
     if (add) add.onclick = () => openFinalExamBuilder(null);
-    $$1("[data-v122-final]", root).forEach(
+    qsa("[data-v122-final]", root).forEach(
       (b) =>
         (b.onclick = () => {
           const x = items.find((v) => v.id === b.dataset.v122Final);
@@ -306,6 +309,9 @@
     );
   }
 
+  /* ============================================================
+   * SECTION 2/7 — Online assessment lifecycle, detail and teacher preview
+   * ============================================================ */
   async function setStatus(exam, next) {
     const label =
       next === "active"
@@ -405,7 +411,7 @@
   }
   function attemptTableHtml(rows, mode = "date") {
     const sorted = attemptSort(rows, mode);
-    return `<div class="toolbar"><span class="hint">${rows.length} lượt làm · ${rows.filter((x) => x.submitted_at).length} đã nộp</span><label class="field compact-field">Sắp xếp<select id="v122AttemptSort"><option value="date" ${mode === "date" ? "selected" : ""}>Mới nhất</option><option value="name" ${mode === "name" ? "selected" : ""}>Tên sinh viên</option><option value="score" ${mode === "score" ? "selected" : ""}>Điểm cao</option></select></label></div><div class="table-wrap"><table class="assessment-attempt-table"><thead><tr><th>STT</th><th>Sinh viên</th><th>Lần</th><th>Bắt đầu</th><th>Nộp</th><th>Điểm</th><th>Trạng thái</th><th></th></tr></thead><tbody>${sorted.map((a, i) => `<tr><td>${i + 1}</td><td><b>${esc2(attemptStudentName(a))}</b><br><small>${esc2(a.profiles?.mssv || a.profiles?.email || "")}</small></td><td>${a.attempt_number || 1}</td><td>${fmt(a.started_at)}</td><td>${a.submitted_at ? fmt(a.submitted_at) : "—"}</td><td>${a.submitted_at && a.score != null ? `<b>${Number(a.score).toFixed(2)}</b>` : "—"}</td><td><span class="badge ${a.submitted_at ? "green" : ""}">${a.submitted_at ? "Đã nộp" : "Đang làm"}</span></td><td class="row-actions">${a.submitted_at ? `<button type="button" class="secondary compact" data-v122-view-attempt="${a.id}">Xem bài</button>` : '<button type="button" class="secondary compact" disabled>Đang làm</button>'}<button type="button" class="danger compact" data-v122-delete-attempt="${a.id}">Xóa lượt</button></td></tr>`).join("") || '<tr><td colspan="8" class="empty">Chưa có lượt làm.</td></tr>'}</tbody></table></div>`;
+    return `<div class="toolbar"><span class="hint">${rows.length} lượt làm · ${rows.filter((x) => x.submitted_at).length} đã nộp</span><label class="field compact-field">Sắp xếp<select id="v122AttemptSort"><option value="date" ${mode === "date" ? "selected" : ""}>Mới nhất</option><option value="name" ${mode === "name" ? "selected" : ""}>Tên sinh viên</option><option value="score" ${mode === "score" ? "selected" : ""}>Điểm cao</option></select></label></div><div class="table-wrap"><table class="assessment-attempt-table"><thead><tr><th>STT</th><th>Sinh viên</th><th>Lần</th><th>Bắt đầu</th><th>Nộp</th><th>Điểm</th><th>Trạng thái</th><th></th></tr></thead><tbody>${sorted.map((a, i) => `<tr><td>${i + 1}</td><td><b>${escapeHtml(attemptStudentName(a))}</b><br><small>${escapeHtml(a.profiles?.mssv || a.profiles?.email || "")}</small></td><td>${a.attempt_number || 1}</td><td>${formatDateTime(a.started_at)}</td><td>${a.submitted_at ? formatDateTime(a.submitted_at) : "—"}</td><td>${a.submitted_at && a.score != null ? `<b>${Number(a.score).toFixed(2)}</b>` : "—"}</td><td><span class="badge ${a.submitted_at ? "green" : ""}">${a.submitted_at ? "Đã nộp" : "Đang làm"}</span></td><td class="row-actions">${a.submitted_at ? `<button type="button" class="secondary compact" data-v122-view-attempt="${a.id}">Xem bài</button>` : '<button type="button" class="secondary compact" disabled>Đang làm</button>'}<button type="button" class="danger compact" data-v122-delete-attempt="${a.id}">Xóa lượt</button></td></tr>`).join("") || '<tr><td colspan="8" class="empty">Chưa có lượt làm.</td></tr>'}</tbody></table></div>`;
   }
   async function openExamDetail(examOrId) {
     try {
@@ -423,34 +429,34 @@
         c = getAssessmentRoot();
       if (!c) return;
       const s = statusMeta(exam);
-      c.innerHTML = `<div class="assessment-detail-v122"><div class="subpage-head"><div><button id="v122Back" class="secondary compact">← Quay lại</button><small>BÀI KIỂM TRA TRỰC TUYẾN</small><h3>${esc2(exam.title || "Bài kiểm tra")}</h3><p>${esc2(exam.description || "")}</p></div><span class="badge ${s.className}">${s.label}</span></div><section class="panel"><div class="panel-head"><div><h3>Thông tin bài kiểm tra</h3><p class="hint">Một nguồn trạng thái duy nhất từ bảng exams.</p></div><div class="assessment-detail-actions"><button id="v122Preview" class="secondary">Làm thử</button>${detailActions(exam)}</div></div><div class="detail-grid"><div><small>Số câu</small><b>${Number(exam.total_questions || 0)}</b></div><div><small>Thời gian</small><b>${exam.duration_minutes || "—"} phút</b></div><div><small>Số lần làm</small><b>${exam.max_attempts || 1}</b></div><div><small>Lượt đã tạo</small><b>${attempts.length}</b></div><div><small>Rút câu</small><b>${esc2(modeLabel(exam.question_mode))}</b></div><div><small>Cấu trúc</small><b>${esc2(structureLabel(exam.structure_mode))}</b></div></div></section><section class="panel"><div class="panel-head"><div><h3>Cấu trúc và bộ câu</h3><p class="hint">Làm thử đọc trực tiếp frozen snapshot; không tạo lượt làm và không ghi điểm.</p></div></div><div id="v122DesignSummary"></div></section><section class="panel"><div class="panel-head"><div><h3>Danh sách bài làm</h3><p class="hint">Xem từng bài đã nộp hoặc xóa một lượt làm khi cần.</p></div></div><div id="v122AttemptList">${attemptTableHtml(attempts)}</div></section></div>`;
-      $1("#v122Back")?.addEventListener("click", () => exams(c));
-      $1("#v122Preview")?.addEventListener("click", () =>
+      c.innerHTML = `<div class="assessment-detail-v122"><div class="subpage-head"><div><button id="v122Back" class="secondary compact">← Quay lại</button><small>BÀI KIỂM TRA TRỰC TUYẾN</small><h3>${escapeHtml(exam.title || "Bài kiểm tra")}</h3><p>${escapeHtml(exam.description || "")}</p></div><span class="badge ${s.className}">${s.label}</span></div><section class="panel"><div class="panel-head"><div><h3>Thông tin bài kiểm tra</h3><p class="hint">Một nguồn trạng thái duy nhất từ bảng exams.</p></div><div class="assessment-detail-actions"><button id="v122Preview" class="secondary">Làm thử</button>${detailActions(exam)}</div></div><div class="detail-grid"><div><small>Số câu</small><b>${Number(exam.total_questions || 0)}</b></div><div><small>Thời gian</small><b>${exam.duration_minutes || "—"} phút</b></div><div><small>Số lần làm</small><b>${exam.max_attempts || 1}</b></div><div><small>Lượt đã tạo</small><b>${attempts.length}</b></div><div><small>Rút câu</small><b>${escapeHtml(modeLabel(exam.question_mode))}</b></div><div><small>Cấu trúc</small><b>${escapeHtml(structureLabel(exam.structure_mode))}</b></div></div></section><section class="panel"><div class="panel-head"><div><h3>Cấu trúc và bộ câu</h3><p class="hint">Làm thử đọc trực tiếp frozen snapshot; không tạo lượt làm và không ghi điểm.</p></div></div><div id="v122DesignSummary"></div></section><section class="panel"><div class="panel-head"><div><h3>Danh sách bài làm</h3><p class="hint">Xem từng bài đã nộp hoặc xóa một lượt làm khi cần.</p></div></div><div id="v122AttemptList">${attemptTableHtml(attempts)}</div></section></div>`;
+      qs("#v122Back")?.addEventListener("click", () => exams(c));
+      qs("#v122Preview")?.addEventListener("click", () =>
         openTeacherPreview(exam),
       );
-      $1("#v122Edit")?.addEventListener("click", () => openExamBuilder(exam));
-      $1("#v122Publish")?.addEventListener("click", async () => {
+      qs("#v122Edit")?.addEventListener("click", () => openExamBuilder(exam));
+      qs("#v122Publish")?.addEventListener("click", async () => {
         try {
           if (await setStatus(exam, "active")) await openExamDetail(exam);
         } catch (e) {
           showError(e);
         }
       });
-      $1("#v122Pause")?.addEventListener("click", async () => {
+      qs("#v122Pause")?.addEventListener("click", async () => {
         try {
           if (await setStatus(exam, "closed")) await openExamDetail(exam);
         } catch (e) {
           showError(e);
         }
       });
-      $1("#v122Reopen")?.addEventListener("click", async () => {
+      qs("#v122Reopen")?.addEventListener("click", async () => {
         try {
           if (await setStatus(exam, "active")) await openExamDetail(exam);
         } catch (e) {
           showError(e);
         }
       });
-      $1("#v122Delete")?.addEventListener("click", async () => {
+      qs("#v122Delete")?.addEventListener("click", async () => {
         try {
           await deleteExam(exam);
         } catch (e) {
@@ -464,20 +470,20 @@
     }
   }
   function bindAttemptTable(exam, attempts, mode) {
-    const box = $1("#v122AttemptList");
+    const box = qs("#v122AttemptList");
     if (!box) return;
-    const sort = $1("#v122AttemptSort", box);
+    const sort = qs("#v122AttemptSort", box);
     if (sort)
       sort.onchange = () => {
         box.innerHTML = attemptTableHtml(attempts, sort.value);
         bindAttemptTable(exam, attempts, sort.value);
       };
-    $$1("[data-v122-view-attempt]", box).forEach(
+    qsa("[data-v122-view-attempt]", box).forEach(
       (b) =>
         (b.onclick = () =>
           openTeacherAttemptResult(exam, b.dataset.v122ViewAttempt)),
     );
-    $$1("[data-v122-delete-attempt]", box).forEach(
+    qsa("[data-v122-delete-attempt]", box).forEach(
       (b) =>
         (b.onclick = () => deleteAttempt(exam, b.dataset.v122DeleteAttempt)),
     );
@@ -518,7 +524,7 @@
     }
   }
   async function renderDesignSummary(exam) {
-    const box = $1("#v122DesignSummary");
+    const box = qs("#v122DesignSummary");
     if (!box) return;
     const [{ data: pool, error }, { data: selected, error: se }] =
       await Promise.all([
@@ -542,7 +548,7 @@
       clo[r.clo_code || "—"] = (clo[r.clo_code || "—"] || 0) + 1;
     box.innerHTML = `<div class="detail-grid"><div><small>Pool đóng băng</small><b>${rows.length} câu</b></div><div><small>Bộ câu mẫu</small><b>${(selected || []).length} câu</b></div><div><small>CLO trong pool</small><b>${
       Object.entries(clo)
-        .map(([k, v]) => `${esc2(k)}: ${v}`)
+        .map(([k, v]) => `${escapeHtml(k)}: ${v}`)
         .join(" · ") || "—"
     }</b></div></div>`;
   }
@@ -568,9 +574,9 @@
       .map((x) => map.get(x.question_id))
       .filter(Boolean)
       .map((x) => ({ ...x, options: [...(x.options || [])] }));
-    if (exam.shuffle_questions) qs = shuf(qs);
+    if (exam.shuffle_questions) qs = shuffle(qs);
     if (exam.shuffle_options)
-      qs = qs.map((q) => ({ ...q, options: shuf(q.options || []) }));
+      qs = qs.map((q) => ({ ...q, options: shuffle(q.options || []) }));
     return qs;
   }
   async function openTeacherPreview(exam) {
@@ -592,16 +598,16 @@
   ) {
     const qx = questions[index];
     if (!qx) return;
-    const html = `<div class="exam-preview"><div class="preview-head"><b>Câu ${index + 1}/${questions.length}</b><span class="badge red">${esc2(qx.clo_code || "—")}</span><span>Bộ câu mẫu đóng băng · không lưu kết quả</span></div><div class="live-context"><span>${esc2(qx.chapter_name || "")}</span><span>${esc2(qx.topic_name || "")}</span></div><div class="preview-question">${esc2(qx.content || "")}</div><div class="preview-options">${(qx.options || []).map((o) => `<label class="${answers[qx.question_id] === o.key ? "selected" : ""}"><input type="radio" name="v122PreviewAnswer" value="${esc2(o.key)}" ${answers[qx.question_id] === o.key ? "checked" : ""}><b>${esc2(o.key)}</b><span>${esc2(o.content || "")}</span></label>`).join("")}</div><div class="question-jump">${questions.map((q, i) => `<button type="button" data-v122-preview-jump="${i}" class="${i === index ? "current" : ""} ${answers[q.question_id] ? "answered" : ""}">${i + 1}</button>`).join("")}</div><div class="preview-nav"><button id="v122PreviewPrev" class="secondary" ${index === 0 ? "disabled" : ""}>← Trước</button><button id="v122PreviewNext" class="secondary" ${index === questions.length - 1 ? "disabled" : ""}>Sau →</button><button id="v122PreviewSubmit" class="primary">Nộp bài thử</button></div></div>`;
+    const html = `<div class="exam-preview"><div class="preview-head"><b>Câu ${index + 1}/${questions.length}</b><span class="badge red">${escapeHtml(qx.clo_code || "—")}</span><span>Bộ câu mẫu đóng băng · không lưu kết quả</span></div><div class="live-context"><span>${escapeHtml(qx.chapter_name || "")}</span><span>${escapeHtml(qx.topic_name || "")}</span></div><div class="preview-question">${escapeHtml(qx.content || "")}</div><div class="preview-options">${(qx.options || []).map((o) => `<label class="${answers[qx.question_id] === o.key ? "selected" : ""}"><input type="radio" name="v122PreviewAnswer" value="${escapeHtml(o.key)}" ${answers[qx.question_id] === o.key ? "checked" : ""}><b>${escapeHtml(o.key)}</b><span>${escapeHtml(o.content || "")}</span></label>`).join("")}</div><div class="question-jump">${questions.map((q, i) => `<button type="button" data-v122-preview-jump="${i}" class="${i === index ? "current" : ""} ${answers[q.question_id] ? "answered" : ""}">${i + 1}</button>`).join("")}</div><div class="preview-nav"><button id="v122PreviewPrev" class="secondary" ${index === 0 ? "disabled" : ""}>← Trước</button><button id="v122PreviewNext" class="secondary" ${index === questions.length - 1 ? "disabled" : ""}>Sau →</button><button id="v122PreviewSubmit" class="primary">Nộp bài thử</button></div></div>`;
     const bind = () => {
-      $$1('input[name="v122PreviewAnswer"]', $1("#drawerBody")).forEach(
+      qsa('input[name="v122PreviewAnswer"]', qs("#drawerBody")).forEach(
         (r) =>
           (r.onchange = () => {
             answers[qx.question_id] = r.value;
             showTeacherPreviewQuestion(exam, questions, answers, index, false);
           }),
       );
-      $$1("[data-v122-preview-jump]", $1("#drawerBody")).forEach(
+      qsa("[data-v122-preview-jump]", qs("#drawerBody")).forEach(
         (b) =>
           (b.onclick = () =>
             showTeacherPreviewQuestion(
@@ -612,11 +618,11 @@
               false,
             )),
       );
-      $1("#v122PreviewPrev").onclick = () =>
+      qs("#v122PreviewPrev").onclick = () =>
         showTeacherPreviewQuestion(exam, questions, answers, index - 1, false);
-      $1("#v122PreviewNext").onclick = () =>
+      qs("#v122PreviewNext").onclick = () =>
         showTeacherPreviewQuestion(exam, questions, answers, index + 1, false);
-      $1("#v122PreviewSubmit").onclick = async () => {
+      qs("#v122PreviewSubmit").onclick = async () => {
         const missing = questions.filter((q) => !answers[q.question_id]).length;
         if (
           missing &&
@@ -658,19 +664,22 @@
         score: qs.length ? (right * 10) / qs.length : 0,
       };
     });
-    const html = `<div class="preview-result"><div class="result-score"><small>Điểm bài thử</small><b>${questions.length ? ((correct * 10) / questions.length).toFixed(2) : "0.00"}</b><span>${correct}/${questions.length} câu đúng</span></div><div class="clo-results">${byClo.map((x) => `<div><b>${esc2(x.code)}</b><strong>${x.score.toFixed(2)}</strong><span>${x.correct}/${x.total} câu đúng</span></div>`).join("")}</div><p class="hint">Làm thử chỉ dùng frozen snapshot, không tạo lượt làm, không ghi điểm và không gọi AI.</p><div class="drawer-actions"><button id="v122PreviewRetry" class="primary">Làm lại</button></div></div>`;
+    const html = `<div class="preview-result"><div class="result-score"><small>Điểm bài thử</small><b>${questions.length ? ((correct * 10) / questions.length).toFixed(2) : "0.00"}</b><span>${correct}/${questions.length} câu đúng</span></div><div class="clo-results">${byClo.map((x) => `<div><b>${escapeHtml(x.code)}</b><strong>${x.score.toFixed(2)}</strong><span>${x.correct}/${x.total} câu đúng</span></div>`).join("")}</div><p class="hint">Làm thử chỉ dùng frozen snapshot, không tạo lượt làm, không ghi điểm và không gọi AI.</p><div class="drawer-actions"><button id="v122PreviewRetry" class="primary">Làm lại</button></div></div>`;
     if (typeof replaceDrawer === "function")
       replaceDrawer(
         `Kết quả làm thử · ${exam.title}`,
         html,
         () => {
-          $1("#v122PreviewRetry").onclick = () =>
+          qs("#v122PreviewRetry").onclick = () =>
             showTeacherPreviewQuestion(exam, questions, {}, 0, false);
         },
         { wide: true, eyebrow: "KẾT QUẢ LÀM THỬ" },
       );
   }
 
+  /* ============================================================
+   * SECTION 3/7 — Online assessment builder, matrix, draw, replace and Gemini
+   * ============================================================ */
   function defaultBuilder(exam) {
     return {
       examId: exam?.id || null,
@@ -726,7 +735,7 @@
     for (const c of ctx.sets.clos) out[c.code] = 0;
     for (const [key, n] of Object.entries(ctx.matrix)) {
       const cloId = key.split(":").at(-1),
-        code = byId(ctx.sets.clos, cloId)?.code || cloId;
+        code = findById(ctx.sets.clos, cloId)?.code || cloId;
       out[code] = (out[code] || 0) + (+n || 0);
     }
     return out;
@@ -751,7 +760,7 @@
           const need =
             +ctx.matrix[matrixKey(ctx.structureMode, t.id, clo.id)] || 0;
           if (!need) continue;
-          const candidates = shuf(
+          const candidates = shuffle(
             eligibleForCell(ctx, t.id, clo.id).filter((q) => !used.has(q.id)),
           );
           if (candidates.length < need)
@@ -772,7 +781,7 @@
           const need =
             +ctx.matrix[matrixKey(ctx.structureMode, ch.id, clo.id)] || 0;
           if (!need) continue;
-          const candidates = shuf(
+          const candidates = shuffle(
             eligibleForCell(ctx, ch.id, clo.id).filter((q) => !used.has(q.id)),
           );
           if (candidates.length < need)
@@ -802,7 +811,7 @@
       const [, rowId, cloId] = key.split(":");
       const available = eligibleForCell(ctx, rowId, cloId).length;
       if (available < +n) {
-        const clo = byId(ctx.sets.clos, cloId)?.code || "CLO";
+        const clo = findById(ctx.sets.clos, cloId)?.code || "CLO";
         throw new Error(
           `${clo}: yêu cầu ${n} nhưng ngân hàng chỉ có ${available} câu phù hợp`,
         );
@@ -852,7 +861,7 @@
           .map(
             (x) =>
               frozen.get(x.question_id) ||
-              byId(ctx.sets.questions, x.question_id),
+              findById(ctx.sets.questions, x.question_id),
           )
           .filter(Boolean);
       }
@@ -865,19 +874,19 @@
     const c = getAssessmentRoot();
     if (!c) return;
     const total = matrixTotal(ctx);
-    c.innerHTML = `<div class="assessment-builder-v122"><div class="subpage-head"><div><button id="v122BuilderBack" class="secondary compact">← Quay lại</button><small>${ctx.examId ? "CHỈNH SỬA" : "TẠO"} BÀI KIỂM TRA</small><h3>${esc2(ctx.settings.title || "Bài kiểm tra mới")}</h3><p>Ngân hàng luyện tập – kiểm tra · ${ctx.locked ? "Cấu trúc đã khóa vì có lượt làm" : "Cấu trúc được lưu atomic cùng pool đóng băng"}</p></div><span class="badge">${total} câu</span></div>${builderInfo(ctx)}${builderStructure(ctx)}${builderQuestions(ctx)}<div class="form-actions assessment-builder-footer"><button id="v122BuilderCancel" class="secondary">Hủy</button><button id="v122Draw" class="secondary" ${ctx.locked ? "disabled" : ""}>Rút câu hỏi</button><button id="v122Save" class="primary">${ctx.examId ? "Lưu thay đổi" : "Tạo bài kiểm tra"}</button></div></div>`;
+    c.innerHTML = `<div class="assessment-builder-v122"><div class="subpage-head"><div><button id="v122BuilderBack" class="secondary compact">← Quay lại</button><small>${ctx.examId ? "CHỈNH SỬA" : "TẠO"} BÀI KIỂM TRA</small><h3>${escapeHtml(ctx.settings.title || "Bài kiểm tra mới")}</h3><p>Ngân hàng luyện tập – kiểm tra · ${ctx.locked ? "Cấu trúc đã khóa vì có lượt làm" : "Cấu trúc được lưu atomic cùng pool đóng băng"}</p></div><span class="badge">${total} câu</span></div>${builderInfo(ctx)}${builderStructure(ctx)}${builderQuestions(ctx)}<div class="form-actions assessment-builder-footer"><button id="v122BuilderCancel" class="secondary">Hủy</button><button id="v122Draw" class="secondary" ${ctx.locked ? "disabled" : ""}>Rút câu hỏi</button><button id="v122Save" class="primary">${ctx.examId ? "Lưu thay đổi" : "Tạo bài kiểm tra"}</button></div></div>`;
     bindBuilder(ctx);
   }
   function builderInfo(ctx) {
     const s = ctx.settings,
       dis = ctx.locked ? "disabled" : "";
-    return `<section class="panel"><div class="panel-head"><div><h3>1. Thông tin</h3><p class="hint">Các trường vận hành vẫn có thể sửa sau khi có lượt làm; cấu trúc đo lường thì không.</p></div></div><div class="form-grid"><label class="field wide">Tên bài<input data-v122-setting="title" value="${esc2(s.title)}" required></label><label class="field wide">Mô tả<textarea data-v122-setting="description">${esc2(s.description)}</textarea></label><label class="field">Thời gian (phút)<input type="number" min="1" max="300" data-v122-setting="duration_minutes" value="${s.duration_minutes}" ${dis}></label><label class="field">Số lần làm<input type="number" min="1" max="20" data-v122-setting="max_attempts" value="${s.max_attempts}"></label><label class="field">Cách rút câu<select data-v122-setting="question_mode" ${dis}><option value="common_fixed" ${s.question_mode === "common_fixed" ? "selected" : ""}>Đề chung cố định</option><option value="student_fixed" ${s.question_mode === "student_fixed" ? "selected" : ""}>Đề riêng theo sinh viên</option><option value="attempt_random" ${s.question_mode === "attempt_random" ? "selected" : ""}>Rút lại mỗi lần làm</option></select></label><label class="field">Cách ghi nhận<select data-v122-setting="score_policy"><option value="highest" ${s.score_policy === "highest" ? "selected" : ""}>Điểm cao nhất</option><option value="latest" ${s.score_policy === "latest" ? "selected" : ""}>Lần cuối</option><option value="average" ${s.score_policy === "average" ? "selected" : ""}>Trung bình</option></select></label><label class="field">Mở từ<input type="datetime-local" data-v122-setting="opens_at" value="${s.opens_at}" ${dis}></label><label class="field">Đóng lúc<input type="datetime-local" data-v122-setting="closes_at" value="${s.closes_at}"></label><div class="field wide assessment-options"><label><input type="checkbox" data-v122-check="show_answers" ${s.show_answers ? "checked" : ""}> Cho xem đáp án sau khi nộp</label><label><input type="checkbox" data-v122-check="shuffle_questions" ${s.shuffle_questions ? "checked" : ""} ${dis}> Trộn thứ tự câu</label><label><input type="checkbox" data-v122-check="shuffle_options" ${s.shuffle_options ? "checked" : ""} ${dis}> Trộn đáp án</label><label><input type="checkbox" data-v122-check="allow_ai_feedback" ${s.allow_ai_feedback ? "checked" : ""}> Cho phép AI nhận xét</label><label><input type="checkbox" data-v122-check="counts_toward_grade" ${s.counts_toward_grade ? "checked" : ""}> Tính vào kết quả CLO học phần</label></div></div></section>`;
+    return `<section class="panel"><div class="panel-head"><div><h3>1. Thông tin</h3><p class="hint">Các trường vận hành vẫn có thể sửa sau khi có lượt làm; cấu trúc đo lường thì không.</p></div></div><div class="form-grid"><label class="field wide">Tên bài<input data-v122-setting="title" value="${escapeHtml(s.title)}" required></label><label class="field wide">Mô tả<textarea data-v122-setting="description">${escapeHtml(s.description)}</textarea></label><label class="field">Thời gian (phút)<input type="number" min="1" max="300" data-v122-setting="duration_minutes" value="${s.duration_minutes}" ${dis}></label><label class="field">Số lần làm<input type="number" min="1" max="20" data-v122-setting="max_attempts" value="${s.max_attempts}"></label><label class="field">Cách rút câu<select data-v122-setting="question_mode" ${dis}><option value="common_fixed" ${s.question_mode === "common_fixed" ? "selected" : ""}>Đề chung cố định</option><option value="student_fixed" ${s.question_mode === "student_fixed" ? "selected" : ""}>Đề riêng theo sinh viên</option><option value="attempt_random" ${s.question_mode === "attempt_random" ? "selected" : ""}>Rút lại mỗi lần làm</option></select></label><label class="field">Cách ghi nhận<select data-v122-setting="score_policy"><option value="highest" ${s.score_policy === "highest" ? "selected" : ""}>Điểm cao nhất</option><option value="latest" ${s.score_policy === "latest" ? "selected" : ""}>Lần cuối</option><option value="average" ${s.score_policy === "average" ? "selected" : ""}>Trung bình</option></select></label><label class="field">Mở từ<input type="datetime-local" data-v122-setting="opens_at" value="${s.opens_at}" ${dis}></label><label class="field">Đóng lúc<input type="datetime-local" data-v122-setting="closes_at" value="${s.closes_at}"></label><div class="field wide assessment-options"><label><input type="checkbox" data-v122-check="show_answers" ${s.show_answers ? "checked" : ""}> Cho xem đáp án sau khi nộp</label><label><input type="checkbox" data-v122-check="shuffle_questions" ${s.shuffle_questions ? "checked" : ""} ${dis}> Trộn thứ tự câu</label><label><input type="checkbox" data-v122-check="shuffle_options" ${s.shuffle_options ? "checked" : ""} ${dis}> Trộn đáp án</label><label><input type="checkbox" data-v122-check="allow_ai_feedback" ${s.allow_ai_feedback ? "checked" : ""}> Cho phép AI nhận xét</label><label><input type="checkbox" data-v122-check="counts_toward_grade" ${s.counts_toward_grade ? "checked" : ""}> Tính vào kết quả CLO học phần</label></div></div></section>`;
   }
   function builderStructure(ctx) {
     const chapterRows = ctx.sets.chapters
       .map((ch) => {
         const topics = ctx.sets.topics.filter((t) => t.chapter_id === ch.id);
-        return `<div class="v122-scope-chapter"><label><input type="checkbox" data-v122-chapter="${ch.id}" ${ctx.selectedChapters.has(ch.id) ? "checked" : ""} ${ctx.locked ? "disabled" : ""}> <b>${esc2(ch.order_index)}. ${esc2(ch.name)}</b></label><div class="v122-topic-list">${topics.map((t) => `<label><input type="checkbox" data-v122-topic="${t.id}" data-chapter="${ch.id}" ${ctx.selectedTopics.has(t.id) ? "checked" : ""} ${ctx.locked ? "disabled" : ""}> ${esc2(t.name)}</label>`).join("")}</div></div>`;
+        return `<div class="v122-scope-chapter"><label><input type="checkbox" data-v122-chapter="${ch.id}" ${ctx.selectedChapters.has(ch.id) ? "checked" : ""} ${ctx.locked ? "disabled" : ""}> <b>${escapeHtml(ch.order_index)}. ${escapeHtml(ch.name)}</b></label><div class="v122-topic-list">${topics.map((t) => `<label><input type="checkbox" data-v122-topic="${t.id}" data-chapter="${ch.id}" ${ctx.selectedTopics.has(t.id) ? "checked" : ""} ${ctx.locked ? "disabled" : ""}> ${escapeHtml(t.name)}</label>`).join("")}</div></div>`;
       })
       .join("");
     return `<section class="panel"><div class="panel-head"><div><h3>2. Cấu trúc</h3><p class="hint">Chọn chương và từng mục. Tổng số câu được suy ra trực tiếp từ ma trận.</p></div></div><div class="v122-structure-mode"><label><input type="radio" name="v122StructureMode" value="topic_clo" ${ctx.structureMode === "topic_clo" ? "checked" : ""} ${ctx.locked ? "disabled" : ""}> CLO cho mỗi mục</label><label><input type="radio" name="v122StructureMode" value="chapter_pool" ${ctx.structureMode === "chapter_pool" ? "checked" : ""} ${ctx.locked ? "disabled" : ""}> CLO chung các mục trong chương</label></div><div class="v122-scope">${chapterRows}</div>${matrixEditor(ctx)}</section>`;
@@ -893,11 +902,11 @@
         const ts = selectedTopicsFor(ctx, ch.id);
         if (!ts.length) continue;
         rows +=
-          `<tr class="matrix-chapter"><td colspan="${ctx.sets.clos.length + 2}"><b>${esc2(ch.order_index)}. ${esc2(ch.name)}</b></td></tr>` +
+          `<tr class="matrix-chapter"><td colspan="${ctx.sets.clos.length + 2}"><b>${escapeHtml(ch.order_index)}. ${escapeHtml(ch.name)}</b></td></tr>` +
           ts
             .map(
               (t) =>
-                `<tr><td>${esc2(t.name)}</td>${ctx.sets.clos.map((clo) => matrixCell(ctx, t.id, clo)).join("")}<td><b>${ctx.sets.clos.reduce((n, clo) => n + (+ctx.matrix[matrixKey(ctx.structureMode, t.id, clo.id)] || 0), 0)}</b></td></tr>`,
+                `<tr><td>${escapeHtml(t.name)}</td>${ctx.sets.clos.map((clo) => matrixCell(ctx, t.id, clo)).join("")}<td><b>${ctx.sets.clos.reduce((n, clo) => n + (+ctx.matrix[matrixKey(ctx.structureMode, t.id, clo.id)] || 0), 0)}</b></td></tr>`,
             )
             .join("");
       }
@@ -910,18 +919,18 @@
         )
         .map(
           (ch) =>
-            `<tr><td><b>${esc2(ch.order_index)}. ${esc2(ch.name)}</b><small>${selectedTopicsFor(
+            `<tr><td><b>${escapeHtml(ch.order_index)}. ${escapeHtml(ch.name)}</b><small>${selectedTopicsFor(
               ctx,
               ch.id,
             )
-              .map((t) => esc2(t.name))
+              .map((t) => escapeHtml(t.name))
               .join(
                 ", ",
               )}</small></td>${ctx.sets.clos.map((clo) => matrixCell(ctx, ch.id, clo)).join("")}<td><b>${ctx.sets.clos.reduce((n, clo) => n + (+ctx.matrix[matrixKey(ctx.structureMode, ch.id, clo.id)] || 0), 0)}</b></td></tr>`,
         )
         .join("");
     }
-    return `<div class="table-wrap"><table class="exam-matrix"><thead><tr><th>${ctx.structureMode === "topic_clo" ? "Mục" : "Chương"}</th>${ctx.sets.clos.map((c) => `<th>${esc2(c.code)}</th>`).join("")}<th>Tổng</th></tr></thead><tbody>${rows}<tr class="matrix-grand"><td><b>TỔNG</b></td>${ctx.sets.clos
+    return `<div class="table-wrap"><table class="exam-matrix"><thead><tr><th>${ctx.structureMode === "topic_clo" ? "Mục" : "Chương"}</th>${ctx.sets.clos.map((c) => `<th>${escapeHtml(c.code)}</th>`).join("")}<th>Tổng</th></tr></thead><tbody>${rows}<tr class="matrix-grand"><td><b>TỔNG</b></td>${ctx.sets.clos
       .map(
         (c) =>
           `<td><b>${Object.entries(ctx.matrix)
@@ -946,10 +955,10 @@
   }
   function questionCard(ctx, q, index) {
     const opts = optionMap(q),
-      clo = byId(ctx.sets.clos, q.clo_id),
-      ch = byId(ctx.sets.chapters, q.chapter_id),
-      tp = byId(ctx.sets.topics, q.topic_id);
-    return `<article class="ub-question-card v122-question-card"><div class="ub-question-head"><div><b>Câu ${index + 1}</b><span class="badge red">${esc2(clo?.code || "—")}</span><span class="badge">${esc2(ch?.name || "—")}</span><span class="badge">${esc2(tp?.name || "—")}</span></div>${ctx.locked ? "" : `<div><button type="button" class="secondary compact" data-v122-replace="${index}">Đổi câu</button><button type="button" class="ai-btn compact" data-v122-ai="${index}">✦ Gemini sinh câu</button></div>`}</div><div class="detail-question">${esc2(q.content || "")}</div><div class="detail-options">${["A", "B", "C", "D"].map((k) => `<div class="${String(q.correct_answer || "").toUpperCase() === k ? "correct" : ""}"><b>${k}</b><span>${esc2(opts[k] || "")}</span></div>`).join("")}</div>${q.explanation ? `<p class="hint"><b>Lời giải:</b> ${esc2(q.explanation)}</p>` : ""}</article>`;
+      clo = findById(ctx.sets.clos, q.clo_id),
+      ch = findById(ctx.sets.chapters, q.chapter_id),
+      tp = findById(ctx.sets.topics, q.topic_id);
+    return `<article class="ub-question-card v122-question-card"><div class="ub-question-head"><div><b>Câu ${index + 1}</b><span class="badge red">${escapeHtml(clo?.code || "—")}</span><span class="badge">${escapeHtml(ch?.name || "—")}</span><span class="badge">${escapeHtml(tp?.name || "—")}</span></div>${ctx.locked ? "" : `<div><button type="button" class="secondary compact" data-v122-replace="${index}">Đổi câu</button><button type="button" class="ai-btn compact" data-v122-ai="${index}">✦ Gemini sinh câu</button></div>`}</div><div class="detail-question">${escapeHtml(q.content || "")}</div><div class="detail-options">${["A", "B", "C", "D"].map((k) => `<div class="${String(q.correct_answer || "").toUpperCase() === k ? "correct" : ""}"><b>${k}</b><span>${escapeHtml(opts[k] || "")}</span></div>`).join("")}</div>${q.explanation ? `<p class="hint"><b>Lời giải:</b> ${escapeHtml(q.explanation)}</p>` : ""}</article>`;
   }
   function builderQuestions(ctx) {
     return `<section class="panel"><div class="panel-head"><div><h3>3. Bộ câu mẫu</h3><p class="hint">Câu đang hiển thị của bài cũ được đọc từ snapshot đóng băng. Đổi câu/Gemini chỉ sửa bản nháp; bấm Lưu mới thay snapshot trong DB.</p></div></div>${
@@ -957,7 +966,7 @@
         ? `<div class="v122-selected-summary"><b>${ctx.selected.length}/${matrixTotal(ctx)} câu đã rút</b> · ${Object.entries(
             cloCountsFromQuestions(ctx.selected, ctx.sets),
           )
-            .map(([k, v]) => `${esc2(k)}: ${v}`)
+            .map(([k, v]) => `${escapeHtml(k)}: ${v}`)
             .join(
               " · ",
             )}${ctx.selectionDirty ? ' · <span class="badge">Chưa lưu thay đổi câu</span>' : ""}</div><div class="v122-selected-list">${ctx.selected.map((q, i) => questionCard(ctx, q, i)).join("")}</div>`
@@ -967,7 +976,7 @@
   function cloCountsFromQuestions(rows, sets) {
     const out = {};
     for (const q of rows) {
-      const code = byId(sets.clos, q.clo_id)?.code || "—";
+      const code = findById(sets.clos, q.clo_id)?.code || "—";
       out[code] = (out[code] || 0) + 1;
     }
     return out;
@@ -991,7 +1000,7 @@
     const pool = replacementCandidates(ctx, index);
     if (!pool.length)
       return notify("Không còn câu khác phù hợp với đúng ô ma trận này.", true);
-    const picked = shuf(pool)[0];
+    const picked = shuffle(pool)[0];
     ctx.selected[index] = ctx.frozenPool?.get(picked.id) || picked;
     ctx.selectionDirty = true;
     renderBuilder(ctx);
@@ -1034,18 +1043,18 @@
     const opts = g.options || {};
     modal(
       `AI-CLO | Câu ${index + 1} do Gemini đề xuất`,
-      `<div class="v122-ai-preview"><p class="hint">${esc2(model)} · Câu chỉ được đưa vào bài sau khi bạn chọn “Dùng câu này” và bấm “Lưu thay đổi”.</p><div class="detail-question">${esc2(g.content || "")}</div><div class="detail-options">${["A", "B", "C", "D"].map((k) => `<div class="${String(g.correct_answer || "").toUpperCase() === k ? "correct" : ""}"><b>${k}</b><span>${esc2(opts[k] || "")}</span></div>`).join("")}</div>${g.explanation ? `<p class="hint"><b>Lời giải:</b> ${esc2(g.explanation)}</p>` : ""}<p class="hint">Khi chấp nhận, câu này sẽ được lưu vào <b>Ngân hàng luyện tập – kiểm tra</b> để có mã câu hợp lệ cho frozen pool.</p><div class="form-actions"><button type="button" id="v122AiCancel" class="secondary">Hủy</button><button type="button" id="v122AiUse" class="primary">Dùng câu này</button></div></div>`,
+      `<div class="v122-ai-preview"><p class="hint">${escapeHtml(model)} · Câu chỉ được đưa vào bài sau khi bạn chọn “Dùng câu này” và bấm “Lưu thay đổi”.</p><div class="detail-question">${escapeHtml(g.content || "")}</div><div class="detail-options">${["A", "B", "C", "D"].map((k) => `<div class="${String(g.correct_answer || "").toUpperCase() === k ? "correct" : ""}"><b>${k}</b><span>${escapeHtml(opts[k] || "")}</span></div>`).join("")}</div>${g.explanation ? `<p class="hint"><b>Lời giải:</b> ${escapeHtml(g.explanation)}</p>` : ""}<p class="hint">Khi chấp nhận, câu này sẽ được lưu vào <b>Ngân hàng luyện tập – kiểm tra</b> để có mã câu hợp lệ cho frozen pool.</p><div class="form-actions"><button type="button" id="v122AiCancel" class="secondary">Hủy</button><button type="button" id="v122AiUse" class="primary">Dùng câu này</button></div></div>`,
     );
-    $1("#v122AiCancel")?.addEventListener("click", () => {
+    qs("#v122AiCancel")?.addEventListener("click", () => {
       if (typeof closeModal === "function") closeModal();
       renderBuilder(ctx);
     });
-    $1("#v122AiUse")?.addEventListener("click", () =>
+    qs("#v122AiUse")?.addEventListener("click", () =>
       acceptAiQuestion(ctx, index, g),
     );
   }
   async function acceptAiQuestion(ctx, index, g) {
-    const btn = $1("#v122AiUse");
+    const btn = qs("#v122AiUse");
     if (btn) {
       btn.disabled = true;
       btn.textContent = "Đang lưu câu…";
@@ -1109,22 +1118,22 @@
   }
   function bindBuilder(ctx) {
     const c = getAssessmentRoot();
-    $1("#v122BuilderBack", c).onclick = () =>
+    qs("#v122BuilderBack", c).onclick = () =>
       ctx.examId ? openExamDetail(ctx.examId) : exams(c);
-    $1("#v122BuilderCancel", c).onclick = () =>
+    qs("#v122BuilderCancel", c).onclick = () =>
       ctx.examId ? openExamDetail(ctx.examId) : exams(c);
-    $$1("[data-v122-setting]", c).forEach(
+    qsa("[data-v122-setting]", c).forEach(
       (el) =>
         (el.oninput = () => {
           const k = el.dataset.v122Setting;
           ctx.settings[k] = el.type === "number" ? +el.value : el.value;
         }),
     );
-    $$1("[data-v122-check]", c).forEach(
+    qsa("[data-v122-check]", c).forEach(
       (el) =>
         (el.onchange = () => (ctx.settings[el.dataset.v122Check] = el.checked)),
     );
-    $$1("[data-v122-chapter]", c).forEach(
+    qsa("[data-v122-chapter]", c).forEach(
       (el) =>
         (el.onchange = () => {
           const id = el.dataset.v122Chapter,
@@ -1142,7 +1151,7 @@
           renderBuilder(ctx);
         }),
     );
-    $$1("[data-v122-topic]", c).forEach(
+    qsa("[data-v122-topic]", c).forEach(
       (el) =>
         (el.onchange = () => {
           const id = el.dataset.v122Topic,
@@ -1160,7 +1169,7 @@
           renderBuilder(ctx);
         }),
     );
-    $$1('input[name="v122StructureMode"]', c).forEach(
+    qsa('input[name="v122StructureMode"]', c).forEach(
       (el) =>
         (el.onchange = () => {
           ctx.structureMode = el.value;
@@ -1170,7 +1179,7 @@
           renderBuilder(ctx);
         }),
     );
-    $$1(".v122-matrix-input", c).forEach(
+    qsa(".v122-matrix-input", c).forEach(
       (el) =>
         (el.onchange = () => {
           ctx.matrix[el.dataset.key] = Math.max(0, +el.value || 0);
@@ -1179,16 +1188,16 @@
           renderBuilder(ctx);
         }),
     );
-    $$1("[data-v122-replace]", c).forEach(
+    qsa("[data-v122-replace]", c).forEach(
       (el) =>
         (el.onclick = () =>
           replaceSelectedQuestion(ctx, +el.dataset.v122Replace)),
     );
-    $$1("[data-v122-ai]", c).forEach(
+    qsa("[data-v122-ai]", c).forEach(
       (el) =>
         (el.onclick = () => generateAiQuestion(ctx, +el.dataset.v122Ai, el)),
     );
-    $1("#v122Draw", c).onclick = () => {
+    qs("#v122Draw", c).onclick = () => {
       try {
         validateBuilder(ctx);
         ctx.selected = drawSelection(ctx);
@@ -1199,7 +1208,7 @@
         showError(e);
       }
     };
-    $1("#v122Save", c).onclick = () => saveBuilder(ctx);
+    qs("#v122Save", c).onclick = () => saveBuilder(ctx);
   }
   function cleanMatrix(ctx) {
     for (const key of Object.keys(ctx.matrix)) {
@@ -1215,7 +1224,7 @@
   }
   async function saveBuilder(ctx) {
     let createdId = null,
-      saveBtn = $1("#v122Save");
+      saveBtn = qs("#v122Save");
     try {
       if (!ctx.settings.title.trim())
         throw new Error("Cần nhập tên bài kiểm tra");
@@ -1243,8 +1252,8 @@
         max_attempts: +ctx.settings.max_attempts || 1,
         question_mode: ctx.settings.question_mode,
         score_policy: ctx.settings.score_policy,
-        opens_at: iso(ctx.settings.opens_at),
-        closes_at: iso(ctx.settings.closes_at),
+        opens_at: toIsoOrNull(ctx.settings.opens_at),
+        closes_at: toIsoOrNull(ctx.settings.closes_at),
         show_answers: !!ctx.settings.show_answers,
         shuffle_questions: !!ctx.settings.shuffle_questions,
         shuffle_options: !!ctx.settings.shuffle_options,
@@ -1320,7 +1329,9 @@
     }
   }
 
-  /* ---------- Final exam V12.2 canonical workflow ---------- */
+  /* ============================================================
+   * SECTION 4/7 — Final exam builder, secure bank, variants, snapshots and export handoff
+   * ============================================================ */
   const finalLocalKey = (packageId = "new") =>
     `aiclo:v122:final:${state.user?.id || "user"}:${subjectId() || "subject"}:${packageId}`;
   function readFinalLocal(packageId = "new") {
@@ -1577,8 +1588,8 @@
       const [topicId, cloId] = key.split(":"),
         have = finalEligible(ctx, topicId, cloId).length;
       if (have < +n) {
-        const t = byId(ctx.sets.topics, topicId),
-          c = byId(ctx.sets.clos, cloId);
+        const t = findById(ctx.sets.topics, topicId),
+          c = findById(ctx.sets.clos, cloId);
         throw new Error(
           `${t?.name || "Mục"} · ${c?.code || "CLO"}: cần ${n}, ngân hàng bảo mật chỉ có ${have}`,
         );
@@ -1594,7 +1605,7 @@
       for (const c of ctx.sets.clos) {
         const need = +ctx.matrix[finalMatrixKey(t.id, c.id)] || 0;
         if (!need) continue;
-        const cand = shuf(
+        const cand = shuffle(
           finalEligible(ctx, t.id, c.id).filter((q) => !used.has(q.id)),
         );
         if (cand.length < need)
@@ -1612,7 +1623,7 @@
       throw new Error("Cần rút đủ bộ câu trước khi sinh mã đề");
     const codes = ctx.metadata.variant_codes.map(String);
     return codes.map((code, i) => {
-      const base = i === 0 ? [...ctx.selected] : shuf(ctx.selected);
+      const base = i === 0 ? [...ctx.selected] : shuffle(ctx.selected);
       return {
         code,
         questions: base.map((q, idx) => ({
@@ -1624,20 +1635,20 @@
   }
   function finalQuestionCard(ctx, q, index) {
     const opts = optionMap(q),
-      clo = byId(ctx.sets.clos, q.clo_id),
-      ch = byId(ctx.sets.chapters, q.chapter_id),
-      tp = byId(ctx.sets.topics, q.topic_id);
-    return `<article class="ub-question-card v122-question-card"><div class="ub-question-head"><div><b>Câu ${index + 1}</b><span class="badge red">${esc2(clo?.code || "—")}</span><span class="badge">${esc2(ch?.name || "—")}</span><span class="badge">${esc2(tp?.name || "—")}</span></div><button type="button" class="secondary compact" data-v122-final-replace="${index}">Đổi câu</button></div><div class="detail-question">${esc2(q.content || "")}</div><div class="detail-options">${["A", "B", "C", "D"].map((k) => `<div class="${String(q.correct_answer || "").toUpperCase() === k ? "correct" : ""}"><b>${k}</b><span>${esc2(opts[k] || "")}</span></div>`).join("")}</div></article>`;
+      clo = findById(ctx.sets.clos, q.clo_id),
+      ch = findById(ctx.sets.chapters, q.chapter_id),
+      tp = findById(ctx.sets.topics, q.topic_id);
+    return `<article class="ub-question-card v122-question-card"><div class="ub-question-head"><div><b>Câu ${index + 1}</b><span class="badge red">${escapeHtml(clo?.code || "—")}</span><span class="badge">${escapeHtml(ch?.name || "—")}</span><span class="badge">${escapeHtml(tp?.name || "—")}</span></div><button type="button" class="secondary compact" data-v122-final-replace="${index}">Đổi câu</button></div><div class="detail-question">${escapeHtml(q.content || "")}</div><div class="detail-options">${["A", "B", "C", "D"].map((k) => `<div class="${String(q.correct_answer || "").toUpperCase() === k ? "correct" : ""}"><b>${k}</b><span>${escapeHtml(opts[k] || "")}</span></div>`).join("")}</div></article>`;
   }
   function finalInfoHtml(ctx) {
     const m = ctx.metadata;
-    return `<section class="panel"><div class="panel-head"><div><h3>1. Thông tin đề</h3><p class="hint">Nguồn câu được khóa ở Ngân hàng đề thi – bảo mật.</p></div><span id="v122FinalSync" class="badge ${ctx.syncState === "server" ? "green" : ctx.syncState === "local" ? "red" : ""}">${ctx.syncState === "server" ? "Đã đồng bộ" : ctx.syncState === "local" ? "Chưa đồng bộ" : "Đang chỉnh sửa"}</span></div><div class="form-grid"><label class="field wide">Tên hồ sơ đề<input data-final-field="title" value="${esc2(ctx.title)}"></label><label class="field">Mã học phần<input data-final-meta="exam_code" value="${esc2(m.exam_code)}"></label><label class="field">Học kỳ<input data-final-meta="semester" value="${esc2(m.semester)}"></label><label class="field">Năm học<input data-final-meta="academic_year" value="${esc2(m.academic_year)}"></label><label class="field">Ngày thi<input type="date" data-final-meta="exam_date" value="${esc2(m.exam_date)}"></label><label class="field">Ca thi<input data-final-meta="exam_session" value="${esc2(m.exam_session)}"></label><label class="field">Thời gian (phút)<input type="number" min="1" max="300" data-final-meta="duration_minutes" value="${+m.duration_minutes || 90}"></label><label class="field">Số mã đề<input id="v122FinalVariantCount" type="number" min="1" max="20" value="${m.variant_codes.length}"></label><label class="field wide">Danh sách mã đề<input id="v122FinalCodes" value="${esc2(m.variant_codes.join(", "))}" placeholder="101, 102, 103, 104"></label><label class="field">Giảng viên ra đề<input data-final-meta="prepared_by" value="${esc2(m.prepared_by)}"></label><label class="field">Trưởng bộ môn<input data-final-meta="approved_by" value="${esc2(m.approved_by)}"></label><label class="field wide">Ghi chú<textarea data-final-meta="notes">${esc2(m.notes)}</textarea></label></div></section>`;
+    return `<section class="panel"><div class="panel-head"><div><h3>1. Thông tin đề</h3><p class="hint">Nguồn câu được khóa ở Ngân hàng đề thi – bảo mật.</p></div><span id="v122FinalSync" class="badge ${ctx.syncState === "server" ? "green" : ctx.syncState === "local" ? "red" : ""}">${ctx.syncState === "server" ? "Đã đồng bộ" : ctx.syncState === "local" ? "Chưa đồng bộ" : "Đang chỉnh sửa"}</span></div><div class="form-grid"><label class="field wide">Tên hồ sơ đề<input data-final-field="title" value="${escapeHtml(ctx.title)}"></label><label class="field">Mã học phần<input data-final-meta="exam_code" value="${escapeHtml(m.exam_code)}"></label><label class="field">Học kỳ<input data-final-meta="semester" value="${escapeHtml(m.semester)}"></label><label class="field">Năm học<input data-final-meta="academic_year" value="${escapeHtml(m.academic_year)}"></label><label class="field">Ngày thi<input type="date" data-final-meta="exam_date" value="${escapeHtml(m.exam_date)}"></label><label class="field">Ca thi<input data-final-meta="exam_session" value="${escapeHtml(m.exam_session)}"></label><label class="field">Thời gian (phút)<input type="number" min="1" max="300" data-final-meta="duration_minutes" value="${+m.duration_minutes || 90}"></label><label class="field">Số mã đề<input id="v122FinalVariantCount" type="number" min="1" max="20" value="${m.variant_codes.length}"></label><label class="field wide">Danh sách mã đề<input id="v122FinalCodes" value="${escapeHtml(m.variant_codes.join(", "))}" placeholder="101, 102, 103, 104"></label><label class="field">Giảng viên ra đề<input data-final-meta="prepared_by" value="${escapeHtml(m.prepared_by)}"></label><label class="field">Trưởng bộ môn<input data-final-meta="approved_by" value="${escapeHtml(m.approved_by)}"></label><label class="field wide">Ghi chú<textarea data-final-meta="notes">${escapeHtml(m.notes)}</textarea></label></div></section>`;
   }
   function finalMatrixHtml(ctx) {
     const scope = ctx.sets.chapters
       .map((ch) => {
         const topics = ctx.sets.topics.filter((t) => t.chapter_id === ch.id);
-        return `<div class="v122-scope-chapter"><label><input type="checkbox" data-final-chapter="${ch.id}" ${ctx.selectedChapters.has(ch.id) ? "checked" : ""}> <b>${esc2(ch.order_index)}. ${esc2(ch.name)}</b></label><div class="v122-topic-list">${topics.map((t) => `<label><input type="checkbox" data-final-topic="${t.id}" data-chapter="${ch.id}" ${ctx.selectedTopics.has(t.id) ? "checked" : ""}> ${esc2(t.name)}</label>`).join("")}</div></div>`;
+        return `<div class="v122-scope-chapter"><label><input type="checkbox" data-final-chapter="${ch.id}" ${ctx.selectedChapters.has(ch.id) ? "checked" : ""}> <b>${escapeHtml(ch.order_index)}. ${escapeHtml(ch.name)}</b></label><div class="v122-topic-list">${topics.map((t) => `<label><input type="checkbox" data-final-topic="${t.id}" data-chapter="${ch.id}" ${ctx.selectedTopics.has(t.id) ? "checked" : ""}> ${escapeHtml(t.name)}</label>`).join("")}</div></div>`;
       })
       .join("");
     let rows = "";
@@ -1648,9 +1659,9 @@
         (t) => t.chapter_id === ch.id && ctx.selectedTopics.has(t.id),
       );
       if (!topics.length) continue;
-      rows += `<tr class="matrix-chapter"><td colspan="${ctx.sets.clos.length + 2}"><b>${esc2(ch.order_index)}. ${esc2(ch.name)}</b></td></tr>`;
+      rows += `<tr class="matrix-chapter"><td colspan="${ctx.sets.clos.length + 2}"><b>${escapeHtml(ch.order_index)}. ${escapeHtml(ch.name)}</b></td></tr>`;
       for (const t of topics) {
-        rows += `<tr><td>${esc2(t.name)}</td>${ctx.sets.clos
+        rows += `<tr><td>${escapeHtml(t.name)}</td>${ctx.sets.clos
           .map((c) => {
             const key = finalMatrixKey(t.id, c.id),
               n = +ctx.matrix[key] || 0,
@@ -1664,7 +1675,7 @@
     }
     return `<section class="panel"><div class="panel-head"><div><h3>2. Ma trận Chương/Mục × CLO</h3><p class="hint">Mọi ô khả dụng được tính chỉ từ ngân hàng bảo mật.</p></div></div><div class="v122-scope">${scope}</div>${
       ctx.selectedTopics.size
-        ? `<div class="table-wrap"><table class="exam-matrix"><thead><tr><th>Mục</th>${ctx.sets.clos.map((c) => `<th>${esc2(c.code)}</th>`).join("")}<th>Tổng</th></tr></thead><tbody>${rows}<tr class="matrix-grand"><td><b>TỔNG</b></td>${ctx.sets.clos
+        ? `<div class="table-wrap"><table class="exam-matrix"><thead><tr><th>Mục</th>${ctx.sets.clos.map((c) => `<th>${escapeHtml(c.code)}</th>`).join("")}<th>Tổng</th></tr></thead><tbody>${rows}<tr class="matrix-grand"><td><b>TỔNG</b></td>${ctx.sets.clos
             .map(
               (c) =>
                 `<td><b>${Object.entries(ctx.matrix)
@@ -1683,7 +1694,7 @@
         ? `<div class="v122-selected-summary"><b>${ctx.selected.length}/${finalMatrixTotal(ctx)} câu</b> · ${Object.entries(
             cloCountsFromQuestions(ctx.selected, ctx.sets),
           )
-            .map(([k, v]) => `${esc2(k)}: ${v}`)
+            .map(([k, v]) => `${escapeHtml(k)}: ${v}`)
             .join(
               " · ",
             )}</div><div class="v122-selected-list">${ctx.selected.map((q, i) => finalQuestionCard(ctx, q, i)).join("")}</div>`
@@ -1691,19 +1702,19 @@
     }</section>`;
   }
   function finalVariantsHtml(ctx) {
-    return `<section class="panel"><div class="panel-head"><div><h3>4. Mã đề</h3><p class="hint">Số mã đề được giữ xuyên suốt từ thiết lập đến hồ sơ server.</p></div></div>${ctx.variants.length ? `<div class="detail-grid">${ctx.variants.map((v) => `<div><small>Mã đề</small><b>${esc2(v.code)}</b><span>${v.questions?.length || 0} câu</span></div>`).join("")}</div>` : `<div class="empty"><b>Chưa sinh mã đề</b><span>Nhấn “Sinh mã đề & lưu” sau khi bộ câu đã đủ.</span></div>`}</section>`;
+    return `<section class="panel"><div class="panel-head"><div><h3>4. Mã đề</h3><p class="hint">Số mã đề được giữ xuyên suốt từ thiết lập đến hồ sơ server.</p></div></div>${ctx.variants.length ? `<div class="detail-grid">${ctx.variants.map((v) => `<div><small>Mã đề</small><b>${escapeHtml(v.code)}</b><span>${v.questions?.length || 0} câu</span></div>`).join("")}</div>` : `<div class="empty"><b>Chưa sinh mã đề</b><span>Nhấn “Sinh mã đề & lưu” sau khi bộ câu đã đủ.</span></div>`}</section>`;
   }
   function renderFinalBuilder(ctx) {
     const c = getAssessmentRoot();
     if (!c) return;
-    c.innerHTML = `<div class="assessment-final-builder-v122"><div class="subpage-head"><div><button id="v122FinalBack" class="secondary compact">← Quay lại</button><small>${ctx.packageId ? "CHỈNH SỬA" : "TẠO"} ĐỀ THI CUỐI KỲ</small><h3>${esc2(ctx.title || "Đề thi cuối kỳ mới")}</h3><p>Ngân hàng đề thi – bảo mật · ${ctx.metadata.variant_codes.length} mã đề</p></div><span class="badge ${ctx.status === "generated" ? "green" : ""}">${esc2(finalStatusLabel(ctx.status))}</span></div>${finalInfoHtml(ctx)}${finalMatrixHtml(ctx)}${finalQuestionsHtml(ctx)}${finalVariantsHtml(ctx)}<div class="form-actions assessment-builder-footer"><button id="v122FinalCancel" class="secondary">Hủy</button><button id="v122FinalSaveDraft" class="secondary">Lưu bản nháp</button><button id="v122FinalGenerate" class="primary">Sinh mã đề & lưu</button></div></div>`;
+    c.innerHTML = `<div class="assessment-final-builder-v122"><div class="subpage-head"><div><button id="v122FinalBack" class="secondary compact">← Quay lại</button><small>${ctx.packageId ? "CHỈNH SỬA" : "TẠO"} ĐỀ THI CUỐI KỲ</small><h3>${escapeHtml(ctx.title || "Đề thi cuối kỳ mới")}</h3><p>Ngân hàng đề thi – bảo mật · ${ctx.metadata.variant_codes.length} mã đề</p></div><span class="badge ${ctx.status === "generated" ? "green" : ""}">${escapeHtml(finalStatusLabel(ctx.status))}</span></div>${finalInfoHtml(ctx)}${finalMatrixHtml(ctx)}${finalQuestionsHtml(ctx)}${finalVariantsHtml(ctx)}<div class="form-actions assessment-builder-footer"><button id="v122FinalCancel" class="secondary">Hủy</button><button id="v122FinalSaveDraft" class="secondary">Lưu bản nháp</button><button id="v122FinalGenerate" class="primary">Sinh mã đề & lưu</button></div></div>`;
     bindFinalBuilder(ctx);
   }
   function markFinalDirty(ctx) {
     ctx.dirty = true;
     ctx.syncState = "dirty";
     writeFinalLocal(ctx);
-    const badge = $1("#v122FinalSync");
+    const badge = qs("#v122FinalSync");
     if (badge) {
       badge.textContent = "Chưa đồng bộ";
       badge.classList.remove("green");
@@ -1718,18 +1729,18 @@
   }
   function bindFinalBuilder(ctx) {
     const c = getAssessmentRoot();
-    $1("#v122FinalBack", c).onclick = () =>
+    qs("#v122FinalBack", c).onclick = () =>
       ctx.packageId ? openFinalExamDetail(ctx.packageId) : exams(c);
-    $1("#v122FinalCancel", c).onclick = () =>
+    qs("#v122FinalCancel", c).onclick = () =>
       ctx.packageId ? openFinalExamDetail(ctx.packageId) : exams(c);
-    $$1("[data-final-field]", c).forEach(
+    qsa("[data-final-field]", c).forEach(
       (el) =>
         (el.oninput = () => {
           ctx[el.dataset.finalField] = el.value;
           markFinalDirty(ctx);
         }),
     );
-    $$1("[data-final-meta]", c).forEach(
+    qsa("[data-final-meta]", c).forEach(
       (el) =>
         (el.oninput = () => {
           ctx.metadata[el.dataset.finalMeta] =
@@ -1737,8 +1748,8 @@
           markFinalDirty(ctx);
         }),
     );
-    const count = $1("#v122FinalVariantCount", c),
-      codes = $1("#v122FinalCodes", c);
+    const count = qs("#v122FinalVariantCount", c),
+      codes = qs("#v122FinalCodes", c);
     count.onchange = () => {
       const n = Math.min(20, Math.max(1, +count.value || 1));
       ctx.metadata.variant_codes = defaultVariantCodes(n);
@@ -1758,7 +1769,7 @@
       markFinalDirty(ctx);
       renderFinalBuilder(ctx);
     };
-    $$1("[data-final-chapter]", c).forEach(
+    qsa("[data-final-chapter]", c).forEach(
       (el) =>
         (el.onchange = () => {
           const id = el.dataset.finalChapter,
@@ -1777,7 +1788,7 @@
           renderFinalBuilder(ctx);
         }),
     );
-    $$1("[data-final-topic]", c).forEach(
+    qsa("[data-final-topic]", c).forEach(
       (el) =>
         (el.onchange = () => {
           const id = el.dataset.finalTopic,
@@ -1796,7 +1807,7 @@
           renderFinalBuilder(ctx);
         }),
     );
-    $$1(".v122-final-matrix-input", c).forEach(
+    qsa(".v122-final-matrix-input", c).forEach(
       (el) =>
         (el.onchange = () => {
           ctx.matrix[el.dataset.key] = Math.max(0, +el.value || 0);
@@ -1806,7 +1817,7 @@
           renderFinalBuilder(ctx);
         }),
     );
-    $1("#v122FinalDraw", c).onclick = () => {
+    qs("#v122FinalDraw", c).onclick = () => {
       try {
         ctx.selected = drawFinalSelection(ctx);
         ctx.variants = [];
@@ -1817,13 +1828,13 @@
         showError(e);
       }
     };
-    $$1("[data-v122-final-replace]", c).forEach(
+    qsa("[data-v122-final-replace]", c).forEach(
       (el) =>
         (el.onclick = () =>
           replaceFinalQuestion(ctx, +el.dataset.v122FinalReplace)),
     );
-    $1("#v122FinalSaveDraft", c).onclick = () => saveFinalPackage(ctx, false);
-    $1("#v122FinalGenerate", c).onclick = () => saveFinalPackage(ctx, true);
+    qs("#v122FinalSaveDraft", c).onclick = () => saveFinalPackage(ctx, false);
+    qs("#v122FinalGenerate", c).onclick = () => saveFinalPackage(ctx, true);
   }
   function replaceFinalQuestion(ctx, index) {
     const old = ctx.selected[index],
@@ -1841,14 +1852,14 @@
         "Không còn câu bảo mật khác phù hợp với đúng ô ma trận này.",
         true,
       );
-    ctx.selected[index] = shuf(pool)[0];
+    ctx.selected[index] = shuffle(pool)[0];
     ctx.variants = [];
     markFinalDirty(ctx);
     renderFinalBuilder(ctx);
     notify(`Đã đổi Câu ${index + 1}; chưa đồng bộ lên Supabase.`);
   }
   async function saveFinalPackage(ctx, generate) {
-    const btn = generate ? $1("#v122FinalGenerate") : $1("#v122FinalSaveDraft"),
+    const btn = generate ? qs("#v122FinalGenerate") : qs("#v122FinalSaveDraft"),
       old = btn?.textContent;
     try {
       let total = finalMatrixTotal(ctx);
@@ -1954,7 +1965,7 @@
     return window.AICLO_FINAL_EXPORTS;
   }
   function finalSubjectLabel() {
-    const el = $1("#subjectSelect");
+    const el = qs("#subjectSelect");
     const text = el?.selectedOptions?.[0]?.textContent || "";
     return String(text).trim() || "Học phần";
   }
@@ -2051,11 +2062,11 @@
         throw new Error("Không mở được cửa sổ xuất hồ sơ");
       modal(
         `Xuất hồ sơ · ${pkg.title || "Đề thi cuối kỳ"}`,
-        `<div class="final-export-v122"><p class="hint">Nguồn xuất: snapshot đã lưu trên Supabase · ${ctx.selected.length} câu · ${codes.length} mã đề.</p><div class="form-grid"><label class="field wide">Mã đề để xuất riêng<select id="v122ExportCode">${codes.map((c) => `<option value="${esc2(c)}">${esc2(c)}</option>`).join("")}</select></label></div><div class="form-actions wrap"><button type="button" id="v122ExportBM06" class="secondary">BM06 · Ma trận DOCX</button><button type="button" id="v122ExportBM07" class="secondary">BM07 · Đề DOCX</button><button type="button" id="v122ExportBM08" class="secondary">BM08 · Đáp án DOCX</button><button type="button" id="v122ExportTeX" class="secondary">TeX</button><button type="button" id="v122ExportAnswers" class="secondary">Đáp án Excel</button><button type="button" id="v122ExportZip" class="primary">ZIP toàn bộ</button></div><p class="hint">ZIP gồm BM06, BM07/BM08 cho mọi mã đề, TeX và file đáp án CLO.</p></div>`,
+        `<div class="final-export-v122"><p class="hint">Nguồn xuất: snapshot đã lưu trên Supabase · ${ctx.selected.length} câu · ${codes.length} mã đề.</p><div class="form-grid"><label class="field wide">Mã đề để xuất riêng<select id="v122ExportCode">${codes.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("")}</select></label></div><div class="form-actions wrap"><button type="button" id="v122ExportBM06" class="secondary">BM06 · Ma trận DOCX</button><button type="button" id="v122ExportBM07" class="secondary">BM07 · Đề DOCX</button><button type="button" id="v122ExportBM08" class="secondary">BM08 · Đáp án DOCX</button><button type="button" id="v122ExportTeX" class="secondary">TeX</button><button type="button" id="v122ExportAnswers" class="secondary">Đáp án Excel</button><button type="button" id="v122ExportZip" class="primary">ZIP toàn bộ</button></div><p class="hint">ZIP gồm BM06, BM07/BM08 cho mọi mã đề, TeX và file đáp án CLO.</p></div>`,
       );
       const selectedVariant = () =>
         ctx.variants.find(
-          (v) => String(v.code) === $1("#v122ExportCode")?.value,
+          (v) => String(v.code) === qs("#v122ExportCode")?.value,
         ) || ctx.variants[0];
       const run = async (btn, fn) => {
         const old = btn.textContent;
@@ -2071,17 +2082,17 @@
           btn.textContent = old;
         }
       };
-      $1("#v122ExportBM06").onclick = (e) =>
+      qs("#v122ExportBM06").onclick = (e) =>
         run(e.currentTarget, () => api.bm06(ctx));
-      $1("#v122ExportBM07").onclick = (e) =>
+      qs("#v122ExportBM07").onclick = (e) =>
         run(e.currentTarget, () => api.bm07(ctx, selectedVariant()));
-      $1("#v122ExportBM08").onclick = (e) =>
+      qs("#v122ExportBM08").onclick = (e) =>
         run(e.currentTarget, () => api.bm08(ctx, selectedVariant()));
-      $1("#v122ExportTeX").onclick = (e) =>
+      qs("#v122ExportTeX").onclick = (e) =>
         run(e.currentTarget, () => api.tex(ctx, selectedVariant()));
-      $1("#v122ExportAnswers").onclick = (e) =>
+      qs("#v122ExportAnswers").onclick = (e) =>
         run(e.currentTarget, () => api.answers(ctx));
-      $1("#v122ExportZip").onclick = (e) =>
+      qs("#v122ExportZip").onclick = (e) =>
         run(e.currentTarget, () => api.zip(ctx));
     } catch (e) {
       showError(e);
@@ -2109,23 +2120,26 @@
           : [],
         matrixRows = canonicalFinalMatrixRows(pkg.matrix),
         summary = finalMatrixSummary(pkg);
-      c.innerHTML = `<div class="assessment-final-detail-v122"><div class="subpage-head"><div><button id="v122FinalDetailBack" class="secondary compact">← Quay lại</button><small>ĐỀ THI CUỐI KỲ</small><h3>${esc2(pkg.title || "Đề thi cuối kỳ")}</h3><p>Ngân hàng đề thi – bảo mật</p></div><span class="badge ${pkg.status === "generated" ? "green" : ""}">${esc2(finalStatusLabel(pkg.status))}</span></div><section class="panel"><div class="panel-head"><div><h3>Thông tin hồ sơ</h3><p class="hint">Server package ID: ${esc2(pkg.id)}</p></div><div class="row-actions"><button id="v122FinalEdit" class="secondary">Chỉnh sửa</button><button id="v122FinalExport" class="primary" ${pkg.status === "generated" ? "" : "disabled"}>Xuất hồ sơ</button></div></div><div class="detail-grid"><div><small>Mã học phần</small><b>${esc2(meta.exam_code || "—")}</b></div><div><small>Học kỳ</small><b>${esc2(meta.semester || "—")}</b></div><div><small>Năm học</small><b>${esc2(meta.academic_year || "—")}</b></div><div><small>Ngày thi</small><b>${esc2(meta.exam_date || "—")}</b></div><div><small>Ca thi</small><b>${esc2(meta.exam_session || "—")}</b></div><div><small>Thời gian</small><b>${+meta.duration_minutes || "—"} phút</b></div><div><small>Số câu</small><b>${summary.total || selected.length}</b></div><div><small>Số mã đề</small><b>${codes.length || 0}</b></div></div><p class="hint">Mã đề: ${codes.map(esc2).join(" · ") || "—"}</p></section><section class="panel"><div class="panel-head"><div><h3>Ma trận</h3><p class="hint">${matrixRows.length} ô có số câu.</p></div></div><div class="table-wrap"><table><thead><tr><th>Mục</th><th>CLO</th><th>Số câu</th></tr></thead><tbody>${matrixRows.map((r) => `<tr><td>${esc2(byId(sets.topics, r.topic_id)?.name || r.topic_id || "")}</td><td>${esc2(byId(sets.clos, r.clo_id)?.code || r.clo_id || "")}</td><td><b>${+r.count || 0}</b></td></tr>`).join("") || '<tr><td colspan="3" class="empty">Chưa có ma trận.</td></tr>'}</tbody></table></div></section><section class="panel"><div class="panel-head"><div><h3>Bộ câu</h3><p class="hint">Snapshot đề thi được lưu cùng hồ sơ.</p></div></div><div class="v122-selected-list">${
+      c.innerHTML = `<div class="assessment-final-detail-v122"><div class="subpage-head"><div><button id="v122FinalDetailBack" class="secondary compact">← Quay lại</button><small>ĐỀ THI CUỐI KỲ</small><h3>${escapeHtml(pkg.title || "Đề thi cuối kỳ")}</h3><p>Ngân hàng đề thi – bảo mật</p></div><span class="badge ${pkg.status === "generated" ? "green" : ""}">${escapeHtml(finalStatusLabel(pkg.status))}</span></div><section class="panel"><div class="panel-head"><div><h3>Thông tin hồ sơ</h3><p class="hint">Server package ID: ${escapeHtml(pkg.id)}</p></div><div class="row-actions"><button id="v122FinalEdit" class="secondary">Chỉnh sửa</button><button id="v122FinalExport" class="primary" ${pkg.status === "generated" ? "" : "disabled"}>Xuất hồ sơ</button></div></div><div class="detail-grid"><div><small>Mã học phần</small><b>${escapeHtml(meta.exam_code || "—")}</b></div><div><small>Học kỳ</small><b>${escapeHtml(meta.semester || "—")}</b></div><div><small>Năm học</small><b>${escapeHtml(meta.academic_year || "—")}</b></div><div><small>Ngày thi</small><b>${escapeHtml(meta.exam_date || "—")}</b></div><div><small>Ca thi</small><b>${escapeHtml(meta.exam_session || "—")}</b></div><div><small>Thời gian</small><b>${+meta.duration_minutes || "—"} phút</b></div><div><small>Số câu</small><b>${summary.total || selected.length}</b></div><div><small>Số mã đề</small><b>${codes.length || 0}</b></div></div><p class="hint">Mã đề: ${codes.map(escapeHtml).join(" · ") || "—"}</p></section><section class="panel"><div class="panel-head"><div><h3>Ma trận</h3><p class="hint">${matrixRows.length} ô có số câu.</p></div></div><div class="table-wrap"><table><thead><tr><th>Mục</th><th>CLO</th><th>Số câu</th></tr></thead><tbody>${matrixRows.map((r) => `<tr><td>${escapeHtml(findById(sets.topics, r.topic_id)?.name || r.topic_id || "")}</td><td>${escapeHtml(findById(sets.clos, r.clo_id)?.code || r.clo_id || "")}</td><td><b>${+r.count || 0}</b></td></tr>`).join("") || '<tr><td colspan="3" class="empty">Chưa có ma trận.</td></tr>'}</tbody></table></div></section><section class="panel"><div class="panel-head"><div><h3>Bộ câu</h3><p class="hint">Snapshot đề thi được lưu cùng hồ sơ.</p></div></div><div class="v122-selected-list">${
         selected
           .map((s, i) => {
             const q = finalSnapshotToLive(s),
               opts = optionMap(q);
-            return `<article class="ub-question-card"><div class="ub-question-head"><b>Câu ${i + 1}</b><span class="badge red">${esc2(s.clo_code || "")}</span></div><div class="detail-question">${esc2(q.content)}</div><div class="detail-options">${["A", "B", "C", "D"].map((k) => `<div class="${q.correct_answer === k ? "correct" : ""}"><b>${k}</b><span>${esc2(opts[k] || "")}</span></div>`).join("")}</div></article>`;
+            return `<article class="ub-question-card"><div class="ub-question-head"><b>Câu ${i + 1}</b><span class="badge red">${escapeHtml(s.clo_code || "")}</span></div><div class="detail-question">${escapeHtml(q.content)}</div><div class="detail-options">${["A", "B", "C", "D"].map((k) => `<div class="${q.correct_answer === k ? "correct" : ""}"><b>${k}</b><span>${escapeHtml(opts[k] || "")}</span></div>`).join("")}</div></article>`;
           })
           .join("") || '<div class="empty">Chưa có bộ câu.</div>'
-      }</div></section><section class="panel"><div class="panel-head"><div><h3>Các mã đề</h3><p class="hint">${pkg.variants?.length || 0} phiên bản đã lưu.</p></div></div><div class="detail-grid">${(pkg.variants || []).map((v) => `<div><small>Mã đề</small><b>${esc2(v.code || "")}</b><span>${v.questions?.length || 0} câu</span></div>`).join("") || "<div><span>Chưa sinh mã đề.</span></div>"}</div></section></div>`;
-      $1("#v122FinalDetailBack").onclick = () => exams(c);
-      $1("#v122FinalEdit").onclick = () => openFinalExamBuilder(pkg);
-      $1("#v122FinalExport").onclick = () => openFinalExportMenu(pkg);
+      }</div></section><section class="panel"><div class="panel-head"><div><h3>Các mã đề</h3><p class="hint">${pkg.variants?.length || 0} phiên bản đã lưu.</p></div></div><div class="detail-grid">${(pkg.variants || []).map((v) => `<div><small>Mã đề</small><b>${escapeHtml(v.code || "")}</b><span>${v.questions?.length || 0} câu</span></div>`).join("") || "<div><span>Chưa sinh mã đề.</span></div>"}</div></section></div>`;
+      qs("#v122FinalDetailBack").onclick = () => exams(c);
+      qs("#v122FinalEdit").onclick = () => openFinalExamBuilder(pkg);
+      qs("#v122FinalExport").onclick = () => openFinalExportMenu(pkg);
     } catch (e) {
       showError(e);
     }
   }
 
+  /* ============================================================
+   * SECTION 5/7 — Student attempt, resume, timer, autosave, submit and attempt result
+   * ============================================================ */
   const attemptLocalKey = (id) =>
     `aiclo:v122:attempt:${state.user?.id || "user"}:${id}`;
   function readAttemptLocal(id) {
@@ -2191,18 +2205,18 @@
               : canStart
                 ? `<button class="primary" data-v122-start="${x.id}">Làm bài</button>`
                 : `<button class="secondary" disabled>${s.code === "upcoming" ? "Chưa mở" : s.code === "expired" ? "Đã hết hạn" : x.status === "closed" ? "Đang tạm dừng" : "Đã hết lượt"}</button>`;
-            return `<article class="student-exam-card"><div class="student-exam-head"><span class="badge ${s.className}">${s.label}</span><span>${done.length}/${x.max_attempts || 1} lượt đã nộp</span></div><h3>${esc2(x.title || "Bài kiểm tra")}</h3><p>${esc2(x.description || "")}</p><div class="student-exam-meta"><span><b>${x.total_questions || 0}</b> câu</span><span><b>${x.duration_minutes || "—"}</b> phút</span></div><div class="student-exam-actions">${action}${latest ? `<button class="secondary" data-v122-result="${latest.id}">Kết quả gần nhất</button>` : ""}</div>${open && x.status === "closed" ? '<p class="hint">Bài đang tạm dừng, nhưng lượt bạn đã bắt đầu vẫn được tiếp tục.</p>' : ""}</article>`;
+            return `<article class="student-exam-card"><div class="student-exam-head"><span class="badge ${s.className}">${s.label}</span><span>${done.length}/${x.max_attempts || 1} lượt đã nộp</span></div><h3>${escapeHtml(x.title || "Bài kiểm tra")}</h3><p>${escapeHtml(x.description || "")}</p><div class="student-exam-meta"><span><b>${x.total_questions || 0}</b> câu</span><span><b>${x.duration_minutes || "—"}</b> phút</span></div><div class="student-exam-actions">${action}${latest ? `<button class="secondary" data-v122-result="${latest.id}">Kết quả gần nhất</button>` : ""}</div>${open && x.status === "closed" ? '<p class="hint">Bài đang tạm dừng, nhưng lượt bạn đã bắt đầu vẫn được tiếp tục.</p>' : ""}</article>`;
           })
           .join("") ||
         '<div class="panel empty">Hiện chưa có bài kiểm tra nào.</div>'
       }</div>`;
-      $$1("[data-v122-start]", c).forEach(
+      qsa("[data-v122-start]", c).forEach(
         (b) => (b.onclick = () => startStudentAttempt(b.dataset.v122Start, b)),
       );
-      $$1("[data-v122-resume]", c).forEach(
+      qsa("[data-v122-resume]", c).forEach(
         (b) => (b.onclick = () => openStudentAttempt(b.dataset.attempt)),
       );
-      $$1("[data-v122-result]", c).forEach(
+      qsa("[data-v122-result]", c).forEach(
         (b) =>
           (b.onclick = () => openStudentAttemptResult(b.dataset.v122Result)),
       );
@@ -2290,9 +2304,9 @@
       payload._deadlineMs == null
         ? null
         : Math.max(0, Math.floor((payload._deadlineMs - Date.now()) / 1000));
-    const html = `<div class="live-exam"><div class="live-top"><div><b>Câu ${index + 1}/${qs.length}</b><span class="badge red">${esc2(x.clo_code || "—")}</span></div><div id="examTimer" class="exam-timer">${current == null ? "Không giới hạn" : timerText(current)}</div></div><div class="live-context"><span>${esc2(x.chapter || "")}</span><span>${esc2(x.topic || "")}</span><span id="saveState">Tự lưu khi chọn đáp án</span></div><div class="preview-question">${esc2(x.content || "")}</div><div class="preview-options live-options">${(x.options || []).map((o) => `<label class="${answers[x.id] === o.key ? "selected" : ""}"><input type="radio" name="v122LiveAnswer" value="${esc2(o.key)}" ${answers[x.id] === o.key ? "checked" : ""}><b>${esc2(o.key)}</b><span>${esc2(o.content || "")}</span></label>`).join("")}</div><div class="question-jump">${qs.map((q, i) => `<button type="button" data-v122-jump="${i}" class="${i === index ? "current" : ""} ${answers[q.id] ? "answered" : ""}">${i + 1}</button>`).join("")}</div><div class="preview-nav"><button id="v122LivePrev" class="secondary" ${index === 0 ? "disabled" : ""}>← Trước</button><button id="v122LiveNext" class="secondary" ${index === qs.length - 1 ? "disabled" : ""}>Sau →</button><button id="v122LiveSubmit" class="primary">Nộp bài</button></div></div>`;
+    const html = `<div class="live-exam"><div class="live-top"><div><b>Câu ${index + 1}/${qs.length}</b><span class="badge red">${escapeHtml(x.clo_code || "—")}</span></div><div id="examTimer" class="exam-timer">${current == null ? "Không giới hạn" : timerText(current)}</div></div><div class="live-context"><span>${escapeHtml(x.chapter || "")}</span><span>${escapeHtml(x.topic || "")}</span><span id="saveState">Tự lưu khi chọn đáp án</span></div><div class="preview-question">${escapeHtml(x.content || "")}</div><div class="preview-options live-options">${(x.options || []).map((o) => `<label class="${answers[x.id] === o.key ? "selected" : ""}"><input type="radio" name="v122LiveAnswer" value="${escapeHtml(o.key)}" ${answers[x.id] === o.key ? "checked" : ""}><b>${escapeHtml(o.key)}</b><span>${escapeHtml(o.content || "")}</span></label>`).join("")}</div><div class="question-jump">${qs.map((q, i) => `<button type="button" data-v122-jump="${i}" class="${i === index ? "current" : ""} ${answers[q.id] ? "answered" : ""}">${i + 1}</button>`).join("")}</div><div class="preview-nav"><button id="v122LivePrev" class="secondary" ${index === 0 ? "disabled" : ""}>← Trước</button><button id="v122LiveNext" class="secondary" ${index === qs.length - 1 ? "disabled" : ""}>Sau →</button><button id="v122LiveSubmit" class="primary">Nộp bài</button></div></div>`;
     const bind = () => {
-      $$1('input[name="v122LiveAnswer"]', $1("#drawerBody")).forEach(
+      qsa('input[name="v122LiveAnswer"]', qs("#drawerBody")).forEach(
         (r) =>
           (r.onchange = async () => {
             answers[x.id] = r.value;
@@ -2303,13 +2317,13 @@
               pending: payload._pending,
               deadline: payload._deadlineMs,
             });
-            $$1(".live-options label", $1("#drawerBody")).forEach((l) =>
+            qsa(".live-options label", qs("#drawerBody")).forEach((l) =>
               l.classList.toggle("selected", l.contains(r)),
             );
-            $1(`[data-v122-jump="${index}"]`, $1("#drawerBody"))?.classList.add(
+            qs(`[data-v122-jump="${index}"]`, qs("#drawerBody"))?.classList.add(
               "answered",
             );
-            const s = $1("#saveState");
+            const s = qs("#saveState");
             if (s) s.textContent = "Đang lưu…";
             const rr = await db.rpc("save_exam_progress", {
               p_attempt_id: payload.attempt_id,
@@ -2330,16 +2344,16 @@
             }
           }),
       );
-      $$1("[data-v122-jump]", $1("#drawerBody")).forEach(
+      qsa("[data-v122-jump]", qs("#drawerBody")).forEach(
         (b) =>
           (b.onclick = () =>
             showStudentQuestion(payload, answers, +b.dataset.v122Jump, false)),
       );
-      $1("#v122LivePrev").onclick = () =>
+      qs("#v122LivePrev").onclick = () =>
         showStudentQuestion(payload, answers, index - 1, false);
-      $1("#v122LiveNext").onclick = () =>
+      qs("#v122LiveNext").onclick = () =>
         showStudentQuestion(payload, answers, index + 1, false);
-      $1("#v122LiveSubmit").onclick = () =>
+      qs("#v122LiveSubmit").onclick = () =>
         submitStudentAttempt(payload, answers, false);
       if (current != null) {
         runtime.liveTimer = setInterval(() => {
@@ -2347,7 +2361,7 @@
               0,
               Math.floor((payload._deadlineMs - Date.now()) / 1000),
             ),
-            box = $1("#examTimer");
+            box = qs("#examTimer");
           if (box) box.textContent = timerText(sec);
           if (sec <= 0) {
             clearLiveTimer();
@@ -2384,7 +2398,7 @@
     )
       return;
     clearLiveTimer();
-    const b = $1("#v122LiveSubmit");
+    const b = qs("#v122LiveSubmit");
     if (b) {
       b.disabled = true;
       b.textContent = auto ? "Hết giờ — đang nộp…" : "Đang nộp…";
@@ -2406,7 +2420,7 @@
     }
   }
   function studentResultHtml(result) {
-    return `<div class="preview-result result-v122"><div class="result-score"><small>Điểm tổng</small><b>${Number(result.score || 0).toFixed(2)}</b><span>${Number(result.correct || 0)}/${Number(result.total || 0)} câu đúng</span></div><h4>Kết quả theo CLO</h4><div class="clo-results">${(result.clo_scores || []).map((x) => `<div><b>${esc2(x.code || "CLO")}</b><strong>${Number(x.score || 0).toFixed(2)}</strong><span>${x.correct}/${x.total} câu đúng</span></div>`).join("") || "<p>Chưa có dữ liệu CLO.</p>"}</div>${result.show_answers && result.review?.length ? `<h4>Chi tiết bài làm</h4><div class="answer-review">${result.review.map((x, i) => `<details class="${x.is_correct ? "right" : "wrong"}"><summary>Câu ${i + 1} — ${x.is_correct ? "Đúng" : "Chưa đúng"} · ${esc2(x.clo_code || "")}</summary><div>${esc2(x.content || "")}</div><p>Bạn chọn: <b>${esc2(x.selected || "Chưa trả lời")}</b> · Đáp án đúng: <b>${esc2(x.correct_answer || "")}</b></p><p>${esc2(x.explanation || "")}</p></details>`).join("")}</div>` : '<p class="hint">Bài kiểm tra này không hiển thị đáp án chi tiết.</p>'}</div>`;
+    return `<div class="preview-result result-v122"><div class="result-score"><small>Điểm tổng</small><b>${Number(result.score || 0).toFixed(2)}</b><span>${Number(result.correct || 0)}/${Number(result.total || 0)} câu đúng</span></div><h4>Kết quả theo CLO</h4><div class="clo-results">${(result.clo_scores || []).map((x) => `<div><b>${escapeHtml(x.code || "CLO")}</b><strong>${Number(x.score || 0).toFixed(2)}</strong><span>${x.correct}/${x.total} câu đúng</span></div>`).join("") || "<p>Chưa có dữ liệu CLO.</p>"}</div>${result.show_answers && result.review?.length ? `<h4>Chi tiết bài làm</h4><div class="answer-review">${result.review.map((x, i) => `<details class="${x.is_correct ? "right" : "wrong"}"><summary>Câu ${i + 1} — ${x.is_correct ? "Đúng" : "Chưa đúng"} · ${escapeHtml(x.clo_code || "")}</summary><div>${escapeHtml(x.content || "")}</div><p>Bạn chọn: <b>${escapeHtml(x.selected || "Chưa trả lời")}</b> · Đáp án đúng: <b>${escapeHtml(x.correct_answer || "")}</b></p><p>${escapeHtml(x.explanation || "")}</p></details>`).join("")}</div>` : '<p class="hint">Bài kiểm tra này không hiển thị đáp án chi tiết.</p>'}</div>`;
   }
   function showStudentResult(exam, result) {
     clearLiveTimer();
@@ -2443,6 +2457,9 @@
     }
   }
 
+  /* ============================================================
+   * SECTION 6/7 — Official results, GPA/CLO aggregation and explicit AI analysis
+   * ============================================================ */
   function scorePolicyLabel(v) {
     return (
       {
@@ -2616,21 +2633,21 @@
     );
   }
   function resultCloCards(metric) {
-    return `<div class="clo-results">${(metric.clos || []).map((x) => `<div class="${x.total && x.score < 4 ? "clo-below" : ""}"><b>${esc2(x.code)}</b><strong>${x.total ? x.score.toFixed(2) : "—"}</strong><span>${x.total ? `${x.correct}/${x.total} câu đúng` : "Chưa có dữ liệu"}</span></div>`).join("")}</div>`;
+    return `<div class="clo-results">${(metric.clos || []).map((x) => `<div class="${x.total && x.score < 4 ? "clo-below" : ""}"><b>${escapeHtml(x.code)}</b><strong>${x.total ? x.score.toFixed(2) : "—"}</strong><span>${x.total ? `${x.correct}/${x.total} câu đúng` : "Chưa có dữ liệu"}</span></div>`).join("")}</div>`;
   }
   function examPolicyNote(exams) {
     return exams.length
       ? exams
           .map(
             (x) =>
-              `${esc2(x.title || "Bài kiểm tra")}: ${esc2(scorePolicyLabel(x.score_policy))}`,
+              `${escapeHtml(x.title || "Bài kiểm tra")}: ${escapeHtml(scorePolicyLabel(x.score_policy))}`,
           )
           .join(" · ")
       : "Chưa có bài kiểm tra được tính vào CLO.";
   }
   function aiAnalysisHtml(a) {
     const actions = a?.recommendations || a?.next_actions || [];
-    return `<div class="ai-analysis-v122"><p>${esc2(a?.summary || "")}</p>${a?.strengths?.length ? `<h4>Điểm mạnh</h4><ul>${a.strengths.map((x) => `<li>${esc2(x)}</li>`).join("")}</ul>` : ""}${a?.needs_improvement?.length ? `<h4>Cần cải thiện</h4><ul>${a.needs_improvement.map((x) => `<li>${esc2(x)}</li>`).join("")}</ul>` : ""}${actions.length ? `<h4>Khuyến nghị</h4><ul>${actions.map((x) => `<li>${esc2(x)}</li>`).join("")}</ul>` : ""}</div>`;
+    return `<div class="ai-analysis-v122"><p>${escapeHtml(a?.summary || "")}</p>${a?.strengths?.length ? `<h4>Điểm mạnh</h4><ul>${a.strengths.map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul>` : ""}${a?.needs_improvement?.length ? `<h4>Cần cải thiện</h4><ul>${a.needs_improvement.map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul>` : ""}${actions.length ? `<h4>Khuyến nghị</h4><ul>${actions.map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul>` : ""}</div>`;
   }
   async function requestAssessmentAi(scope, studentId, button) {
     const old = button?.textContent;
@@ -2687,11 +2704,11 @@
     const profiles = await loadSubjectStudentProfiles(),
       withData = profiles.filter((p) => metrics.students.has(p.id)),
       classM = metrics.classMetric;
-    c.innerHTML = `<div class="assessment-results-v122"><div class="subpage-head"><div><small>KẾT QUẢ HỌC PHẦN</small><h3>Kết quả CLO</h3><p>Chỉ dùng các bài bật “Tính vào kết quả CLO học phần”; mỗi bài đã áp dụng đúng cách ghi nhận điểm.</p></div><button id="v122AiClass" class="ai-btn" ${classM.attempts ? "" : "disabled"}>✦ AI phân tích lớp</button></div><section class="panel"><div class="detail-grid"><div><small>SV có dữ liệu</small><b>${withData.length}/${profiles.length}</b></div><div><small>Bài được tính CLO</small><b>${bundle.exams.length}</b></div><div><small>Lượt chính thức</small><b>${classM.attempts}</b></div><div><small>GPA trung bình SV</small><b>${withData.length ? classM.gpa.toFixed(2) : "—"}</b></div></div><h4>CLO toàn lớp</h4>${resultCloCards(classM)}<details><summary>Quy tắc điểm đang áp dụng</summary><p class="hint">${examPolicyNote(bundle.exams)}</p></details></section><section class="panel"><div class="panel-head"><div><h3>Danh sách sinh viên</h3><p class="hint">Ngưỡng đạt CLO: 4.00/10.</p></div></div><div class="table-wrap"><table><thead><tr><th>STT</th><th>Sinh viên</th><th>GPA</th>${bundle.clos.map((x) => `<th>${esc2(x.code)}</th>`).join("")}<th>Lượt chính thức</th><th></th></tr></thead><tbody>${
+    c.innerHTML = `<div class="assessment-results-v122"><div class="subpage-head"><div><small>KẾT QUẢ HỌC PHẦN</small><h3>Kết quả CLO</h3><p>Chỉ dùng các bài bật “Tính vào kết quả CLO học phần”; mỗi bài đã áp dụng đúng cách ghi nhận điểm.</p></div><button id="v122AiClass" class="ai-btn" ${classM.attempts ? "" : "disabled"}>✦ AI phân tích lớp</button></div><section class="panel"><div class="detail-grid"><div><small>SV có dữ liệu</small><b>${withData.length}/${profiles.length}</b></div><div><small>Bài được tính CLO</small><b>${bundle.exams.length}</b></div><div><small>Lượt chính thức</small><b>${classM.attempts}</b></div><div><small>GPA trung bình SV</small><b>${withData.length ? classM.gpa.toFixed(2) : "—"}</b></div></div><h4>CLO toàn lớp</h4>${resultCloCards(classM)}<details><summary>Quy tắc điểm đang áp dụng</summary><p class="hint">${examPolicyNote(bundle.exams)}</p></details></section><section class="panel"><div class="panel-head"><div><h3>Danh sách sinh viên</h3><p class="hint">Ngưỡng đạt CLO: 4.00/10.</p></div></div><div class="table-wrap"><table><thead><tr><th>STT</th><th>Sinh viên</th><th>GPA</th>${bundle.clos.map((x) => `<th>${escapeHtml(x.code)}</th>`).join("")}<th>Lượt chính thức</th><th></th></tr></thead><tbody>${
       profiles
         .map((p, i) => {
           const m = metrics.students.get(p.id);
-          return `<tr><td>${i + 1}</td><td><b>${esc2(p.full_name || p.email || "Sinh viên")}</b><br><small>${esc2(p.mssv || p.email || "")}</small></td><td>${m ? `<b>${m.gpa.toFixed(2)}</b>` : "—"}</td>${bundle.clos
+          return `<tr><td>${i + 1}</td><td><b>${escapeHtml(p.full_name || p.email || "Sinh viên")}</b><br><small>${escapeHtml(p.mssv || p.email || "")}</small></td><td>${m ? `<b>${m.gpa.toFixed(2)}</b>` : "—"}</td>${bundle.clos
             .map((clo) => {
               const x = m?.clos.find((v) => v.code === clo.code);
               return `<td class="${x?.total && x.score < 4 ? "score-low" : ""}">${x?.total ? x.score.toFixed(2) : "—"}</td>`;
@@ -2703,10 +2720,10 @@
         .join("") ||
       `<tr><td colspan="${bundle.clos.length + 5}" class="empty">Chưa có sinh viên trong học phần.</td></tr>`
     }</tbody></table></div></section></div>`;
-    $1("#v122AiClass", c)?.addEventListener("click", (e) =>
+    qs("#v122AiClass", c)?.addEventListener("click", (e) =>
       requestAssessmentAi("class", null, e.currentTarget),
     );
-    $$1("[data-v122-ai-student]", c).forEach(
+    qsa("[data-v122-ai-student]", c).forEach(
       (b) =>
         (b.onclick = () =>
           requestAssessmentAi("student", b.dataset.v122AiStudent, b)),
@@ -2717,12 +2734,15 @@
         metrics.students.get(state.user.id) ||
         finishMetric(freshMetric(bundle.clos), bundle.clos),
       rows = studentExamOfficialRows(bundle, state.user.id);
-    c.innerHTML = `<div class="assessment-results-v122"><div class="subpage-head"><div><small>KẾT QUẢ HỌC PHẦN</small><h3>Kết quả CLO của bạn</h3><p>Chỉ các bài được giảng viên chọn tính vào CLO mới xuất hiện ở đây.</p></div><button id="v122AiMe" class="ai-btn" ${m.attempts ? "" : "disabled"}>✦ AI nhận xét</button></div><section class="panel"><div class="detail-grid"><div><small>GPA</small><b>${m.attempts ? m.gpa.toFixed(2) : "—"}</b></div><div><small>Bài có dữ liệu</small><b>${m.examCount}</b></div><div><small>Lượt chính thức</small><b>${m.attempts}</b></div></div><h4>Kết quả theo CLO</h4>${resultCloCards(m)}</section><section class="panel"><div class="panel-head"><div><h3>Cách tính từ từng bài</h3><p class="hint">Điểm cao nhất/Lần cuối chọn một lượt; Trung bình sử dụng các lượt đã nộp của bài đó.</p></div></div><div class="table-wrap"><table><thead><tr><th>Bài kiểm tra</th><th>Quy tắc</th><th>Lượt dùng</th><th>Điểm quy đổi</th></tr></thead><tbody>${rows.map((x) => `<tr><td><b>${esc2(x.exam.title || "Bài kiểm tra")}</b></td><td>${esc2(scorePolicyLabel(x.exam.score_policy))}</td><td>${x.attempts}</td><td><b>${x.score.toFixed(2)}</b></td></tr>`).join("") || '<tr><td colspan="4" class="empty">Chưa có bài làm được tính vào kết quả CLO.</td></tr>'}</tbody></table></div></section></div>`;
-    $1("#v122AiMe", c)?.addEventListener("click", (e) =>
+    c.innerHTML = `<div class="assessment-results-v122"><div class="subpage-head"><div><small>KẾT QUẢ HỌC PHẦN</small><h3>Kết quả CLO của bạn</h3><p>Chỉ các bài được giảng viên chọn tính vào CLO mới xuất hiện ở đây.</p></div><button id="v122AiMe" class="ai-btn" ${m.attempts ? "" : "disabled"}>✦ AI nhận xét</button></div><section class="panel"><div class="detail-grid"><div><small>GPA</small><b>${m.attempts ? m.gpa.toFixed(2) : "—"}</b></div><div><small>Bài có dữ liệu</small><b>${m.examCount}</b></div><div><small>Lượt chính thức</small><b>${m.attempts}</b></div></div><h4>Kết quả theo CLO</h4>${resultCloCards(m)}</section><section class="panel"><div class="panel-head"><div><h3>Cách tính từ từng bài</h3><p class="hint">Điểm cao nhất/Lần cuối chọn một lượt; Trung bình sử dụng các lượt đã nộp của bài đó.</p></div></div><div class="table-wrap"><table><thead><tr><th>Bài kiểm tra</th><th>Quy tắc</th><th>Lượt dùng</th><th>Điểm quy đổi</th></tr></thead><tbody>${rows.map((x) => `<tr><td><b>${escapeHtml(x.exam.title || "Bài kiểm tra")}</b></td><td>${escapeHtml(scorePolicyLabel(x.exam.score_policy))}</td><td>${x.attempts}</td><td><b>${x.score.toFixed(2)}</b></td></tr>`).join("") || '<tr><td colspan="4" class="empty">Chưa có bài làm được tính vào kết quả CLO.</td></tr>'}</tbody></table></div></section></div>`;
+    qs("#v122AiMe", c)?.addEventListener("click", (e) =>
       requestAssessmentAi("student", state.user.id, e.currentTarget),
     );
   }
 
+  /* ============================================================
+   * SECTION 7/7 — Public Assessment entry points and single runtime ownership
+   * ============================================================ */
   async function exams(c) {
     c = setAssessmentRoot(c);
     if (!subjectId()) {
