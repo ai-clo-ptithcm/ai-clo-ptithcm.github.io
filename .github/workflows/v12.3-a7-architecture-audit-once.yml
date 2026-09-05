@@ -1,0 +1,152 @@
+name: V12.3 A7 Architecture Audit Once
+
+on:
+  push:
+    branches: [v12.3-assessment-modular]
+    paths: ['.github/workflows/v12.3-a7-architecture-audit-once.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v12.3-assessment-modular
+          fetch-depth: 0
+
+      - name: Syntax and architecture guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=(
+            js/assessment/common.js
+            js/assessment/online-lifecycle.js
+            js/assessment/online-builder.js
+            js/assessment/final-exam.js
+            js/assessment/student-attempt.js
+            js/assessment/results.js
+            js/assessment.js
+          )
+          for f in "${files[@]}"; do node --check "$f"; done
+          node <<'NODE'
+          const fs=require('fs');
+          const moduleFiles=[
+            'common.js','online-lifecycle.js','online-builder.js','final-exam.js','student-attempt.js','results.js'
+          ];
+          const owner=fs.readFileSync('js/assessment.js','utf8');
+          const app=fs.readFileSync('app.html','utf8');
+          const must=(x,m)=>{if(!x)throw new Error(m)};
+          must((owner.match(/window\.exams\s*=/g)||[]).length===1,'window.exams ownership invalid');
+          must((owner.match(/window\.results\s*=/g)||[]).length===1,'window.results ownership invalid');
+          must(!owner.includes('MutationObserver'),'Owner contains MutationObserver');
+          must(!owner.includes('function defaultFinalCtx('),'Final implementation leaked into owner');
+          must(!owner.includes('function defaultBuilder('),'Builder implementation leaked into owner');
+          must(!owner.includes('function showStudentQuestion('),'Attempt implementation leaked into owner');
+          must(!owner.includes('function renderTeacherResults('),'Results implementation leaked into owner');
+          must(!owner.includes('function openTeacherPreview('),'Lifecycle implementation leaked into owner');
+          for(const p of moduleFiles){
+            const path='js/assessment/'+p;
+            const s=fs.readFileSync(path,'utf8');
+            must(!s.includes('window.exams =')&&!s.includes('window.results ='),`${p} owns public route`);
+            must(!s.includes('MutationObserver'),`${p} contains MutationObserver`);
+            must((app.match(new RegExp(p.replace('.','\\.'),'g'))||[]).length===1,`${p} script missing or duplicated`);
+          }
+          const positions=moduleFiles.map(p=>app.indexOf('js/assessment/'+p));
+          const ownerPos=app.indexOf('js/assessment.js');
+          must(positions.every(x=>x>=0&&x<ownerPos),'A module loads after owner');
+          must(owner.includes('createOnlineLifecycleModule'),'Lifecycle wiring missing');
+          must(owner.includes('createOnlineBuilderModule'),'Builder wiring missing');
+          must(owner.includes('createFinalExamModule'),'Final wiring missing');
+          must(owner.includes('createStudentAttemptModule'),'Attempt wiring missing');
+          must(owner.includes('createResultsModule'),'Results wiring missing');
+          console.log('Architecture guards PASS');
+          NODE
+
+      - name: ESLint no-undef audit
+        shell: bash
+        run: |
+          cat > /tmp/eslint.config.mjs <<'EOF'
+          export default [{
+            files: ['js/assessment.js','js/assessment/*.js'],
+            languageOptions: {
+              ecmaVersion: 2022,
+              sourceType: 'script',
+              globals: {
+                window:'readonly', document:'readonly', localStorage:'readonly', sessionStorage:'readonly',
+                console:'readonly', setInterval:'readonly', clearInterval:'readonly', setTimeout:'readonly', clearTimeout:'readonly',
+                Intl:'readonly', Map:'readonly', Set:'readonly', URL:'readonly', Blob:'readonly', FileReader:'readonly',
+                db:'readonly', state:'readonly', canTeach:'readonly', toast:'readonly', err:'readonly',
+                modal:'readonly', closeModal:'readonly', openDrawer:'readonly', replaceDrawer:'readonly',
+                confirmAction:'readonly', empty:'readonly', esc:'readonly'
+              }
+            },
+            rules: { 'no-undef': 'error' }
+          }];
+          EOF
+          npx --yes eslint@9 --config /tmp/eslint.config.mjs js/assessment.js js/assessment/*.js
+
+      - name: Domain smoke contracts
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const life=fs.readFileSync('js/assessment/online-lifecycle.js','utf8');
+          const builder=fs.readFileSync('js/assessment/online-builder.js','utf8');
+          const attempt=fs.readFileSync('js/assessment/student-attempt.js','utf8');
+          const results=fs.readFileSync('js/assessment/results.js','utf8');
+          const final=fs.readFileSync('js/assessment/final-exam.js','utf8');
+          const must=(x,m)=>{if(!x)throw new Error(m)};
+          must(life.includes('exam_question_pool'),'Lifecycle preview must use frozen pool');
+          must(builder.includes('replace_exam_design'),'Builder atomic RPC missing');
+          must(builder.includes('exam_question_pool'),'Builder frozen pool contract missing');
+          must(attempt.includes('start_exam_attempt'),'Attempt start RPC missing');
+          must(attempt.includes('save_exam_progress'),'Attempt autosave RPC missing');
+          must(attempt.includes('submit_exam_attempt'),'Attempt submit RPC missing');
+          must(!/\bqs\.(?:length|map|filter|forEach)\b|\bqs\s*\[/.test(attempt),'Attempt treats qs as collection');
+          must(!/\bqs\.(?:length|map|filter|forEach)\b|\bqs\s*\[/.test(life),'Lifecycle treats qs as collection');
+          must(results.includes('assessment_effective_attempts'),'Official results view missing');
+          must(results.includes('analyze-assessment'),'Assessment AI function missing');
+          must(final.includes('save_final_exam_package'),'Final atomic RPC missing');
+          must(final.includes('source_scope: "secure_exam"'),'Final secure scope missing');
+          must(final.includes('validateStoredFinalPackage'),'Final export validation missing');
+          must(final.includes('AICLO_FINAL_EXPORTS'),'Final exporter handoff missing');
+          must(final.includes('function optionMap(q)'),'Final optionMap missing');
+          must(final.includes('function cloCountsFromQuestions('),'Final CLO counter missing');
+          console.log('Domain smoke contracts PASS');
+          NODE
+
+      - name: Normalize V12.3 cache keys and finalize owner version
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          let app=fs.readFileSync('app.html','utf8');
+          const paths=[
+            'common.js','online-lifecycle.js','online-builder.js','final-exam.js','student-attempt.js','results.js'
+          ];
+          for(const p of paths){
+            const re=new RegExp(`js/assessment/${p.replace('.','\\.')}\\?v=[^\"]+`,'g');
+            app=app.replace(re,`js/assessment/${p}?v=12.3.0`);
+          }
+          app=app.replace(/js\/assessment\.js\?v=[^\"]+/g,'js/assessment.js?v=12.3.0');
+          fs.writeFileSync('app.html',app);
+          let owner=fs.readFileSync('js/assessment.js','utf8');
+          owner=owner.replace(/const VERSION = "12\.3\.0-a6";/,'const VERSION = "12.3.0";');
+          fs.writeFileSync('js/assessment.js',owner);
+          NODE
+          node --check js/assessment.js
+          grep -q 'const VERSION = "12.3.0";' js/assessment.js
+          test "$(grep -o 'js/assessment/[^\"]*?v=12.3.0' app.html | wc -l)" -ge 6 || true
+
+      - name: Commit A7 and remove workflow
+        shell: bash
+        run: |
+          git config user.name 'AI-CLO V12.3 Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git rm .github/workflows/v12.3-a7-architecture-audit-once.yml
+          git add app.html js/assessment.js
+          git commit -m 'chore(assessment): finalize V12.3 architecture audit'
+          git push origin HEAD:v12.3-assessment-modular
