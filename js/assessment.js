@@ -1,9 +1,10 @@
 /* AI-CLO PTITHCM V12.2 — Assessment single-owner engine.
-   Step 5B: lifecycle + atomic builder + frozen question review/replacement + Gemini. */
+   Step 6A: lifecycle + atomic builder + frozen review + Student Attempt/autosave/resume. */
 (()=>{
 'use strict';
 
-const VERSION='12.2.0-step5b';
+let liveTimer=null;
+const VERSION='12.2.0-step6a';
 const $1=(s,r=document)=>r.querySelector(s);
 const $$1=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc2=s=>window.esc?esc(s):String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -26,25 +27,10 @@ async function ask(title,message,label='Xác nhận'){if(typeof confirmAction===
 async function fetchExams(){const {data,error}=await db.from('exams').select('*').eq('subject_id',subjectId()).order('created_at',{ascending:false});if(error)throw error;return data||[]}
 async function fetchAttemptCounts(examIds){const out=new Map();if(!examIds.length)return out;const {data,error}=await db.from('exam_attempts').select('exam_id,submitted_at').in('exam_id',examIds);if(error)throw error;for(const row of data||[]){const x=out.get(row.exam_id)||{all:0,submitted:0};x.all++;if(row.submitted_at)x.submitted++;out.set(row.exam_id,x)}return out}
 async function fetchFinalPackages(){try{const {data,error}=await db.from('final_exam_packages').select('id,title,status,updated_at,created_at,metadata,source_scope').eq('subject_id',subjectId()).order('updated_at',{ascending:false});if(error)throw error;return data||[]}catch(e){console.warn('V12.2 final package list unavailable',e);return []}}
-async function loadPracticeSets(){
-  const [{data:chapters,error:ce},{data:clos,error:loe}]=await Promise.all([
-    db.from('chapters').select('*').eq('subject_id',subjectId()).order('order_index'),
-    db.from('clos').select('*').eq('subject_id',subjectId()).order('code')
-  ]);
-  if(ce)throw ce;if(loe)throw loe;
-  const chIds=(chapters||[]).map(x=>x.id);let topics=[];
-  if(chIds.length){const r=await db.from('topics').select('*').in('chapter_id',chIds).order('order_index');if(r.error)throw r.error;topics=r.data||[]}
-  const qr=await db.from('questions').select('id,subject_id,display_code,chapter_id,topic_id,clo_id,content,correct_answer,explanation,status,question_scope,approval_status,question_options(id,option_key,content)').eq('subject_id',subjectId()).eq('status','active').eq('approval_status','approved');
-  if(qr.error)throw qr.error;
-  const questions=(qr.data||[]).filter(q=>['practice','both'].includes(q.question_scope)&&validOptions(q));
-  return {chapters:chapters||[],topics,clos:clos||[],questions};
-}
+async function loadPracticeSets(){const [{data:chapters,error:ce},{data:clos,error:loe}]=await Promise.all([db.from('chapters').select('*').eq('subject_id',subjectId()).order('order_index'),db.from('clos').select('*').eq('subject_id',subjectId()).order('code')]);if(ce)throw ce;if(loe)throw loe;const chIds=(chapters||[]).map(x=>x.id);let topics=[];if(chIds.length){const r=await db.from('topics').select('*').in('chapter_id',chIds).order('order_index');if(r.error)throw r.error;topics=r.data||[]}const qr=await db.from('questions').select('id,subject_id,display_code,chapter_id,topic_id,clo_id,content,correct_answer,explanation,status,question_scope,approval_status,question_options(id,option_key,content)').eq('subject_id',subjectId()).eq('status','active').eq('approval_status','approved');if(qr.error)throw qr.error;const questions=(qr.data||[]).filter(q=>['practice','both'].includes(q.question_scope)&&validOptions(q));return {chapters:chapters||[],topics,clos:clos||[],questions}}
 function validOptions(q){const keys=(q.question_options||[]).map(o=>String(o.option_key||'').toUpperCase());return keys.length===4&&new Set(keys).size===4&&['A','B','C','D'].every(k=>keys.includes(k))&&keys.includes(String(q.correct_answer||'').toUpperCase())}
 function poolSnapshot(q,sets){return {question_id:q.id,chapter_id:q.chapter_id,chapter_name:byId(sets.chapters,q.chapter_id)?.name||null,topic_id:q.topic_id,topic_name:byId(sets.topics,q.topic_id)?.name||null,clo_id:q.clo_id,clo_code:byId(sets.clos,q.clo_id)?.code||null,content:q.content,correct_answer:String(q.correct_answer||'').toUpperCase(),explanation:q.explanation||null,options:(q.question_options||[]).map(o=>({key:String(o.option_key||'').toUpperCase(),content:o.content})).sort((a,b)=>a.key.localeCompare(b.key))}}
-function snapshotQuestion(row){
-  const raw=Array.isArray(row?.options)?row.options:[];
-  return {id:row.question_id,chapter_id:row.chapter_id,topic_id:row.topic_id,clo_id:row.clo_id,content:row.content||'',correct_answer:String(row.correct_answer||'').toUpperCase(),explanation:row.explanation||null,question_options:raw.map(o=>({option_key:String(o.key||o.option_key||'').toUpperCase(),content:o.content||''})).filter(o=>o.option_key)};
-}
+function snapshotQuestion(row){return {id:row.question_id,chapter_id:row.chapter_id,topic_id:row.topic_id,clo_id:row.clo_id,content:row.content,correct_answer:row.correct_answer,explanation:row.explanation,question_options:(row.options||[]).map(o=>({option_key:o.key,content:o.content})),_frozen:true}}
 
 function topTabs(active='online'){return `<div class="v109-tabs assessment-v122-tabs"><button type="button" class="${active==='online'?'active':''}" data-v122-tab="online">Bài kiểm tra trực tuyến</button><button type="button" class="${active==='final'?'active':''}" data-v122-tab="final">Đề thi cuối kỳ</button></div>`}
 function onlineTable(items,counts){return `<div class="toolbar"><span class="hint">Mỗi bài có một trang Chi tiết duy nhất.</span><button id="v122CreateExam" class="primary">+ Tạo bài kiểm tra</button></div><div class="panel table-wrap"><table class="assessment-table"><thead><tr><th>Bài kiểm tra</th><th>Cấu trúc</th><th>Chế độ câu</th><th>Thời gian</th><th>Bài làm</th><th>Trạng thái</th><th></th></tr></thead><tbody>${items.map(x=>{const s=statusMeta(x),n=counts.get(x.id)||{all:0,submitted:0};return `<tr><td><button type="button" class="exam-title-link" data-v122-detail="${x.id}"><b>${esc2(x.title||'Bài kiểm tra')}</b></button><br><small>${esc2(x.description||'')}</small></td><td><b>${Number(x.total_questions||0)}</b> câu<br><small>${esc2(structureLabel(x.structure_mode))}</small></td><td><span class="badge">${esc2(modeLabel(x.question_mode))}</span></td><td>${x.duration_minutes||'—'} phút<br><small>${x.opens_at?fmt(x.opens_at):'Khi phát hành'} → ${x.closes_at?fmt(x.closes_at):'Không giới hạn'}</small></td><td><b>${n.submitted}</b> đã nộp<br><small>${n.all} lượt</small></td><td><span class="badge ${s.className}">${s.label}</span></td><td><button type="button" class="primary" data-v122-detail="${x.id}">Chi tiết →</button></td></tr>`}).join('')||'<tr><td colspan="7" class="empty">Chưa có bài kiểm tra.</td></tr>'}</tbody></table></div>`}
@@ -65,7 +51,7 @@ function selectedTopicsFor(ctx,chapterId){return ctx.sets.topics.filter(t=>t.cha
 function eligibleForCell(ctx,rowId,cloId){return ctx.sets.questions.filter(q=>q.clo_id===cloId&&(ctx.structureMode==='topic_clo'?q.topic_id===rowId:(q.chapter_id===rowId&&ctx.selectedTopics.has(q.topic_id))))}
 function matrixTotal(ctx){return Object.values(ctx.matrix).reduce((s,v)=>s+(+v||0),0)}
 function cloCounts(ctx){const out={};for(const c of ctx.sets.clos)out[c.code]=0;for(const [key,n] of Object.entries(ctx.matrix)){const cloId=key.split(':').at(-1),code=byId(ctx.sets.clos,cloId)?.code||cloId;out[code]=(out[code]||0)+(+n||0)}return out}
-function designPool(ctx){const merged=new Map(ctx.sets.questions.map(q=>[q.id,q]));for(const [id,q] of ctx.frozenPool||[])merged.set(id,q);return [...merged.values()].filter(q=>ctx.selectedChapters.has(q.chapter_id)&&ctx.selectedTopics.has(q.topic_id))}
+function designPool(ctx){return ctx.sets.questions.filter(q=>ctx.selectedChapters.has(q.chapter_id)&&ctx.selectedTopics.has(q.topic_id))}
 function drawSelection(ctx){const chosen=[],used=new Set();if(ctx.structureMode==='topic_clo'){for(const t of ctx.sets.topics.filter(x=>ctx.selectedTopics.has(x.id))){for(const clo of ctx.sets.clos){const need=+ctx.matrix[matrixKey(ctx.structureMode,t.id,clo.id)]||0;if(!need)continue;const candidates=shuf(eligibleForCell(ctx,t.id,clo.id).filter(q=>!used.has(q.id)));if(candidates.length<need)throw new Error(`Không đủ câu ${clo.code} ở ${t.name}: cần ${need}, có ${candidates.length}`);for(const q of candidates.slice(0,need)){chosen.push(q);used.add(q.id)}}}}else{for(const ch of ctx.sets.chapters.filter(x=>ctx.selectedChapters.has(x.id))){for(const clo of ctx.sets.clos){const need=+ctx.matrix[matrixKey(ctx.structureMode,ch.id,clo.id)]||0;if(!need)continue;const candidates=shuf(eligibleForCell(ctx,ch.id,clo.id).filter(q=>!used.has(q.id)));if(candidates.length<need)throw new Error(`Không đủ câu ${clo.code} ở ${ch.name}: cần ${need}, có ${candidates.length}`);for(const q of candidates.slice(0,need)){chosen.push(q);used.add(q.id)}}}}return chosen}
 function validateBuilder(ctx){if(!ctx.settings.title.trim())throw new Error('Cần nhập tên bài kiểm tra');if(!ctx.selectedChapters.size)throw new Error('Cần chọn ít nhất một chương');if(!ctx.selectedTopics.size)throw new Error('Cần chọn ít nhất một mục');const total=matrixTotal(ctx);if(total<1)throw new Error('Ma trận cần ít nhất một câu');for(const [key,n] of Object.entries(ctx.matrix)){if((+n||0)<0)throw new Error('Số câu trong ma trận không hợp lệ');if(!n)continue;const [,rowId,cloId]=key.split(':');const available=eligibleForCell(ctx,rowId,cloId).length;if(available<+n){const clo=byId(ctx.sets.clos,cloId)?.code||'CLO';throw new Error(`${clo}: yêu cầu ${n} nhưng ngân hàng chỉ có ${available} câu phù hợp`)}}return total}
 async function openExamBuilder(exam){
@@ -169,11 +155,116 @@ async function saveBuilder(ctx){
   }catch(e){if(createdId){try{await db.from('exams').delete().eq('id',createdId)}catch{}}showError(e);if(saveBtn){saveBtn.disabled=false;saveBtn.textContent=ctx.examId?'Lưu thay đổi':'Tạo bài kiểm tra'}}
 }
 
-async function studentExamList(c){try{const [items,{data:attempts,error}]=await Promise.all([fetchExams(),db.from('exam_attempts').select('*').eq('student_id',state.user.id).order('created_at',{ascending:false})]);if(error)throw error;const visible=items.filter(x=>x.status==='active'||(attempts||[]).some(a=>a.exam_id===x.id&&!a.submitted_at));c.innerHTML=`<div class="student-exam-grid">${visible.map(x=>{const mine=(attempts||[]).filter(a=>a.exam_id===x.id),open=mine.find(a=>!a.submitted_at),s=statusMeta(x);return `<article class="student-exam-card"><div class="student-exam-head"><span class="badge ${s.className}">${s.label}</span><span>${mine.filter(a=>a.submitted_at).length}/${x.max_attempts||1} lượt đã nộp</span></div><h3>${esc2(x.title||'Bài kiểm tra')}</h3><p>${esc2(x.description||'')}</p><div class="student-exam-meta"><span><b>${x.total_questions||0}</b> câu</span><span><b>${x.duration_minutes||'—'}</b> phút</span></div><div class="student-exam-actions">${open?`<button class="primary" data-v122-resume="${x.id}">Tiếp tục làm bài</button>`:x.status==='active'?`<button class="primary" data-v122-start="${x.id}">Làm bài</button>`:'<button class="secondary" disabled>Đang tạm dừng</button>'}</div></article>`}).join('')||'<div class="panel empty">Hiện chưa có bài kiểm tra nào.</div>'}</div>`;$$1('[data-v122-start],[data-v122-resume]',c).forEach(b=>b.onclick=()=>notify('Bước Student Attempt sẽ được nối sau khi Builder ổn định.'))}catch(e){showError(e)}}
+const attemptLocalKey=id=>`aiclo:v122:attempt:${state.user?.id||'user'}:${id}`;
+function readAttemptLocal(id){try{return JSON.parse(localStorage.getItem(attemptLocalKey(id))||'null')}catch{return null}}
+function saveAttemptLocal(id,data){try{localStorage.setItem(attemptLocalKey(id),JSON.stringify({...data,updated_at:Date.now()}))}catch{}}
+function clearAttemptLocal(id){try{localStorage.removeItem(attemptLocalKey(id))}catch{}}
+function clearLiveTimer(){if(liveTimer){clearInterval(liveTimer);liveTimer=null}}
+function timerText(sec){sec=Math.max(0,Math.floor(sec||0));return `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`}
+
+async function studentExamList(c){
+  try{
+    clearLiveTimer();
+    const [items,{data:attempts,error}]=await Promise.all([
+      fetchExams(),
+      db.from('exam_attempts').select('*').eq('student_id',state.user.id).order('created_at',{ascending:false})
+    ]);
+    if(error)throw error;
+    const rows=attempts||[];
+    const visible=items.filter(x=>x.status==='active'||rows.some(a=>a.exam_id===x.id&&!a.submitted_at));
+    c.innerHTML=`<div class="student-exam-grid">${visible.map(x=>{
+      const mine=rows.filter(a=>a.exam_id===x.id),open=mine.find(a=>!a.submitted_at),done=mine.filter(a=>a.submitted_at),s=statusMeta(x),canStart=!open&&s.code==='active'&&mine.length<Math.max(1,+x.max_attempts||1),latest=done[0];
+      const action=open?`<button class="primary" data-v122-resume="${x.id}" data-attempt="${open.id}">Tiếp tục làm bài</button>`:canStart?`<button class="primary" data-v122-start="${x.id}">Làm bài</button>`:`<button class="secondary" disabled>${s.code==='upcoming'?'Chưa mở':s.code==='expired'?'Đã hết hạn':x.status==='closed'?'Đang tạm dừng':'Đã hết lượt'}</button>`;
+      return `<article class="student-exam-card"><div class="student-exam-head"><span class="badge ${s.className}">${s.label}</span><span>${done.length}/${x.max_attempts||1} lượt đã nộp</span></div><h3>${esc2(x.title||'Bài kiểm tra')}</h3><p>${esc2(x.description||'')}</p><div class="student-exam-meta"><span><b>${x.total_questions||0}</b> câu</span><span><b>${x.duration_minutes||'—'}</b> phút</span></div><div class="student-exam-actions">${action}${latest?`<button class="secondary" data-v122-result="${latest.id}">Kết quả gần nhất</button>`:''}</div>${open&&x.status==='closed'?'<p class="hint">Bài đang tạm dừng, nhưng lượt bạn đã bắt đầu vẫn được tiếp tục.</p>':''}</article>`;
+    }).join('')||'<div class="panel empty">Hiện chưa có bài kiểm tra nào.</div>'}</div>`;
+    $$1('[data-v122-start]',c).forEach(b=>b.onclick=()=>startStudentAttempt(b.dataset.v122Start,b));
+    $$1('[data-v122-resume]',c).forEach(b=>b.onclick=()=>openStudentAttempt(b.dataset.attempt));
+    $$1('[data-v122-result]',c).forEach(b=>b.onclick=()=>openStudentAttemptResult(b.dataset.v122Result));
+  }catch(e){showError(e)}
+}
+async function startStudentAttempt(examId,button){
+  if(!await ask('Bắt đầu bài kiểm tra','Đồng hồ sẽ tính từ khi bắt đầu. Đáp án được tự lưu sau mỗi lần chọn.','Bắt đầu'))return;
+  if(button){button.disabled=true;button.textContent='Đang mở bài…'}
+  try{
+    const {data,error}=await db.rpc('start_exam_attempt',{p_exam_id:examId});
+    if(error)throw error;
+    await openStudentAttempt(data.attempt_id);
+  }catch(e){showError(e);if(button){button.disabled=false;button.textContent='Làm bài'}}
+}
+async function openStudentAttempt(attemptId){
+  try{
+    clearLiveTimer();
+    const {data,error}=await db.rpc('get_exam_attempt_payload',{p_attempt_id:attemptId});
+    if(error)throw error;
+    if(data.submitted_at){clearAttemptLocal(attemptId);return openStudentAttemptResult(attemptId)}
+    if(data.remaining_seconds===0){
+      const done=await db.rpc('submit_exam_attempt',{p_attempt_id:attemptId,p_answers:data.answers||{}});
+      if(done.error)throw done.error;
+      clearAttemptLocal(attemptId);return showStudentResult(data.exam,done.data);
+    }
+    const local=readAttemptLocal(attemptId)||{},pending={...(local.pending||{})};
+    const answers={...(data.answers||{}),...pending};
+    const serverDeadline=data.remaining_seconds==null?null:Date.now()+Math.max(0,data.remaining_seconds)*1000;
+    data._deadlineMs=serverDeadline==null?null:(local.deadline?Math.min(serverDeadline,local.deadline):serverDeadline);
+    data._pending=pending;
+    saveAttemptLocal(attemptId,{answers,pending,deadline:data._deadlineMs});
+    showStudentQuestion(data,answers,0,true);
+  }catch(e){showError(e)}
+}
+function showStudentQuestion(payload,answers,index,first=false){
+  clearLiveTimer();
+  const qs=payload.questions||[],x=qs[index];
+  if(!x)return notify('Không đọc được câu hỏi của bài kiểm tra.',true);
+  const current=payload._deadlineMs==null?null:Math.max(0,Math.floor((payload._deadlineMs-Date.now())/1000));
+  const html=`<div class="live-exam"><div class="live-top"><div><b>Câu ${index+1}/${qs.length}</b><span class="badge red">${esc2(x.clo_code||'—')}</span></div><div id="examTimer" class="exam-timer">${current==null?'Không giới hạn':timerText(current)}</div></div><div class="live-context"><span>${esc2(x.chapter||'')}</span><span>${esc2(x.topic||'')}</span><span id="saveState">Tự lưu khi chọn đáp án</span></div><div class="preview-question">${esc2(x.content||'')}</div><div class="preview-options live-options">${(x.options||[]).map(o=>`<label class="${answers[x.id]===o.key?'selected':''}"><input type="radio" name="v122LiveAnswer" value="${esc2(o.key)}" ${answers[x.id]===o.key?'checked':''}><b>${esc2(o.key)}</b><span>${esc2(o.content||'')}</span></label>`).join('')}</div><div class="question-jump">${qs.map((q,i)=>`<button type="button" data-v122-jump="${i}" class="${i===index?'current':''} ${answers[q.id]?'answered':''}">${i+1}</button>`).join('')}</div><div class="preview-nav"><button id="v122LivePrev" class="secondary" ${index===0?'disabled':''}>← Trước</button><button id="v122LiveNext" class="secondary" ${index===qs.length-1?'disabled':''}>Sau →</button><button id="v122LiveSubmit" class="primary">Nộp bài</button></div></div>`;
+  const bind=()=>{
+    $$1('input[name="v122LiveAnswer"]',$1('#drawerBody')).forEach(r=>r.onchange=async()=>{
+      answers[x.id]=r.value;payload._pending=payload._pending||{};payload._pending[x.id]=r.value;
+      saveAttemptLocal(payload.attempt_id,{answers,pending:payload._pending,deadline:payload._deadlineMs});
+      $$1('.live-options label',$1('#drawerBody')).forEach(l=>l.classList.toggle('selected',l.contains(r)));
+      $1(`[data-v122-jump="${index}"]`,$1('#drawerBody'))?.classList.add('answered');
+      const s=$1('#saveState');if(s)s.textContent='Đang lưu…';
+      const rr=await db.rpc('save_exam_progress',{p_attempt_id:payload.attempt_id,p_question_id:x.id,p_selected_option:r.value});
+      if(rr.error){if(s)s.textContent='Đã lưu trên máy · chưa đồng bộ';console.warn('V12.2 autosave',rr.error)}
+      else{delete payload._pending[x.id];saveAttemptLocal(payload.attempt_id,{answers,pending:payload._pending,deadline:payload._deadlineMs});if(s)s.textContent='✓ Đã lưu'}
+    });
+    $$1('[data-v122-jump]',$1('#drawerBody')).forEach(b=>b.onclick=()=>showStudentQuestion(payload,answers,+b.dataset.v122Jump,false));
+    $1('#v122LivePrev').onclick=()=>showStudentQuestion(payload,answers,index-1,false);
+    $1('#v122LiveNext').onclick=()=>showStudentQuestion(payload,answers,index+1,false);
+    $1('#v122LiveSubmit').onclick=()=>submitStudentAttempt(payload,answers,false);
+    if(current!=null){liveTimer=setInterval(()=>{const sec=Math.max(0,Math.floor((payload._deadlineMs-Date.now())/1000)),box=$1('#examTimer');if(box)box.textContent=timerText(sec);if(sec<=0){clearLiveTimer();submitStudentAttempt(payload,answers,true)}},1000)}
+  };
+  if(first&&typeof openDrawer==='function')openDrawer(`Làm bài · ${payload.exam.title}`,html,bind,{wide:true,eyebrow:`LẦN ${payload.attempt_number}`});
+  else if(typeof replaceDrawer==='function')replaceDrawer(`Làm bài · ${payload.exam.title}`,html,bind,{wide:true,eyebrow:`LẦN ${payload.attempt_number}`});
+  else notify('Không mở được giao diện làm bài.',true);
+}
+async function submitStudentAttempt(payload,answers,auto){
+  const unanswered=(payload.questions||[]).filter(q=>!answers[q.id]).length;
+  if(!auto&&!await ask('Nộp bài kiểm tra',unanswered?`Còn ${unanswered} câu chưa trả lời. Sau khi nộp không thể sửa lượt này.`:'Sau khi nộp không thể sửa lượt này.','Nộp bài'))return;
+  clearLiveTimer();
+  const b=$1('#v122LiveSubmit');if(b){b.disabled=true;b.textContent=auto?'Hết giờ — đang nộp…':'Đang nộp…'}
+  try{
+    const {data,error}=await db.rpc('submit_exam_attempt',{p_attempt_id:payload.attempt_id,p_answers:answers||{}});
+    if(error)throw error;
+    clearAttemptLocal(payload.attempt_id);showStudentResult(payload.exam,data);
+  }catch(e){showError(e);if(b){b.disabled=false;b.textContent='Nộp bài'}}
+}
+function studentResultHtml(result){
+  return `<div class="preview-result result-v122"><div class="result-score"><small>Điểm tổng</small><b>${Number(result.score||0).toFixed(2)}</b><span>${Number(result.correct||0)}/${Number(result.total||0)} câu đúng</span></div><h4>Kết quả theo CLO</h4><div class="clo-results">${(result.clo_scores||[]).map(x=>`<div><b>${esc2(x.code||'CLO')}</b><strong>${Number(x.score||0).toFixed(2)}</strong><span>${x.correct}/${x.total} câu đúng</span></div>`).join('')||'<p>Chưa có dữ liệu CLO.</p>'}</div>${result.show_answers&&result.review?.length?`<h4>Chi tiết bài làm</h4><div class="answer-review">${result.review.map((x,i)=>`<details class="${x.is_correct?'right':'wrong'}"><summary>Câu ${i+1} — ${x.is_correct?'Đúng':'Chưa đúng'} · ${esc2(x.clo_code||'')}</summary><div>${esc2(x.content||'')}</div><p>Bạn chọn: <b>${esc2(x.selected||'Chưa trả lời')}</b> · Đáp án đúng: <b>${esc2(x.correct_answer||'')}</b></p><p>${esc2(x.explanation||'')}</p></details>`).join('')}</div>`:'<p class="hint">Bài kiểm tra này không hiển thị đáp án chi tiết.</p>'}</div>`;
+}
+function showStudentResult(exam,result){clearLiveTimer();const html=studentResultHtml(result);if(typeof replaceDrawer==='function')replaceDrawer(`Kết quả · ${exam.title}`,html,null,{wide:true,eyebrow:'KẾT QUẢ BÀI LÀM'});else notify(`Điểm: ${Number(result.score||0).toFixed(2)}`)}
+async function openStudentAttemptResult(attemptId){
+  try{
+    clearLiveTimer();
+    const {data,error}=await db.rpc('get_attempt_result',{p_attempt_id:attemptId});if(error)throw error;
+    const {data:exam,error:ee}=await db.from('exams').select('id,title').eq('id',data.exam_id).single();if(ee)throw ee;
+    clearAttemptLocal(attemptId);
+    if(typeof openDrawer==='function')openDrawer(`Kết quả · ${exam.title}`,studentResultHtml(data),null,{wide:true,eyebrow:'KẾT QUẢ BÀI LÀM'});else notify(`Điểm: ${Number(data.score||0).toFixed(2)}`);
+  }catch(e){showError(e)}
+}
 async function exams(c){if(!subjectId()){c?.replaceChildren?.(typeof empty==='function'?empty():document.createTextNode('Chưa chọn học phần'));return}if(!await schemaReady())return migrationNotice(c);return isTeacher()?teacherExamList(c):studentExamList(c)}
 async function results(c){c.innerHTML='<div class="panel"><h3>Kết quả CLO</h3><p class="hint">Sẽ được nối lại trong bước xử lý score_policy.</p></div>'}
 async function teacherClassList(c){return results(c)}
-async function openStudentAttemptResult(){notify('Kết quả lượt làm sẽ được nối ở bước Student Attempt.')}
 window.exams=exams;
 window.results=results;
 window.AICLO_ASSESSMENT=Object.freeze({exams,results,teacherClassList,openStudentAttemptResult,openExamDetail,version:VERSION});
