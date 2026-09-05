@@ -1,0 +1,66 @@
+name: Apply verified Assessment Step 8B
+
+on:
+  push:
+    branches: [v12.2-assessment-stability]
+    paths: [.github/workflows/step8b-apply.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v12.2-assessment-stability
+          fetch-depth: 0
+      - name: Apply verified patch
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64
+          p=Path('js/assessment.js')
+          s=p.read_text(encoding='utf-8')
+          old_header='   Step 8A: online assessment + official CLO results + canonical final-exam workflow. */'
+          new_header='   Step 8B: online assessment + official CLO results + canonical final-exam workflow + exports. */'
+          old_version="const VERSION='12.2.0-step8a';"
+          new_version="const VERSION='12.2.0-step8b';"
+          anchor='async function openFinalExamDetail(pkgOrId){'
+          old_click="$1('#v122FinalExport').onclick=()=>notify('Bước 8B sẽ nối BM06/BM07/BM08/TeX vào nút này.')"
+          new_click="$1('#v122FinalExport').onclick=()=>openFinalExportMenu(pkg)"
+          for token in (old_header,old_version,anchor,old_click):
+              if token not in s:
+                  raise SystemExit(f'Patch anchor missing: {token[:80]}')
+          block=base64.b64decode('YXN5bmMgZnVuY3Rpb24gZW5zdXJlRmluYWxFeHBvcnRzKCl7aWYod2luZG93LkFJQ0xPX0ZJTkFMX0VYUE9SVFMpcmV0dXJuIHdpbmRvdy5BSUNMT19GSU5BTF9FWFBPUlRTO2lmKHdpbmRvdy5BSUNMT19GRUFUVVJFUz8ubG9hZClhd2FpdCB3aW5kb3cuQUlDTE9fRkVBVFVSRVMubG9hZCgnanMvZXhhbXMvZmluYWwtZXhwb3J0LmpzP3Y9MTIuMi4xJyk7ZWxzZSBhd2FpdCBuZXcgUHJvbWlzZSgocmVzb2x2ZSxyZWplY3QpPT57Y29uc3Qgb2xkPWRvY3VtZW50LnF1ZXJ5U2VsZWN0b3IoJ3NjcmlwdFtkYXRhLWFpY2xvLWZpbmFsLWV4cG9ydF0nKTtpZihvbGQpe29sZC5hZGRFdmVudExpc3RlbmVyKCdsb2FkJyxyZXNvbHZlLHtvbmNlOnRydWV9KTtvbGQuYWRkRXZlbnRMaXN0ZW5lcignZXJyb3InLHJlamVjdCx7b25jZTp0cnVlfSk7cmV0dXJufWNvbnN0IHM9ZG9jdW1lbnQuY3JlYXRlRWxlbWVudCgnc2NyaXB0Jyk7cy5zcmM9J2pzL2V4YW1zL2ZpbmFsLWV4cG9ydC5qcz92PTEyLjIuMSc7cy5hc3luYz1mYWxzZTtzLmRhdGFzZXQuYWljbG9GaW5hbEV4cG9ydD0nMSc7cy5vbmxvYWQ9cmVzb2x2ZTtzLm9uZXJyb3I9KCk9PnJlamVjdChuZXcgRXJyb3IoJ0tow7RuZyB04bqjaSDEkcaw4bujYyB0aeG7h24gw61jaCB4deG6pXQgxJHhu4EgdGhpJykpO2RvY3VtZW50LmhlYWQuYXBwZW5kQ2hpbGQocyl9KTtpZighd2luZG93LkFJQ0xPX0ZJTkFMX0VYUE9SVFMpdGhyb3cgbmV3IEVycm9yKCdLaMO0bmcga2jhu59pIHThuqFvIMSRxrDhu6NjIHRp4buHbiDDrWNoIHh14bqldCDEkeG7gSB0aGknKTtyZXR1cm4gd2luZG93LkFJQ0xPX0ZJTkFMX0VYUE9SVFN9CmZ1bmN0aW9uIGZpbmFsU3ViamVjdExhYmVsKCl7Y29uc3QgZWw9JDEoJyNzdWJqZWN0U2VsZWN0Jyk7Y29uc3QgdGV4dD1lbD8uc2VsZWN0ZWRPcHRpb25zPy5bMF0/LnRleHRDb250ZW50fHwnJztyZXR1cm4gU3RyaW5nKHRleHQpLnRyaW0oKXx8J0jhu41jIHBo4bqnbid9CmZ1bmN0aW9uIHZhbGlkYXRlU3RvcmVkRmluYWxQYWNrYWdlKHBrZyl7Y29uc3QgbWV0YT1wa2c/Lm1ldGFkYXRhfHx7fSxjb2Rlcz0obWV0YS52YXJpYW50X2NvZGVzfHxbXSkubWFwKHg9PlN0cmluZyh4KS50cmltKCkpLmZpbHRlcihCb29sZWFuKSx2YXJpYW50cz1BcnJheS5pc0FycmF5KHBrZz8udmFyaWFudHMpP3BrZy52YXJpYW50czpbXSxzZWxlY3RlZD1BcnJheS5pc0FycmF5KHBrZz8uc2VsZWN0ZWRfcXVlc3Rpb25zKT9wa2cuc2VsZWN0ZWRfcXVlc3Rpb25zOltdO2lmKHBrZz8uc3RhdHVzIT09J2dlbmVyYXRlZCcpdGhyb3cgbmV3IEVycm9yKCdDaOG7iSBo4buTIHPGoSDEkcOjIHNpbmggbcOjIMSR4buBIG3hu5tpIMSRxrDhu6NjIHh14bqldCcpO2lmKCFzZWxlY3RlZC5sZW5ndGgpdGhyb3cgbmV3IEVycm9yKCdI4buTIHPGoSBjaMawYSBjw7Mgc25hcHNob3QgYuG7mSBjw6J1Jyk7aWYoIWNvZGVzLmxlbmd0aHx8Y29kZXMubGVuZ3RoPjIwKXRocm93IG5ldyBFcnJvcignRGFuaCBzw6FjaCBtw6MgxJHhu4Ega2jDtG5nIGjhu6NwIGzhu4cnKTtpZihuZXcgU2V0KGNvZGVzKS5zaXplIT09Y29kZXMubGVuZ3RoKXRocm93IG5ldyBFcnJvcignRGFuaCBzw6FjaCBtw6MgxJHhu4EgY8OzIG3DoyB0csO5bmcnKTtjb25zdCBzZWxlY3RlZElkcz1zZWxlY3RlZC5tYXAocT0+U3RyaW5nKHE/LnF1ZXN0aW9uX2lkfHxxPy5pZHx8JycpKS5maWx0ZXIoQm9vbGVhbik7aWYoc2VsZWN0ZWRJZHMubGVuZ3RoIT09c2VsZWN0ZWQubGVuZ3RofHxuZXcgU2V0KHNlbGVjdGVkSWRzKS5zaXplIT09c2VsZWN0ZWQubGVuZ3RoKXRocm93IG5ldyBFcnJvcignU25hcHNob3QgYuG7mSBjw6J1IGPDsyBtw6MgY8OidSB0aGnhur91IGhv4bq3YyB0csO5bmcnKTtpZih2YXJpYW50cy5sZW5ndGghPT1jb2Rlcy5sZW5ndGgpdGhyb3cgbmV3IEVycm9yKGBT4buRIHBoacOqbiBi4bqjbiDEkcOjIGzGsHUgKCR7dmFyaWFudHMubGVuZ3RofSkga2jDtG5nIGto4bubcCBz4buRIG3DoyDEkeG7gSAoJHtjb2Rlcy5sZW5ndGh9KWApO2NvbnN0IHNlbGVjdGVkU2V0PW5ldyBTZXQoc2VsZWN0ZWRJZHMpO2ZvcihsZXQgaT0wO2k8dmFyaWFudHMubGVuZ3RoO2krKyl7Y29uc3Qgdj12YXJpYW50c1tpXSxjb2RlPVN0cmluZyh2Py5jb2RlfHwnJyk7aWYoY29kZSE9PWNvZGVzW2ldKXRocm93IG5ldyBFcnJvcihgTcOjIMSR4buBIHRo4bupICR7aSsxfSBraMO0bmcga2jhu5twIGjhu5Mgc8ahICgke2NvZGV8fCd0cuG7kW5nJ30g4omgICR7Y29kZXNbaV19KWApO2lmKCFBcnJheS5pc0FycmF5KHYucXVlc3Rpb25zKXx8di5xdWVzdGlvbnMubGVuZ3RoIT09c2VsZWN0ZWQubGVuZ3RoKXRocm93IG5ldyBFcnJvcihgTcOjIMSR4buBICR7Y29kZX0ga2jDtG5nIMSR4bunICR7c2VsZWN0ZWQubGVuZ3RofSBjw6J1YCk7Y29uc3QgaWRzPXYucXVlc3Rpb25zLm1hcChxPT5TdHJpbmcocT8ucXVlc3Rpb25faWR8fHE/LmlkfHwnJykpLmZpbHRlcihCb29sZWFuKTtpZihpZHMubGVuZ3RoIT09c2VsZWN0ZWQubGVuZ3RofHxuZXcgU2V0KGlkcykuc2l6ZSE9PXNlbGVjdGVkLmxlbmd0aHx8aWRzLnNvbWUoaWQ9PiFzZWxlY3RlZFNldC5oYXMoaWQpKSl0aHJvdyBuZXcgRXJyb3IoYE3DoyDEkeG7gSAke2NvZGV9IGtow7RuZyBjw7JuIGzDoCBt4buZdCBob8OhbiB24buLIGPhu6dhIHNuYXBzaG90IGLhu5kgY8OidWApO2Zvcihjb25zdCBxIG9mIHYucXVlc3Rpb25zKXtpZighWydBJywnQicsJ0MnLCdEJ10uaW5jbHVkZXMoU3RyaW5nKHE/LmNvcnJlY3RfYW5zd2VyfHwnJykudG9VcHBlckNhc2UoKSkpdGhyb3cgbmV3IEVycm9yKGBNw6MgxJHhu4EgJHtjb2RlfSBjw7MgxJHDoXAgw6FuIMSRw7puZyBraMO0bmcgaOG7o3AgbOG7h2ApO2NvbnN0IGtleXM9QXJyYXkuaXNBcnJheShxPy5vcHRpb25zKT9xLm9wdGlvbnMubWFwKG89PlN0cmluZyhvPy5rZXl8fG8/Lm9wdGlvbl9rZXl8fCcnKS50b1VwcGVyQ2FzZSgpKTpPYmplY3Qua2V5cyhxPy5vcHRpb25zfHx7fSkubWFwKGs9PlN0cmluZyhrKS50b1VwcGVyQ2FzZSgpKTtpZihrZXlzLmxlbmd0aCE9PTR8fG5ldyBTZXQoa2V5cykuc2l6ZSE9PTR8fCFbJ0EnLCdCJywnQycsJ0QnXS5ldmVyeShrPT5rZXlzLmluY2x1ZGVzKGspKSl0aHJvdyBuZXcgRXJyb3IoYE3DoyDEkeG7gSAke2NvZGV9IGPDsyBwaMawxqFuZyDDoW4gQeKAk0Qga2jDtG5nIGjhu6NwIGzhu4dgKX19cmV0dXJuIHtjb2Rlcyx2YXJpYW50cyxzZWxlY3RlZH19CmFzeW5jIGZ1bmN0aW9uIGJ1aWxkRmluYWxFeHBvcnRDb250ZXh0KHBrZyl7Y29uc3QgY2hlY2tlZD12YWxpZGF0ZVN0b3JlZEZpbmFsUGFja2FnZShwa2cpLHNldHM9YXdhaXQgbG9hZFNlY3VyZVNldHMoKTtyZXR1cm4ge3BhY2thZ2VJZDpwa2cuaWQsdGl0bGU6cGtnLnRpdGxlfHwnxJDhu4EgdGhpIGN14buRaSBr4buzJyxzdWJqZWN0OntpZDpzdWJqZWN0SWQoKSxuYW1lOmZpbmFsU3ViamVjdExhYmVsKCl9LG1ldGFkYXRhOnsuLi4ocGtnLm1ldGFkYXRhfHx7fSl9LHNldHM6e2NoYXB0ZXJzOnNldHMuY2hhcHRlcnMsdG9waWNzOnNldHMudG9waWNzLGNsb3M6c2V0cy5jbG9zfSxzZWxlY3RlZDpjaGVja2VkLnNlbGVjdGVkLHZhcmlhbnRzOmNoZWNrZWQudmFyaWFudHN9fQphc3luYyBmdW5jdGlvbiBvcGVuRmluYWxFeHBvcnRNZW51KHBrZyl7dHJ5e2NvbnN0IGN0eD1hd2FpdCBidWlsZEZpbmFsRXhwb3J0Q29udGV4dChwa2cpLGFwaT1hd2FpdCBlbnN1cmVGaW5hbEV4cG9ydHMoKSxjb2Rlcz1jdHgudmFyaWFudHMubWFwKHY9PlN0cmluZyh2LmNvZGUpKTtpZih0eXBlb2YgbW9kYWwhPT0nZnVuY3Rpb24nKXRocm93IG5ldyBFcnJvcignS2jDtG5nIG3hu58gxJHGsOG7o2MgY+G7rWEgc+G7lSB4deG6pXQgaOG7kyBzxqEnKTttb2RhbChgWHXhuqV0IGjhu5Mgc8ahIMK3ICR7cGtnLnRpdGxlfHwnxJDhu4EgdGhpIGN14buRaSBr4buzJ31gLGA8ZGl2IGNsYXNzPSJmaW5hbC1leHBvcnQtdjEyMiI+PHAgY2xhc3M9ImhpbnQiPk5ndeG7k24geHXhuqV0OiBzbmFwc2hvdCDEkcOjIGzGsHUgdHLDqm4gU3VwYWJhc2UgwrcgJHtjdHguc2VsZWN0ZWQubGVuZ3RofSBjw6J1IMK3ICR7Y29kZXMubGVuZ3RofSBtw6MgxJHhu4EuPC9wPjxkaXYgY2xhc3M9ImZvcm0tZ3JpZCI+PGxhYmVsIGNsYXNzPSJmaWVsZCB3aWRlIj5Nw6MgxJHhu4EgxJHhu4MgeHXhuqV0IHJpw6puZzxzZWxlY3QgaWQ9InYxMjJFeHBvcnRDb2RlIj4ke2NvZGVzLm1hcChjPT5gPG9wdGlvbiB2YWx1ZT0iJHtlc2MyKGMpfSI+JHtlc2MyKGMpfTwvb3B0aW9uPmApLmpvaW4oJycpfTwvc2VsZWN0PjwvbGFiZWw+PC9kaXY+PGRpdiBjbGFzcz0iZm9ybS1hY3Rpb25zIHdyYXAiPjxidXR0b24gdHlwZT0iYnV0dG9uIiBpZD0idjEyMkV4cG9ydEJNMDYiIGNsYXNzPSJzZWNvbmRhcnkiPkJNMDYgwrcgTWEgdHLhuq1uIERPQ1g8L2J1dHRvbj48YnV0dG9uIHR5cGU9ImJ1dHRvbiIgaWQ9InYxMjJFeHBvcnRCTTA3IiBjbGFzcz0ic2Vjb25kYXJ5Ij5CTTA3IMK3IMSQ4buBIERPQ1g8L2J1dHRvbj48YnV0dG9uIHR5cGU9ImJ1dHRvbiIgaWQ9InYxMjJFeHBvcnRCTTA4IiBjbGFzcz0ic2Vjb25kYXJ5Ij5CTTA4IMK3IMSQw6FwIMOhbiBET0NYPC9idXR0b24+PGJ1dHRvbiB0eXBlPSJidXR0b24iIGlkPSJ2MTIyRXhwb3J0VGVYIiBjbGFzcz0ic2Vjb25kYXJ5Ij5UZVg8L2J1dHRvbj48YnV0dG9uIHR5cGU9ImJ1dHRvbiIgaWQ9InYxMjJFeHBvcnRBbnN3ZXJzIiBjbGFzcz0ic2Vjb25kYXJ5Ij7EkMOhcCDDoW4gRXhjZWw8L2J1dHRvbj48YnV0dG9uIHR5cGU9ImJ1dHRvbiIgaWQ9InYxMjJFeHBvcnRaaXAiIGNsYXNzPSJwcmltYXJ5Ij5aSVAgdG/DoG4gYuG7mTwvYnV0dG9uPjwvZGl2PjxwIGNsYXNzPSJoaW50Ij5aSVAgZ+G7k20gQk0wNiwgQk0wNy9CTTA4IGNobyBt4buNaSBtw6MgxJHhu4EsIFRlWCB2w6AgZmlsZSDEkcOhcCDDoW4gQ0xPLjwvcD48L2Rpdj5gKTtjb25zdCBzZWxlY3RlZFZhcmlhbnQ9KCk9PmN0eC52YXJpYW50cy5maW5kKHY9PlN0cmluZyh2LmNvZGUpPT09JDEoJyN2MTIyRXhwb3J0Q29kZScpPy52YWx1ZSl8fGN0eC52YXJpYW50c1swXTtjb25zdCBydW49YXN5bmMoYnRuLGZuKT0+e2NvbnN0IG9sZD1idG4udGV4dENvbnRlbnQ7YnRuLmRpc2FibGVkPXRydWU7YnRuLnRleHRDb250ZW50PSfEkGFuZyB4deG6pXTigKYnO3RyeXthd2FpdCBmbigpO25vdGlmeSgnxJDDoyB04bqhbyBmaWxlIHh14bqldCcpfWNhdGNoKGUpe3Nob3dFcnJvcihlKX1maW5hbGx5e2J0bi5kaXNhYmxlZD1mYWxzZTtidG4udGV4dENvbnRlbnQ9b2xkfX07JDEoJyN2MTIyRXhwb3J0Qk0wNicpLm9uY2xpY2s9ZT0+cnVuKGUuY3VycmVudFRhcmdldCwoKT0+YXBpLmJtMDYoY3R4KSk7JDEoJyN2MTIyRXhwb3J0Qk0wNycpLm9uY2xpY2s9ZT0+cnVuKGUuY3VycmVudFRhcmdldCwoKT0+YXBpLmJtMDcoY3R4LHNlbGVjdGVkVmFyaWFudCgpKSk7JDEoJyN2MTIyRXhwb3J0Qk0wOCcpLm9uY2xpY2s9ZT0+cnVuKGUuY3VycmVudFRhcmdldCwoKT0+YXBpLmJtMDgoY3R4LHNlbGVjdGVkVmFyaWFudCgpKSk7JDEoJyN2MTIyRXhwb3J0VGVYJykub25jbGljaz1lPT5ydW4oZS5jdXJyZW50VGFyZ2V0LCgpPT5hcGkudGV4KGN0eCxzZWxlY3RlZFZhcmlhbnQoKSkpOyQxKCcjdjEyMkV4cG9ydEFuc3dlcnMnKS5vbmNsaWNrPWU9PnJ1bihlLmN1cnJlbnRUYXJnZXQsKCk9PmFwaS5hbnN3ZXJzKGN0eCkpOyQxKCcjdjEyMkV4cG9ydFppcCcpLm9uY2xpY2s9ZT0+cnVuKGUuY3VycmVudFRhcmdldCwoKT0+YXBpLnppcChjdHgpKX1jYXRjaChlKXtzaG93RXJyb3IoZSl9fQo=').decode('utf-8')
+          s=s.replace(old_header,new_header,1).replace(old_version,new_version,1)
+          s=s.replace(anchor,block+'\n'+anchor,1).replace(old_click,new_click,1)
+          p.write_text(s,encoding='utf-8')
+          app=Path('app.html')
+          a=app.read_text(encoding='utf-8')
+          if 'js/assessment.js?v=12.2.1' not in a:
+              raise SystemExit('Assessment cache-key anchor missing')
+          app.write_text(a.replace('js/assessment.js?v=12.2.1','js/assessment.js?v=12.2.2',1),encoding='utf-8')
+          PY
+      - name: Verify exact engine
+        shell: bash
+        run: |
+          node --check js/assessment.js
+          test "$(git hash-object js/assessment.js)" = "72c07a564316c0a45209933072d8104d2bf967d5"
+          test "$(grep -c 'MutationObserver' js/assessment.js || true)" = "0"
+          test "$(grep -c 'window.exams=exams' js/assessment.js)" = "1"
+          test "$(grep -c 'window.results=results' js/assessment.js)" = "1"
+          grep -q "12.2.0-step8b" js/assessment.js
+          grep -q "openFinalExportMenu" js/assessment.js
+          ! grep -q "Bước 8B sẽ nối" js/assessment.js
+      - name: Commit verified engine and clean transfer files
+        shell: bash
+        run: |
+          rm -f tmp-step8b-marker.txt .github/workflows/step8b-apply.yml
+          git config user.name 'AI-CLO V12.2 Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add js/assessment.js app.html tmp-step8b-marker.txt .github/workflows/step8b-apply.yml
+          git commit -m 'feat(assessment): complete V12.2 step 8B final exports'
+          git push origin HEAD:v12.2-assessment-stability
