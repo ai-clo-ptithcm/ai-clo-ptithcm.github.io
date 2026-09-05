@@ -1,0 +1,19 @@
+name: Temp UI Persistence Check
+on:
+  push:
+    branches: [v12.3.6-ui-persistence-opt]
+    paths: [.github/workflows/temp-ui-persistence-check.yml]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v12.3.6-ui-persistence-opt
+      - run: |
+          node --check js/ui/subpage-state.js
+          node --check js/ui/form-persistence.js
+          grep -q "VERSION='12.3.6'" js/ui/subpage-state.js
+          grep -q "VERSION='12.3.6'" js/ui/form-persistence.js
+          grep -q 'register,' js/ui/form-persistence.js
+          grep -q 'register,unregister' js/ui/subpage-state.js
