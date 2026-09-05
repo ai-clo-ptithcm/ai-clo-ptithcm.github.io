@@ -5,65 +5,37 @@
 
   /* App-shell dependencies: db, state, canTeach, toast, err, modal, closeModal,
    openDrawer, replaceDrawer and confirmAction. Assessment remains the only runtime owner. */
-
-  const runtime = { root: null, liveTimer: null };
+  const runtime = {
+    root: null,
+    liveTimer: null,
+  };
   const getAssessmentRoot = () =>
     runtime.root || document.querySelector("#content");
   const setAssessmentRoot = (root) => {
     if (root) runtime.root = root;
     return getAssessmentRoot();
   };
-  const VERSION = "12.2.1";
-  const qs = (s, r = document) => r.querySelector(s);
-  const qsa = (s, r = document) => [...r.querySelectorAll(s)];
-  const escapeHtml = (s) =>
-    window.esc
-      ? esc(s)
-      : String(s ?? "").replace(
-          /[&<>"']/g,
-          (c) =>
-            ({
-              "&": "&amp;",
-              "<": "&lt;",
-              ">": "&gt;",
-              '"': "&quot;",
-              "'": "&#39;",
-            })[c],
-        );
-  const formatDateTime = (v) =>
-    v
-      ? new Intl.DateTimeFormat("vi-VN", {
-          timeZone: "Asia/Ho_Chi_Minh",
-          dateStyle: "short",
-          timeStyle: "short",
-        }).format(new Date(v))
-      : "—";
-  const localInput = (v) => {
-    if (!v) return "";
-    const d = new Date(v),
-      off = d.getTimezoneOffset();
-    return new Date(d.getTime() - off * 60000).toISOString().slice(0, 16);
-  };
-  const toIsoOrNull = (v) => (v ? new Date(v).toISOString() : null);
+  const VERSION = "12.3.0-a1";
+  const {
+    qs,
+    qsa,
+    escapeHtml,
+    formatDateTime,
+    localInput,
+    toIsoOrNull,
+    findById,
+    shuffle,
+    modeLabel,
+    structureLabel,
+    statusMeta,
+    validOptions,
+    poolSnapshot,
+    snapshotQuestion,
+  } = window.AICLO_ASSESSMENT_COMMON || {};
+  if (!qs || !snapshotQuestion)
+    throw new Error("Assessment common utilities were not loaded");
   const isTeacher = () => typeof canTeach === "function" && canTeach();
   const subjectId = () => state?.subjectId || null;
-  const findById = (rows, id) => rows.find((x) => x.id === id);
-  const shuffle = (rows) => {
-    const a = [...rows];
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  };
-  const modeLabel = (v) =>
-    ({
-      common_fixed: "Đề chung cố định",
-      student_fixed: "Đề riêng theo sinh viên",
-      attempt_random: "Rút lại mỗi lần làm",
-    })[v] || "Đề chung cố định";
-  const structureLabel = (v) =>
-    v === "chapter_pool" ? "CLO chung các mục được chọn" : "CLO cho mỗi mục";
   const notify = (message, bad = false) => {
     if (typeof toast === "function") toast(message, bad);
     else if (bad && typeof err === "function") err(new Error(message));
@@ -72,21 +44,6 @@
     if (typeof err === "function") err(e);
     else console.error(e);
   };
-  const statusMeta = (x) => {
-    if (x.status === "draft")
-      return { code: "draft", label: "Bản nháp", className: "" };
-    if (x.status === "closed")
-      return { code: "closed", label: "Tạm dừng", className: "red" };
-    const now = Date.now(),
-      opens = x.opens_at ? new Date(x.opens_at).getTime() : null,
-      closes = x.closes_at ? new Date(x.closes_at).getTime() : null;
-    if (opens && now < opens)
-      return { code: "upcoming", label: "Sắp mở", className: "" };
-    if (closes && now > closes)
-      return { code: "expired", label: "Đã hết hạn", className: "red" };
-    return { code: "active", label: "Đang mở", className: "green" };
-  };
-
   /* ============================================================
    * SECTION 1/7 — Core runtime, schema, shared data and list rendering
    * ============================================================ */
@@ -104,7 +61,9 @@
   }
   async function ask(title, message, label = "Xác nhận") {
     if (typeof confirmAction === "function")
-      return !!(await confirmAction(title, message, { confirmLabel: label }));
+      return !!(await confirmAction(title, message, {
+        confirmLabel: label,
+      }));
     return window.confirm(message);
   }
   async function fetchExams() {
@@ -112,7 +71,9 @@
       .from("exams")
       .select("*")
       .eq("subject_id", subjectId())
-      .order("created_at", { ascending: false });
+      .order("created_at", {
+        ascending: false,
+      });
     if (error) throw error;
     return data || [];
   }
@@ -125,7 +86,10 @@
       .in("exam_id", examIds);
     if (error) throw error;
     for (const row of data || []) {
-      const x = out.get(row.exam_id) || { all: 0, submitted: 0 };
+      const x = out.get(row.exam_id) || {
+        all: 0,
+        submitted: 0,
+      };
       x.all++;
       if (row.submitted_at) x.submitted++;
       out.set(row.exam_id, x);
@@ -139,7 +103,9 @@
         "id,subject_id,title,status,updated_at,created_at,created_by,metadata,matrix,source_scope,selected_questions,variants",
       )
       .eq("subject_id", subjectId())
-      .order("updated_at", { ascending: false });
+      .order("updated_at", {
+        ascending: false,
+      });
     if (error) throw error;
     return data || [];
   }
@@ -180,62 +146,15 @@
     const questions = (qr.data || []).filter(
       (q) => allowed.includes(q.question_scope) && validOptions(q),
     );
-    return { chapters: chapters || [], topics, clos: clos || [], questions };
+    return {
+      chapters: chapters || [],
+      topics,
+      clos: clos || [],
+      questions,
+    };
   }
   const loadPracticeSets = () => loadQuestionSets("practice");
   const loadSecureSets = () => loadQuestionSets("secure_exam");
-  function validOptions(q) {
-    const keys = (q.question_options || []).map((o) =>
-      String(o.option_key || "").toUpperCase(),
-    );
-    return (
-      keys.length === 4 &&
-      new Set(keys).size === 4 &&
-      ["A", "B", "C", "D"].every((k) => keys.includes(k)) &&
-      keys.includes(String(q.correct_answer || "").toUpperCase())
-    );
-  }
-  function poolSnapshot(q, sets) {
-    return {
-      question_id: q.id,
-      display_code: q.display_code || null,
-      chapter_id: q.chapter_id,
-      chapter_name: findById(sets.chapters, q.chapter_id)?.name || null,
-      topic_id: q.topic_id,
-      topic_name: findById(sets.topics, q.topic_id)?.name || null,
-      clo_id: q.clo_id,
-      clo_code: findById(sets.clos, q.clo_id)?.code || null,
-      content: q.content,
-      correct_answer: String(q.correct_answer || "").toUpperCase(),
-      explanation: q.explanation || null,
-      options: (q.question_options || [])
-        .map((o) => ({
-          key: String(o.option_key || "").toUpperCase(),
-          content: o.content,
-        }))
-        .sort((a, b) => a.key.localeCompare(b.key)),
-    };
-  }
-  function snapshotQuestion(row) {
-    const raw = Array.isArray(row?.options) ? row.options : [];
-    return {
-      id: row.question_id || row.id,
-      display_code: row.display_code || null,
-      chapter_id: row.chapter_id,
-      topic_id: row.topic_id,
-      clo_id: row.clo_id,
-      content: row.content || "",
-      correct_answer: String(row.correct_answer || "").toUpperCase(),
-      explanation: row.explanation || null,
-      question_options: raw
-        .map((o) => ({
-          option_key: String(o.key || o.option_key || "").toUpperCase(),
-          content: o.content || "",
-        }))
-        .filter((o) => o.option_key),
-    };
-  }
-
   function topTabs(active = "online") {
     return `<div class="v109-tabs assessment-v122-tabs"><button type="button" class="${active === "online" ? "active" : ""}" data-v122-tab="online">Bài kiểm tra trực tuyến</button><button type="button" class="${active === "final" ? "active" : ""}" data-v122-tab="final">Đề thi cuối kỳ</button></div>`;
   }
@@ -244,7 +163,10 @@
       items
         .map((x) => {
           const s = statusMeta(x),
-            n = counts.get(x.id) || { all: 0, submitted: 0 };
+            n = counts.get(x.id) || {
+              all: 0,
+              submitted: 0,
+            };
           return `<tr><td><button type="button" class="exam-title-link" data-v122-detail="${x.id}"><b>${escapeHtml(x.title || "Bài kiểm tra")}</b></button><br><small>${escapeHtml(x.description || "")}</small></td><td><b>${Number(x.total_questions || 0)}</b> câu<br><small>${escapeHtml(structureLabel(x.structure_mode))}</small></td><td><span class="badge">${escapeHtml(modeLabel(x.question_mode))}</span></td><td>${x.duration_minutes || "—"} phút<br><small>${x.opens_at ? formatDateTime(x.opens_at) : "Khi phát hành"} → ${x.closes_at ? formatDateTime(x.closes_at) : "Không giới hạn"}</small></td><td><b>${n.submitted}</b> đã nộp<br><small>${n.all} lượt</small></td><td><span class="badge ${s.className}">${s.label}</span></td><td><button type="button" class="primary" data-v122-detail="${x.id}">Chi tiết →</button></td></tr>`;
         })
         .join("") ||
@@ -326,7 +248,9 @@
           ? "Bài sẽ cho phép sinh viên bắt đầu lượt mới theo thời gian mở/đóng đã cấu hình."
           : "";
     if (!(await ask(label, message, label))) return false;
-    const payload = { status: next };
+    const payload = {
+      status: next,
+    };
     if (next === "active" && !exam.published_at)
       payload.published_at = new Date().toISOString();
     const { data, error } = await db
@@ -351,7 +275,10 @@
   async function deleteExam(exam) {
     const { count, error } = await db
       .from("exam_attempts")
-      .select("id", { count: "exact", head: true })
+      .select("id", {
+        count: "exact",
+        head: true,
+      })
       .eq("exam_id", exam.id);
     if (error) throw error;
     if (count > 0) return notify("Bài đã có lượt làm nên không thể xóa.", true);
@@ -382,7 +309,9 @@
         "id,exam_id,student_id,attempt_number,started_at,submitted_at,score,profiles:student_id(id,full_name,mssv,email)",
       )
       .eq("exam_id", examId)
-      .order("started_at", { ascending: false });
+      .order("started_at", {
+        ascending: false,
+      });
     if (error) throw error;
     return data || [];
   }
@@ -570,13 +499,12 @@
     if (ce) throw ce;
     if (pe) throw pe;
     const map = new Map((pool || []).map((x) => [x.question_id, x]));
-    let qs = (chosen || [])
-      .map((x) => map.get(x.question_id))
-      .filter(Boolean)
-      .map((x) => ({ ...x, options: [...(x.options || [])] }));
     if (exam.shuffle_questions) qs = shuffle(qs);
     if (exam.shuffle_options)
-      qs = qs.map((q) => ({ ...q, options: shuffle(q.options || []) }));
+      qs = qs.map((q) => ({
+        ...q,
+        options: shuffle(q.options || []),
+      }));
     return qs;
   }
   async function openTeacherPreview(exam) {
@@ -653,10 +581,9 @@
       ).length,
       codes = [...new Set(questions.map((q) => q.clo_code).filter(Boolean))];
     const byClo = codes.map((code) => {
-      const qs = questions.filter((q) => q.clo_code === code),
-        right = qs.filter(
-          (q) => answers[q.question_id] === q.correct_answer,
-        ).length;
+      const right = qs.filter(
+        (q) => answers[q.question_id] === q.correct_answer,
+      ).length;
       return {
         code,
         total: qs.length,
@@ -673,7 +600,10 @@
           qs("#v122PreviewRetry").onclick = () =>
             showTeacherPreviewQuestion(exam, questions, {}, 0, false);
         },
-        { wide: true, eyebrow: "KẾT QUẢ LÀM THỬ" },
+        {
+          wide: true,
+          eyebrow: "KẾT QUẢ LÀM THỬ",
+        },
       );
   }
 
@@ -702,7 +632,9 @@
       structureMode: exam?.structure_mode || "topic_clo",
       selectedChapters: new Set(exam?.chapter_ids || []),
       selectedTopics: new Set(exam?.topic_ids || []),
-      matrix: { ...(exam?.question_blueprint?.matrix || {}) },
+      matrix: {
+        ...(exam?.question_blueprint?.matrix || {}),
+      },
       selected: [],
       locked: false,
       sets: null,
@@ -835,7 +767,10 @@
         ] = await Promise.all([
           db
             .from("exam_attempts")
-            .select("id", { count: "exact", head: true })
+            .select("id", {
+              count: "exact",
+              head: true,
+            })
             .eq("exam_id", exam.id),
           db
             .from("exam_questions")
@@ -1094,7 +1029,10 @@
       }));
       const or = await db.from("question_options").insert(rows);
       if (or.error) throw or.error;
-      const nq = { ...qr.data, question_options: rows };
+      const nq = {
+        ...qr.data,
+        question_options: rows,
+      };
       ctx.sets.questions.push(nq);
       ctx.selected[index] = nq;
       ctx.selectionDirty = true;
@@ -1276,7 +1214,9 @@
           question_blueprint: {
             version: 1,
             source: "v12.2",
-            matrix: { ...ctx.matrix },
+            matrix: {
+              ...ctx.matrix,
+            },
           },
         };
         const r = await db.from("exams").insert(payload).select("*").single();
@@ -1297,7 +1237,9 @@
           blueprint = {
             version: 1,
             source: "v12.2",
-            matrix: { ...ctx.matrix },
+            matrix: {
+              ...ctx.matrix,
+            },
           };
         const r = await db.rpc("replace_exam_design", {
           p_exam_id: examId,
@@ -1364,7 +1306,12 @@
   }
   function defaultVariantCodes(n) {
     n = Math.min(20, Math.max(1, +n || 1));
-    return Array.from({ length: n }, (_, i) => String(101 + i));
+    return Array.from(
+      {
+        length: n,
+      },
+      (_, i) => String(101 + i),
+    );
   }
   function finalMatrixKey(topicId, cloId) {
     return `${topicId}:${cloId}`;
@@ -1411,7 +1358,9 @@
           matrix[finalMatrixKey(r.topic_id, r.clo_id)] = +r.count || 0;
       }
     } else if (pkg?.matrix && typeof pkg.matrix === "object")
-      matrix = { ...pkg.matrix };
+      matrix = {
+        ...pkg.matrix,
+      };
     return {
       packageId: pkg?.id || null,
       serverUpdatedAt: pkg?.updated_at || null,
@@ -1458,7 +1407,11 @@
         .filter(([, count]) => (+count || 0) > 0)
         .map(([key, count]) => {
           const [topic_id, clo_id] = key.split(":");
-          return { topic_id, clo_id, count: +count || 0 };
+          return {
+            topic_id,
+            clo_id,
+            count: +count || 0,
+          };
         }),
       selected_questions: ctx.selected.map((q) =>
         finalQuestionSnapshot(q, ctx.sets),
@@ -1470,7 +1423,10 @@
   function applyFinalLocal(ctx, local) {
     if (!local) return ctx;
     ctx.title = local.title ?? ctx.title;
-    ctx.metadata = { ...ctx.metadata, ...(local.metadata || {}) };
+    ctx.metadata = {
+      ...ctx.metadata,
+      ...(local.metadata || {}),
+    };
     ctx.metadata.variant_codes =
       Array.isArray(ctx.metadata.variant_codes) &&
       ctx.metadata.variant_codes.length
@@ -1926,7 +1882,11 @@
     if (matrix && typeof matrix === "object")
       return Object.entries(matrix).map(([key, count]) => {
         const [topic_id, clo_id] = key.split(":");
-        return { topic_id, clo_id, count: +count || 0 };
+        return {
+          topic_id,
+          clo_id,
+          count: +count || 0,
+        };
       });
     return [];
   }
@@ -1937,7 +1897,10 @@
     for (const r of rows) {
       byClo[r.clo_id] = (byClo[r.clo_id] || 0) + (+r.count || 0);
     }
-    return { total, byClo };
+    return {
+      total,
+      byClo,
+    };
   }
   async function ensureFinalExports() {
     if (window.AICLO_FINAL_EXPORTS) return window.AICLO_FINAL_EXPORTS;
@@ -1947,8 +1910,12 @@
       await new Promise((resolve, reject) => {
         const old = document.querySelector("script[data-aiclo-final-export]");
         if (old) {
-          old.addEventListener("load", resolve, { once: true });
-          old.addEventListener("error", reject, { once: true });
+          old.addEventListener("load", resolve, {
+            once: true,
+          });
+          old.addEventListener("error", reject, {
+            once: true,
+          });
           return;
         }
         const s = document.createElement("script");
@@ -2038,7 +2005,11 @@
           throw new Error(`Mã đề ${code} có phương án A–D không hợp lệ`);
       }
     }
-    return { codes, variants, selected };
+    return {
+      codes,
+      variants,
+      selected,
+    };
   }
   async function buildFinalExportContext(pkg) {
     const checked = validateStoredFinalPackage(pkg),
@@ -2046,9 +2017,18 @@
     return {
       packageId: pkg.id,
       title: pkg.title || "Đề thi cuối kỳ",
-      subject: { id: subjectId(), name: finalSubjectLabel() },
-      metadata: { ...(pkg.metadata || {}) },
-      sets: { chapters: sets.chapters, topics: sets.topics, clos: sets.clos },
+      subject: {
+        id: subjectId(),
+        name: finalSubjectLabel(),
+      },
+      metadata: {
+        ...(pkg.metadata || {}),
+      },
+      sets: {
+        chapters: sets.chapters,
+        topics: sets.topics,
+        clos: sets.clos,
+      },
       selected: checked.selected,
       variants: checked.variants,
     };
@@ -2153,7 +2133,10 @@
     try {
       localStorage.setItem(
         attemptLocalKey(id),
-        JSON.stringify({ ...data, updated_at: Date.now() }),
+        JSON.stringify({
+          ...data,
+          updated_at: Date.now(),
+        }),
       );
     } catch {}
   }
@@ -2181,7 +2164,9 @@
           .from("exam_attempts")
           .select("*")
           .eq("student_id", state.user.id)
-          .order("created_at", { ascending: false }),
+          .order("created_at", {
+            ascending: false,
+          }),
       ]);
       if (error) throw error;
       const rows = attempts || [];
@@ -2272,8 +2257,13 @@
         return showStudentResult(data.exam, done.data);
       }
       const local = readAttemptLocal(attemptId) || {},
-        pending = { ...(local.pending || {}) };
-      const answers = { ...(data.answers || {}), ...pending };
+        pending = {
+          ...(local.pending || {}),
+        };
+      const answers = {
+        ...(data.answers || {}),
+        ...pending,
+      };
       const serverDeadline =
         data.remaining_seconds == null
           ? null
@@ -2297,8 +2287,7 @@
   }
   function showStudentQuestion(payload, answers, index, first = false) {
     clearLiveTimer();
-    const qs = payload.questions || [],
-      x = qs[index];
+    const x = qs[index];
     if (!x) return notify("Không đọc được câu hỏi của bài kiểm tra.", true);
     const current =
       payload._deadlineMs == null
@@ -2476,13 +2465,22 @@
       scoreSum: 0,
       scoreCount: 0,
       clos: Object.fromEntries(
-        (clos || []).map((c) => [c.code, { correct: 0, total: 0 }]),
+        (clos || []).map((c) => [
+          c.code,
+          {
+            correct: 0,
+            total: 0,
+          },
+        ]),
       ),
     };
   }
   function finishMetric(m, clos) {
     const cloScores = (clos || []).map((c) => {
-      const x = m.clos[c.code] || { correct: 0, total: 0 };
+      const x = m.clos[c.code] || {
+        correct: 0,
+        total: 0,
+      };
       return {
         code: c.code,
         description: c.description || "",
@@ -2511,7 +2509,9 @@
           "id,exam_id,subject_id,student_id,attempt_number,started_at,submitted_at,score,score_policy",
         )
         .eq("subject_id", sid)
-        .order("submitted_at", { ascending: true }),
+        .order("submitted_at", {
+          ascending: true,
+        }),
       db
         .from("clos")
         .select("id,code,description")
@@ -2522,7 +2522,9 @@
         .select("id,title,score_policy,counts_toward_grade")
         .eq("subject_id", sid)
         .eq("counts_toward_grade", true)
-        .order("created_at", { ascending: true }),
+        .order("created_at", {
+          ascending: true,
+        }),
     ]);
     if (ae) throw ae;
     if (ce) throw ce;
@@ -2571,7 +2573,10 @@
       classMetric.attempts++;
       classMetric.examIds.add(a.exam_id);
       const key = `${a.student_id}|${a.exam_id}`,
-        g = scoreGroups.get(key) || { student_id: a.student_id, scores: [] };
+        g = scoreGroups.get(key) || {
+          student_id: a.student_id,
+          scores: [],
+        };
       g.scores.push(Number(a.score || 0));
       scoreGroups.set(key, g);
     }
@@ -2588,11 +2593,17 @@
         right = ans?.is_correct === true,
         sm = students.get(a.student_id);
       if (sm) {
-        sm.clos[q.clo_code] ??= { correct: 0, total: 0 };
+        sm.clos[q.clo_code] ??= {
+          correct: 0,
+          total: 0,
+        };
         sm.clos[q.clo_code].total++;
         if (right) sm.clos[q.clo_code].correct++;
       }
-      classMetric.clos[q.clo_code] ??= { correct: 0, total: 0 };
+      classMetric.clos[q.clo_code] ??= {
+        correct: 0,
+        total: 0,
+      };
       classMetric.clos[q.clo_code].total++;
       if (right) classMetric.clos[q.clo_code].correct++;
     }
@@ -2604,7 +2615,10 @@
     classFinished.gpa = studentValues.length
       ? studentValues.reduce((s, x) => s + x.gpa, 0) / studentValues.length
       : 0;
-    return { classMetric: classFinished, students: finishedStudents };
+    return {
+      classMetric: classFinished,
+      students: finishedStudents,
+    };
   }
   async function loadSubjectStudentProfiles() {
     const { data: members, error } = await db
@@ -2656,7 +2670,10 @@
       button.textContent = "✦ Đang phân tích…";
     }
     try {
-      const body = { subject_id: subjectId(), scope };
+      const body = {
+        subject_id: subjectId(),
+        scope,
+      };
       if (studentId) body.student_id = studentId;
       const { data, error } = await db.functions.invoke("analyze-assessment", {
         body,
