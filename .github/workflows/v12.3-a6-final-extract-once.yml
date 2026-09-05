@@ -62,10 +62,10 @@ jobs:
           fs.writeFileSync(ownerPath,s);
 
           let app=fs.readFileSync('app.html','utf8');
-          const ownerScript=app.match(/<script src="js\/assessment\.js\?v=[^"]+"><\/script>/)?.[0];
+          const ownerScript=app.match(/<script[^>]+src="js\/assessment\.js\?v=[^"]+"[^>]*><\/script>/)?.[0];
           if(!ownerScript) throw new Error('Assessment owner script missing');
           if(!app.includes('js/assessment/final-exam.js')) {
-            app=app.replace(ownerScript,`<script src="js/assessment/final-exam.js?v=12.3.0-a6"></script>\n  ${ownerScript}`);
+            app=app.replace(ownerScript,`<script defer src="js/assessment/final-exam.js?v=12.3.0-a6"></script>${ownerScript}`);
           }
           app=app.replace(/js\/assessment\.js\?v=[^"]+/,'js/assessment.js?v=12.3.0-a6');
           fs.writeFileSync('app.html',app);
