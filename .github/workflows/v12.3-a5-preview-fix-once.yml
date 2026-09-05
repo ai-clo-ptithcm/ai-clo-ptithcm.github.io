@@ -17,7 +17,7 @@ jobs:
           ref: v12.3-assessment-modular
           fetch-depth: 0
 
-      - name: Correct frozen preview collection and CLO scoring
+      - name: Correct frozen preview collection, CLO scoring and Attempt navigation
         shell: bash
         run: |
           node <<'NODE'
@@ -45,12 +45,21 @@ jobs:
           s=s.slice(0,c)+fixedHead+tail+s.slice(d);
           fs.writeFileSync(p,s);
 
+          const ap='js/assessment/student-attempt.js';
+          let attempt=fs.readFileSync(ap,'utf8');
+          const badNext='${index === qs.length - 1 ? "disabled" : ""}';
+          const goodNext='${index === questions.length - 1 ? "disabled" : ""}';
+          if(!attempt.includes(badNext)) throw new Error('Attempt next-button anchor missing');
+          attempt=attempt.replace(badNext,goodNext);
+          fs.writeFileSync(ap,attempt);
+
           let owner=fs.readFileSync('js/assessment.js','utf8');
           owner=owner.replace('const VERSION = "12.3.0-a5";','const VERSION = "12.3.0-a5.1";');
           fs.writeFileSync('js/assessment.js',owner);
 
           let app=fs.readFileSync('app.html','utf8');
           app=app.replace(/js\/assessment\/online-lifecycle\.js\?v=[^"]+/,'js/assessment/online-lifecycle.js?v=12.3.0-a5.1');
+          app=app.replace(/js\/assessment\/student-attempt\.js\?v=[^"]+/,'js/assessment/student-attempt.js?v=12.3.0-a5.1');
           app=app.replace(/js\/assessment\.js\?v=[^"]+/,'js/assessment.js?v=12.3.0-a5.1');
           fs.writeFileSync('app.html',app);
           NODE
@@ -76,8 +85,10 @@ jobs:
           must(life.includes('const cloQuestions = questions.filter((q) => q.clo_code === code);'),'CLO subset scoring missing');
           must(!/\bqs\.(?:length|map|filter|forEach)\b|\bqs\s*\[/.test(life),'Lifecycle still treats qs DOM helper as collection');
           must(!/\bqs\.(?:length|map|filter|forEach)\b|\bqs\s*\[/.test(attempt),'Attempt still treats qs DOM helper as collection');
+          must(attempt.includes('index === questions.length - 1'),'Attempt next-button boundary not fixed');
           must(owner.includes('12.3.0-a5.1'),'Owner version not A5.1');
           must(app.includes('online-lifecycle.js?v=12.3.0-a5.1'),'Lifecycle cache key not updated');
+          must(app.includes('student-attempt.js?v=12.3.0-a5.1'),'Attempt cache key not updated');
           must((owner.match(/window\.exams\s*=/g)||[]).length===1,'Owner window.exams invalid');
           must((owner.match(/window\.results\s*=/g)||[]).length===1,'Owner window.results invalid');
           console.log('V12.3 A5.1 preview/runtime guard PASS');
@@ -89,6 +100,6 @@ jobs:
           git config user.name 'AI-CLO V12.3 Bot'
           git config user.email 'actions@users.noreply.github.com'
           git rm .github/workflows/v12.3-a5-preview-fix-once.yml
-          git add js/assessment/online-lifecycle.js js/assessment.js app.html
-          git commit -m 'fix(assessment): correct V12.3 teacher preview frozen questions and CLO scoring'
+          git add js/assessment/online-lifecycle.js js/assessment/student-attempt.js js/assessment.js app.html
+          git commit -m 'fix(assessment): correct V12.3 preview and attempt collection references'
           git push origin HEAD:v12.3-assessment-modular
