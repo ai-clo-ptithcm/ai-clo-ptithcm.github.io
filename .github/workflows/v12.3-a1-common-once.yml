@@ -1,0 +1,109 @@
+name: V12.3 Assessment Common Once
+
+on:
+  push:
+    branches: [v12.3-assessment-modular]
+    paths: ['.github/workflows/v12.3-a1-common-once.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  split-common:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v12.3-assessment-modular
+          fetch-depth: 0
+
+      - name: Install parser tools
+        run: npm install --no-save @babel/parser@7 @babel/traverse@7 @babel/generator@7 @babel/types@7 prettier@3.3.3
+
+      - name: Extract common helpers from owner
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const parser=require('@babel/parser');
+          const traverse=require('@babel/traverse').default;
+          const generate=require('@babel/generator').default;
+          const t=require('@babel/types');
+          const file='js/assessment.js';
+          let s=fs.readFileSync(file,'utf8');
+          if(!s.includes('const VERSION = "12.2.1";')) throw new Error('Unexpected owner version');
+          const moved=new Set(['qs','qsa','escapeHtml','formatDateTime','localInput','toIsoOrNull','findById','shuffle','modeLabel','structureLabel','statusMeta','validOptions','poolSnapshot','snapshotQuestion']);
+          const ast=parser.parse(s,{sourceType:'script',plugins:['optionalChaining','nullishCoalescingOperator']});
+          traverse(ast,{
+            VariableDeclarator(path){
+              if(t.isIdentifier(path.node.id)&&moved.has(path.node.id.name)){
+                const decl=path.parentPath;
+                if(decl.node.declarations.length===1) decl.remove(); else path.remove();
+              }
+            },
+            FunctionDeclaration(path){
+              if(path.node.id&&moved.has(path.node.id.name)) path.remove();
+            }
+          });
+          s=generate(ast,{comments:true,compact:false,retainLines:false}).code;
+          const anchor='const VERSION = "12.2.1";';
+          if(!s.includes(anchor)) throw new Error('Version anchor lost');
+          const importBlock=`const VERSION = "12.3.0-a1";\n  const {\n    qs, qsa, escapeHtml, formatDateTime, localInput, toIsoOrNull,\n    findById, shuffle, modeLabel, structureLabel, statusMeta,\n    validOptions, poolSnapshot, snapshotQuestion,\n  } = window.AICLO_ASSESSMENT_COMMON || {};\n  if (!qs || !snapshotQuestion) throw new Error("Assessment common utilities were not loaded");`;
+          s=s.replace(anchor,importBlock);
+          fs.writeFileSync(file,s);
+          NODE
+          npx prettier --write js/assessment.js js/assessment/common.js
+
+      - name: Wire common before owner
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const p='app.html';
+          let s=fs.readFileSync(p,'utf8');
+          const old='<script defer src="js/assessment.js?v=12.2.3"></script>';
+          if(!s.includes(old)) throw new Error('Assessment script anchor not found');
+          const next='<script defer src="js/assessment/common.js?v=12.3.0"></script><script defer src="js/assessment.js?v=12.3.0"></script>';
+          s=s.replace(old,next);
+          fs.writeFileSync(p,s);
+          NODE
+
+      - name: Static verification
+        shell: bash
+        run: |
+          node --check js/assessment/common.js
+          node --check js/assessment.js
+          node <<'NODE'
+          const fs=require('fs');
+          const owner=fs.readFileSync('js/assessment.js','utf8');
+          const common=fs.readFileSync('js/assessment/common.js','utf8');
+          const app=fs.readFileSync('app.html','utf8');
+          const must=(x,m)=>{if(!x)throw new Error(m)};
+          const count=(s,re)=>(s.match(re)||[]).length;
+          must(owner.includes('12.3.0-a1'),'Owner version missing');
+          must(owner.includes('window.AICLO_ASSESSMENT_COMMON'),'Owner does not consume common API');
+          must(common.includes('window.AICLO_ASSESSMENT_COMMON = Object.freeze'),'Common API not frozen/exported');
+          for(const name of ['qs','qsa','escapeHtml','formatDateTime','localInput','toIsoOrNull','findById','shuffle','modeLabel','structureLabel','statusMeta','validOptions','poolSnapshot','snapshotQuestion']){
+            must(!new RegExp(`(?:const|function)\\s+${name}\\b`).test(owner),`Helper still defined in owner: ${name}`);
+          }
+          must(count(owner,/window\.exams\s*=/g)===1,'window.exams owner count changed');
+          must(count(owner,/window\.results\s*=/g)===1,'window.results owner count changed');
+          must(!owner.includes('MutationObserver'),'Owner gained MutationObserver');
+          must(!common.includes('window.exams')&&!common.includes('window.results'),'Common became runtime owner');
+          const c=app.indexOf('js/assessment/common.js?v=12.3.0');
+          const o=app.indexOf('js/assessment.js?v=12.3.0');
+          must(c>=0&&o>c,'Common must load before owner');
+          must(count(app,/js\/assessment\/common\.js/g)===1,'Common script duplicated');
+          must(count(app,/js\/assessment\.js/g)===1,'Owner script duplicated');
+          console.log('V12.3-A1 PASS');
+          NODE
+
+      - name: Commit A1 and remove one-shot workflow
+        shell: bash
+        run: |
+          git config user.name 'AI-CLO V12.3 Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git rm .github/workflows/v12.3-a1-common-once.yml
+          git add js/assessment.js js/assessment/common.js app.html
+          git commit -m 'refactor(assessment): extract V12.3 common utilities'
+          git push origin HEAD:v12.3-assessment-modular
