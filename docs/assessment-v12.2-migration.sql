@@ -23,10 +23,6 @@ as $$ select '12.2'::text $$;
 grant execute on function public.assessment_schema_version() to authenticated;
 
 -- Canonical official-attempt scope for course CLO results.
--- highest: one highest-score attempt per student/exam (latest wins a tie).
--- latest: one latest submitted attempt per student/exam.
--- average: every submitted attempt for that student/exam participates.
--- Exams excluded from course CLO aggregation never appear in this view.
 create or replace view public.assessment_effective_attempts
 with (security_invoker=true)
 as
@@ -62,8 +58,7 @@ grant select on public.assessment_effective_attempts to authenticated;
 comment on view public.assessment_effective_attempts is
   'Canonical submitted-attempt scope for course CLO/GPA aggregation. Applies exams.counts_toward_grade and exams.score_policy.';
 
--- Canonical lock: after the first attempt, freeze only fields that can change what
--- students saw or how the attempt was measured. Operational fields remain editable.
+-- Canonical lock: after the first attempt, freeze fields that change measurement.
 create or replace function public.guard_exam_structure_update()
 returns trigger
 language plpgsql
@@ -96,12 +91,9 @@ create trigger trg_guard_exam_structure
 before update on public.exams
 for each row execute function public.guard_exam_structure_update();
 
--- V12.1 may already have a dedicated blueprint guard. The canonical structure guard
--- above covers the same fields, so remove the duplicate trigger to keep one policy.
 drop trigger if exists trg_guard_exam_blueprint on public.exams;
 
--- Atomic design replacement. The browser never updates matrix metadata first and
--- pool/questions later. All five representations are changed in one DB transaction.
+-- Atomic design replacement: matrix + pool + selected sample set move together.
 create or replace function public.replace_exam_design(
   p_exam_id uuid,
   p_structure_mode text,
@@ -144,7 +136,6 @@ begin
   if v_selected_distinct<>p_total_questions then raise exception 'Bộ câu được chọn có câu trùng'; end if;
   if v_pool_count<p_total_questions then raise exception 'Pool câu hỏi nhỏ hơn bộ đề'; end if;
 
-  -- Remove old frozen design first. Existing guard permits this because no attempt exists.
   delete from public.exam_questions where exam_id=p_exam_id;
   delete from public.exam_question_pool where exam_id=p_exam_id;
   delete from public.exam_chapters where exam_id=p_exam_id;
@@ -208,8 +199,7 @@ end;
 $$;
 grant execute on function public.replace_exam_design(uuid,text,jsonb,uuid[],uuid[],jsonb,integer,jsonb,jsonb) to authenticated;
 
--- Pause semantics: an unfinished attempt is resumable even while the assessment is
--- paused/closed or after its public close time. Only NEW attempts require active status.
+-- Pause blocks new attempts; an unfinished attempt remains resumable.
 create or replace function public.start_exam_attempt(p_exam_id uuid)
 returns jsonb
 language plpgsql
@@ -228,11 +218,11 @@ begin
   if not found then raise exception 'Không tìm thấy bài kiểm tra'; end if;
   if auth.uid() is null or not public.is_subject_student(v_exam.subject_id) then raise exception 'Bạn không thuộc học phần này'; end if;
 
-  -- Resume first. A pause blocks new attempts, never an attempt already started.
   select * into v_open
   from public.exam_attempts
   where exam_id=p_exam_id and student_id=auth.uid() and submitted_at is null
   order by attempt_number desc limit 1;
+
   if found then
     v_expired:=v_exam.duration_minutes is not null
       and now()>=v_open.started_at+make_interval(mins=>v_exam.duration_minutes);
@@ -243,7 +233,6 @@ begin
     perform public.finalize_exam_attempt(v_open.id);
   end if;
 
-  -- From here on we are creating a new attempt.
   if v_exam.status<>'active' then raise exception 'Bài kiểm tra đang tạm dừng hoặc chưa được phát hành'; end if;
   if v_exam.opens_at is not null and now()<v_exam.opens_at then raise exception 'Bài kiểm tra chưa đến thời gian mở'; end if;
   if v_exam.closes_at is not null and now()>v_exam.closes_at then raise exception 'Bài kiểm tra đã kết thúc'; end if;
@@ -251,6 +240,7 @@ begin
 
   select count(*) into v_count from public.exam_attempts where exam_id=p_exam_id and student_id=auth.uid();
   if v_count>=greatest(1,v_exam.max_attempts) then raise exception 'Bạn đã sử dụng hết số lần làm bài'; end if;
+
   v_next:=v_count+1;
   insert into public.exam_attempts(exam_id,student_id,attempt_number,started_at)
   values(p_exam_id,auth.uid(),v_next,now()) returning * into v_attempt;
@@ -260,9 +250,7 @@ end;
 $$;
 grant execute on function public.start_exam_attempt(uuid) to authenticated;
 
--- Final-exam packages have one canonical source in V12.2 and one canonical list of
--- variant codes. Existing legacy packages without metadata.variant_codes are repaired
--- from variants[].code; only as a last legacy fallback do they receive 101–104.
+-- Final-exam packages: secure bank only + canonical 1–20 variant codes.
 create or replace function public.normalize_final_exam_package()
 returns trigger
 language plpgsql
@@ -290,7 +278,7 @@ begin
     end if;
   end if;
 
-  -- Legacy repair only. New V12.2 UI always sends an explicit 1–20 code list.
+  -- Legacy repair only. V12.2 UI always sends an explicit list.
   if jsonb_typeof(v_codes)<>'array' or jsonb_array_length(v_codes)=0 then
     v_codes:='["101","102","103","104"]'::jsonb;
   end if;
@@ -300,9 +288,7 @@ begin
   from jsonb_array_elements_text(v_codes) s(value)
   where nullif(trim(value),'') is not null;
 
-  if v_count<1 or v_count>20 then
-    raise exception 'Số mã đề phải từ 1 đến 20';
-  end if;
+  if v_count<1 or v_count>20 then raise exception 'Số mã đề phải từ 1 đến 20'; end if;
   if v_distinct<>v_count or v_count<>jsonb_array_length(v_codes) then
     raise exception 'Danh sách mã đề không được rỗng hoặc trùng mã';
   end if;
@@ -318,6 +304,79 @@ drop trigger if exists trg_normalize_final_exam_package on public.final_exam_pac
 create trigger trg_normalize_final_exam_package
 before insert or update on public.final_exam_packages
 for each row execute function public.normalize_final_exam_package();
+
+-- One atomic save contract for a final-exam draft/package.
+create or replace function public.save_final_exam_package(
+  p_package_id uuid,
+  p_subject_id uuid,
+  p_title text,
+  p_metadata jsonb,
+  p_matrix jsonb,
+  p_selected_questions jsonb,
+  p_variants jsonb,
+  p_status text default 'draft'
+)
+returns public.final_exam_packages
+language plpgsql
+security definer
+set search_path=public,pg_temp
+as $$
+declare
+  v_row public.final_exam_packages%rowtype;
+  v_title text;
+begin
+  if auth.uid() is null then raise exception 'Bạn chưa đăng nhập'; end if;
+  if p_subject_id is null then raise exception 'Thiếu học phần'; end if;
+  if not public.is_admin() and not public.is_subject_teacher(p_subject_id) then
+    raise exception 'Không có quyền chỉnh hồ sơ đề thi cuối kỳ';
+  end if;
+
+  v_title:=nullif(trim(coalesce(p_title,'')),'');
+  if v_title is null then raise exception 'Cần nhập tên hồ sơ đề thi'; end if;
+  if p_status not in ('draft','reviewing','generated','archived') then
+    raise exception 'Trạng thái hồ sơ đề thi không hợp lệ';
+  end if;
+  if coalesce(jsonb_typeof(p_matrix),'')<>'array' then raise exception 'Ma trận đề thi không hợp lệ'; end if;
+  if coalesce(jsonb_typeof(p_selected_questions),'')<>'array' then raise exception 'Danh sách câu đã chọn không hợp lệ'; end if;
+  if coalesce(jsonb_typeof(p_variants),'')<>'array' then raise exception 'Danh sách mã đề đã sinh không hợp lệ'; end if;
+
+  if p_package_id is null then
+    insert into public.final_exam_packages(
+      subject_id,title,metadata,matrix,source_scope,selected_questions,variants,status,
+      created_by,created_at,updated_at
+    )
+    values(
+      p_subject_id,v_title,coalesce(p_metadata,'{}'::jsonb),coalesce(p_matrix,'[]'::jsonb),
+      'secure_exam',coalesce(p_selected_questions,'[]'::jsonb),coalesce(p_variants,'[]'::jsonb),
+      p_status,auth.uid(),now(),now()
+    )
+    returning * into v_row;
+  else
+    select * into v_row from public.final_exam_packages where id=p_package_id for update;
+    if not found then raise exception 'Không tìm thấy hồ sơ đề thi'; end if;
+    if v_row.subject_id<>p_subject_id then raise exception 'Hồ sơ đề thi không thuộc học phần hiện tại'; end if;
+    if not public.is_admin() and v_row.created_by<>auth.uid() then
+      raise exception 'Chỉ người tạo hoặc Admin được chỉnh hồ sơ đề thi';
+    end if;
+
+    update public.final_exam_packages
+    set title=v_title,
+        metadata=coalesce(p_metadata,'{}'::jsonb),
+        matrix=coalesce(p_matrix,'[]'::jsonb),
+        source_scope='secure_exam',
+        selected_questions=coalesce(p_selected_questions,'[]'::jsonb),
+        variants=coalesce(p_variants,'[]'::jsonb),
+        status=p_status,
+        updated_at=now()
+    where id=p_package_id
+    returning * into v_row;
+  end if;
+
+  return v_row;
+end;
+$$;
+
+grant execute on function public.save_final_exam_package(uuid,uuid,text,jsonb,jsonb,jsonb,jsonb,text) to authenticated;
 
 commit;
 
