@@ -41,16 +41,18 @@ function enforceSingleOnlineCreate(){
 function normalizeDetailStatusLabel(){
  const page=$('.assessment-detail-page'),button=page?.querySelector('#detailStatus');
  if(!button)return;
- const text=String(button.textContent||'').trim();
- if(/Đóng bài|Tạm đóng|Tạm dừng/i.test(text)){
-  button.textContent='Tạm dừng';
-  button.className='secondary';
- }else if(/Mở lại/i.test(text)){
+ const badge=page.querySelector('.assessment-detail-head .badge');
+ const statusText=String(badge?.textContent||'').trim();
+ const oldText=String(button.textContent||'').trim();
+ if(/Tạm đóng|Đã đóng/i.test(statusText)||/Mở lại/i.test(oldText)){
   button.textContent='Mở lại';
   button.className='primary';
- }else if(/Phát hành/i.test(text)){
+ }else if(/Bản nháp/i.test(statusText)||/Phát hành/i.test(oldText)){
   button.textContent='Phát hành';
   button.className='primary';
+ }else{
+  button.textContent='Tạm dừng';
+  button.className='secondary';
  }
 }
 function enforceUi(){
