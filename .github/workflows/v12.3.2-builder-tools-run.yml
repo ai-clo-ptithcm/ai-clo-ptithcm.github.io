@@ -1,0 +1,28 @@
+name: V12.3.2 Builder Tools Run
+on: [push]
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.ref == 'refs/heads/v12.3.2-builder-tools'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v12.3.2-builder-tools
+      - name: Apply patch
+        run: python3 scripts/v12.3.2-builder-tools.py
+      - name: Static checks
+        run: |
+          node --check js/assessment/online-builder.js
+          grep -q 'data-v123-pick' js/assessment/online-builder.js
+          grep -q 'data-v123-quick-edit' js/assessment/online-builder.js
+          grep -q 'renderMathIn(c)' js/assessment/online-builder.js
+          grep -q 'v=12.3.2' app.html
+      - name: Commit result
+        run: |
+          git config user.name 'AI-CLO V12.3.2 Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add js/assessment/online-builder.js css/exams/unified-builder.css app.html
+          git commit -m 'feat(assessment): add builder math, manual pick and quick edit'
+          git push origin HEAD:v12.3.2-builder-tools
