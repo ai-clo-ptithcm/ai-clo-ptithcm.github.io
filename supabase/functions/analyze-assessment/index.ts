@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
     if (scope === "student" && !studentId) studentId = userId;
     if (scope === "student" && studentId !== userId && !mayAnalyzeOthers) return json({ success: false, error: "Không có quyền phân tích sinh viên khác." }, 403);
 
-    const { data: exams, error: examError } = await admin.from("exams").select("id,title,score_policy,counts_toward_grade").eq("subject_id", subjectId);
+    const { data: exams, error: examError } = await admin.from("exams").select("id,title,score_policy,counts_toward_grade,allow_ai_feedback").eq("subject_id", subjectId);
     if (examError) throw examError;
     const allExams = exams || [], allExamIds = allExams.map(x => x.id);
     if (scope === "exam" && (!examId || !allExamIds.includes(examId))) return json({ success: false, error: "Không tìm thấy bài kiểm tra trong học phần." }, 404);
@@ -94,6 +94,8 @@ Deno.serve(async (req) => {
       const { data, error } = await admin.from("exam_attempts").select("id,exam_id,student_id,attempt_number,score,submitted_at").eq("id", attemptId).not("submitted_at", "is", null).maybeSingle();
       if (error) throw error;
       if (!data || !allExamIds.includes(data.exam_id)) return json({ success: false, error: "Không tìm thấy lượt làm đã nộp trong học phần." }, 404);
+      const attemptExam = allExams.find(x => x.id === data.exam_id);
+      if (attemptExam?.allow_ai_feedback === false) return json({ success: false, error: "Bài kiểm tra này không cho phép AI nhận xét." }, 403);
       attempts = [data]; studentId = data.student_id;
       if (studentId !== userId && !mayAnalyzeOthers) return json({ success: false, error: "Không có quyền phân tích lượt làm này." }, 403);
     }
