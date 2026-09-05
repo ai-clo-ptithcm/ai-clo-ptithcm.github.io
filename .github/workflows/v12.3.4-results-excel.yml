@@ -1,0 +1,31 @@
+name: V12.3.4 Results Excel
+on:
+  push:
+    branches: [v12.3.4-results-excel]
+    paths: [.github/workflows/v12.3.4-results-excel.yml]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v12.3.4-results-excel
+      - name: Apply patch
+        run: python3 scripts/v12.3.4-results-excel.py
+      - name: Static checks
+        run: |
+          node --check js/assessment/online-lifecycle.js
+          node --check js/core/office-libs.js
+          node --check js/assessment.js
+          grep -q 'data-v1234-export' js/assessment/online-lifecycle.js
+          grep -q 'exceljs' js/core/office-libs.js
+          grep -q 'v=12.3.4' app.html
+      - name: Commit result
+        run: |
+          git config user.name 'AI-CLO V12.3.4 Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add js/core/office-libs.js js/assessment/online-lifecycle.js css/exams/detail-enhancements.css app.html js/assessment.js
+          git commit -m 'feat(assessment): add CLO attempt table and formatted Excel reports'
+          git push origin HEAD:v12.3.4-results-excel
