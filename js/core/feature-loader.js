@@ -12,6 +12,7 @@ const SCROLL_STABILITY='js/ui/scroll-stability.js?v=11.8.9';
 const CREATE_WIZARD='js/exams/create-wizard.js?v=12.0.0';
 const ASSESSMENT_V12='js/exams/assessment-unified-v12.js?v=12.0.5';
 const ASSESSMENT_SUBPAGES='js/exams/assessment-subpages-v12.js?v=12.0.8';
+const ASSESSMENT_V121='js/exams/assessment-v12.1.js?v=12.1.0';
 const GRADE_SCOPE='js/results/grade-scope-v119.js?v=12.0.0';
 
 function loadScript(src){
@@ -119,6 +120,7 @@ async function ensureView(view){
    await loadScript(CREATE_WIZARD);
    await loadScript(ASSESSMENT_V12);
    await loadScript(ASSESSMENT_SUBPAGES);
+   await loadScript(ASSESSMENT_V121);
   }
   await loadScript('js/exams/attempt-autosave.js');
   return;
