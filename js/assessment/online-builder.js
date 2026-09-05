@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.3.2 — Online Assessment Builder module. */
+/* AI-CLO PTITHCM V12.3.3 — Online Assessment Builder module. */
 (() => {
   "use strict";
   window.AICLO_ASSESSMENT_MODULES = window.AICLO_ASSESSMENT_MODULES || {};
@@ -35,6 +35,7 @@
           structureMode: exam?.structure_mode || "topic_clo",
           selectedChapters: new Set(exam?.chapter_ids || []),
           selectedTopics: new Set(exam?.topic_ids || []),
+          expandedChapters: new Set(exam?.chapter_ids || []),
           matrix: {
             ...(exam?.question_blueprint?.matrix || {}),
           },
@@ -228,67 +229,54 @@
         return `<section class="panel"><div class="panel-head"><div><h3>1. Thông tin</h3><p class="hint">Các trường vận hành vẫn có thể sửa sau khi có lượt làm; cấu trúc đo lường thì không.</p></div></div><div class="form-grid"><label class="field wide">Tên bài<input data-v122-setting="title" value="${escapeHtml(s.title)}" required></label><label class="field wide">Mô tả<textarea data-v122-setting="description">${escapeHtml(s.description)}</textarea></label><label class="field">Thời gian (phút)<input type="number" min="1" max="300" data-v122-setting="duration_minutes" value="${s.duration_minutes}" ${dis}></label><label class="field">Số lần làm<input type="number" min="1" max="20" data-v122-setting="max_attempts" value="${s.max_attempts}"></label><label class="field">Cách rút câu<select data-v122-setting="question_mode" ${dis}><option value="common_fixed" ${s.question_mode === "common_fixed" ? "selected" : ""}>Đề chung cố định</option><option value="student_fixed" ${s.question_mode === "student_fixed" ? "selected" : ""}>Đề riêng theo sinh viên</option><option value="attempt_random" ${s.question_mode === "attempt_random" ? "selected" : ""}>Rút lại mỗi lần làm</option></select></label><label class="field">Cách ghi nhận<select data-v122-setting="score_policy"><option value="highest" ${s.score_policy === "highest" ? "selected" : ""}>Điểm cao nhất</option><option value="latest" ${s.score_policy === "latest" ? "selected" : ""}>Lần cuối</option><option value="average" ${s.score_policy === "average" ? "selected" : ""}>Trung bình</option></select></label><label class="field">Mở từ<input type="datetime-local" data-v122-setting="opens_at" value="${s.opens_at}" ${dis}></label><label class="field">Đóng lúc<input type="datetime-local" data-v122-setting="closes_at" value="${s.closes_at}"></label><div class="field wide assessment-options"><label><input type="checkbox" data-v122-check="show_review" ${s.show_review ? "checked" : ""}> Cho xem lại bài và biết đúng/sai</label><label><input type="checkbox" data-v122-check="show_answers" ${s.show_answers ? "checked" : ""} ${s.show_review ? "" : "disabled"}> Hiện đáp án đúng và lời giải</label><label><input type="checkbox" data-v122-check="shuffle_questions" ${s.shuffle_questions ? "checked" : ""} ${dis}> Trộn thứ tự câu</label><label><input type="checkbox" data-v122-check="shuffle_options" ${s.shuffle_options ? "checked" : ""} ${dis}> Trộn đáp án</label><label><input type="checkbox" data-v122-check="allow_ai_feedback" ${s.allow_ai_feedback ? "checked" : ""}> Cho phép AI nhận xét</label><label><input type="checkbox" data-v122-check="counts_toward_grade" ${s.counts_toward_grade ? "checked" : ""}> Tính vào kết quả CLO học phần</label></div></div></section>`;
       }
       function builderStructure(ctx) {
-        const chapterRows = ctx.sets.chapters
-          .map((ch) => {
-            const topics = ctx.sets.topics.filter((t) => t.chapter_id === ch.id);
-            return `<div class="v122-scope-chapter"><label><input type="checkbox" data-v122-chapter="${ch.id}" ${ctx.selectedChapters.has(ch.id) ? "checked" : ""} ${ctx.locked ? "disabled" : ""}> <b>${escapeHtml(ch.order_index)}. ${escapeHtml(ch.name)}</b></label><div class="v122-topic-list">${topics.map((t) => `<label><input type="checkbox" data-v122-topic="${t.id}" data-chapter="${ch.id}" ${ctx.selectedTopics.has(t.id) ? "checked" : ""} ${ctx.locked ? "disabled" : ""}> ${escapeHtml(t.name)}</label>`).join("")}</div></div>`;
-          })
-          .join("");
-        return `<section class="panel"><div class="panel-head"><div><h3>2. Cấu trúc</h3><p class="hint">Chọn chương và từng mục. Tổng số câu được suy ra trực tiếp từ ma trận.</p></div></div><div class="v122-structure-mode"><label><input type="radio" name="v122StructureMode" value="topic_clo" ${ctx.structureMode === "topic_clo" ? "checked" : ""} ${ctx.locked ? "disabled" : ""}> CLO cho mỗi mục</label><label><input type="radio" name="v122StructureMode" value="chapter_pool" ${ctx.structureMode === "chapter_pool" ? "checked" : ""} ${ctx.locked ? "disabled" : ""}> CLO chung các mục trong chương</label></div><div class="v122-scope">${chapterRows}</div>${matrixEditor(ctx)}</section>`;
+        const chapterCards = ctx.sets.chapters.map((ch) => {
+          const topics = ctx.sets.topics.filter((t) => t.chapter_id === ch.id);
+          const selectedCount = topics.filter((t) => ctx.selectedTopics.has(t.id)).length;
+          const selected = ctx.selectedChapters.has(ch.id);
+          const expanded = selected && ctx.expandedChapters.has(ch.id);
+          return `<article class="ub-structure-chapter ${selected ? "selected" : ""}">
+            <div class="ub-structure-chapter-head">
+              <label class="ub-chapter-main"><input type="checkbox" data-v122-chapter="${ch.id}" ${selected ? "checked" : ""} ${ctx.locked ? "disabled" : ""}><span><b>${escapeHtml(ch.order_index)}. ${escapeHtml(ch.name)}</b><small>${selected ? `${selectedCount}/${topics.length} mục đã chọn` : `${topics.length} mục`}</small></span></label>
+              ${selected ? `<button type="button" class="secondary compact ub-chapter-toggle" data-v123-chapter-toggle="${ch.id}" aria-expanded="${expanded}">${expanded ? "Thu gọn" : "Mở mục"}</button>` : ""}
+            </div>
+            ${expanded ? `<div class="ub-structure-topic-grid">${topics.map((t) => `<label class="ub-topic-item"><input type="checkbox" data-v122-topic="${t.id}" data-chapter="${ch.id}" ${ctx.selectedTopics.has(t.id) ? "checked" : ""} ${ctx.locked ? "disabled" : ""}><span>${escapeHtml(t.name)}</span></label>`).join("")}</div>` : ""}
+          </article>`;
+        }).join("");
+        const selectedSummary = ctx.selectedChapters.size
+          ? `${ctx.selectedChapters.size} chương · ${ctx.selectedTopics.size} mục đang chọn`
+          : "Chưa chọn chương";
+        return `<section class="panel ub-structure-panel"><div class="panel-head"><div><h3>2. Cấu trúc</h3><p class="hint">Chọn phạm vi kiến thức trước, sau đó phân bổ số câu theo CLO trong ma trận riêng bên dưới.</p></div><span class="badge">${selectedSummary}</span></div>
+          <div class="ub-structure-block"><h4>Chế độ phân bổ CLO</h4><div class="ub-structure-segmented">
+            <label class="${ctx.structureMode === "topic_clo" ? "active" : ""}"><input type="radio" name="v122StructureMode" value="topic_clo" ${ctx.structureMode === "topic_clo" ? "checked" : ""} ${ctx.locked ? "disabled" : ""}><span>CLO cho mỗi mục</span><small>Kiểm soát số câu CLO ở từng mục.</small></label>
+            <label class="${ctx.structureMode === "chapter_pool" ? "active" : ""}"><input type="radio" name="v122StructureMode" value="chapter_pool" ${ctx.structureMode === "chapter_pool" ? "checked" : ""} ${ctx.locked ? "disabled" : ""}><span>CLO chung trong chương</span><small>Gộp các mục đã chọn thành một pool của chương.</small></label>
+          </div></div>
+          <div class="ub-structure-block"><div class="ub-structure-block-head"><h4>Chương và mục</h4><span>Chương chưa chọn được thu gọn để giảm chiều cao.</span></div><div class="ub-structure-chapters">${chapterCards}</div></div>
+          <div class="ub-structure-block ub-matrix-block"><div class="ub-structure-block-head"><div><h4>Ma trận câu hỏi</h4><span>Chỉ hiển thị phạm vi đã chọn. Nhập số câu cần dùng trên tổng số câu có sẵn.</span></div><b>${matrixTotal(ctx)} câu</b></div>${matrixEditor(ctx)}</div>
+        </section>`;
       }
       function matrixEditor(ctx) {
         if (!ctx.selectedTopics.size)
-          return '<div class="empty"><b>Chưa chọn mục</b><span>Chọn ít nhất một mục để tạo ma trận.</span></div>';
+          return '<div class="empty"><b>Chưa có ma trận</b><span>Chọn ít nhất một chương và một mục để bắt đầu phân bổ câu hỏi.</span></div>';
         let rows = "";
         if (ctx.structureMode === "topic_clo") {
-          for (const ch of ctx.sets.chapters.filter((x) =>
-            ctx.selectedChapters.has(x.id),
-          )) {
+          for (const ch of ctx.sets.chapters.filter((x) => ctx.selectedChapters.has(x.id))) {
             const ts = selectedTopicsFor(ctx, ch.id);
             if (!ts.length) continue;
-            rows +=
-              `<tr class="matrix-chapter"><td colspan="${ctx.sets.clos.length + 2}"><b>${escapeHtml(ch.order_index)}. ${escapeHtml(ch.name)}</b></td></tr>` +
-              ts
-                .map(
-                  (t) =>
-                    `<tr><td>${escapeHtml(t.name)}</td>${ctx.sets.clos.map((clo) => matrixCell(ctx, t.id, clo)).join("")}<td><b>${ctx.sets.clos.reduce((n, clo) => n + (+ctx.matrix[matrixKey(ctx.structureMode, t.id, clo.id)] || 0), 0)}</b></td></tr>`,
-                )
-                .join("");
+            rows += `<tr class="matrix-chapter"><td colspan="${ctx.sets.clos.length + 2}"><b>${escapeHtml(ch.order_index)}. ${escapeHtml(ch.name)}</b><small>${ts.length} mục</small></td></tr>` +
+              ts.map((t) => `<tr class="ub-matrix-data-row"><td data-label="${ctx.structureMode === "topic_clo" ? "Mục" : "Chương"}"><b>${escapeHtml(t.name)}</b></td>${ctx.sets.clos.map((clo) => matrixCell(ctx, t.id, clo)).join("")}<td data-label="Tổng" class="ub-matrix-total"><b>${ctx.sets.clos.reduce((n, clo) => n + (+ctx.matrix[matrixKey(ctx.structureMode, t.id, clo.id)] || 0), 0)}</b></td></tr>`).join("");
           }
         } else {
-          rows = ctx.sets.chapters
-            .filter(
-              (ch) =>
-                ctx.selectedChapters.has(ch.id) &&
-                selectedTopicsFor(ctx, ch.id).length,
-            )
-            .map(
-              (ch) =>
-                `<tr><td><b>${escapeHtml(ch.order_index)}. ${escapeHtml(ch.name)}</b><small>${selectedTopicsFor(
-                  ctx,
-                  ch.id,
-                )
-                  .map((t) => escapeHtml(t.name))
-                  .join(
-                    ", ",
-                  )}</small></td>${ctx.sets.clos.map((clo) => matrixCell(ctx, ch.id, clo)).join("")}<td><b>${ctx.sets.clos.reduce((n, clo) => n + (+ctx.matrix[matrixKey(ctx.structureMode, ch.id, clo.id)] || 0), 0)}</b></td></tr>`,
-            )
-            .join("");
+          rows = ctx.sets.chapters.filter((ch) => ctx.selectedChapters.has(ch.id) && selectedTopicsFor(ctx, ch.id).length).map((ch) =>
+            `<tr class="ub-matrix-data-row"><td data-label="Chương"><b>${escapeHtml(ch.order_index)}. ${escapeHtml(ch.name)}</b><small>${selectedTopicsFor(ctx, ch.id).map((t) => escapeHtml(t.name)).join(", ")}</small></td>${ctx.sets.clos.map((clo) => matrixCell(ctx, ch.id, clo)).join("")}<td data-label="Tổng" class="ub-matrix-total"><b>${ctx.sets.clos.reduce((n, clo) => n + (+ctx.matrix[matrixKey(ctx.structureMode, ch.id, clo.id)] || 0), 0)}</b></td></tr>`
+          ).join("");
         }
-        return `<div class="table-wrap"><table class="exam-matrix"><thead><tr><th>${ctx.structureMode === "topic_clo" ? "Mục" : "Chương"}</th>${ctx.sets.clos.map((c) => `<th>${escapeHtml(c.code)}</th>`).join("")}<th>Tổng</th></tr></thead><tbody>${rows}<tr class="matrix-grand"><td><b>TỔNG</b></td>${ctx.sets.clos
-          .map(
-            (c) =>
-              `<td><b>${Object.entries(ctx.matrix)
-                .filter(([k]) => k.endsWith(`:${c.id}`))
-                .reduce((n, [, v]) => n + (+v || 0), 0)}</b></td>`,
-          )
-          .join("")}<td><b>${matrixTotal(ctx)}</b></td></tr></tbody></table></div>`;
+        return `<div class="ub-matrix-table"><table class="exam-matrix"><thead><tr><th>${ctx.structureMode === "topic_clo" ? "Mục" : "Chương"}</th>${ctx.sets.clos.map((c) => `<th>${escapeHtml(c.code)}</th>`).join("")}<th>Tổng</th></tr></thead><tbody>${rows}<tr class="matrix-grand"><td><b>TỔNG</b></td>${ctx.sets.clos.map((c) => `<td data-label="${escapeHtml(c.code)}"><b>${Object.entries(ctx.matrix).filter(([k]) => k.endsWith(`:${c.id}`)).reduce((n, [, v]) => n + (+v || 0), 0)}</b></td>`).join("")}<td data-label="Tổng"><b>${matrixTotal(ctx)}</b></td></tr></tbody></table></div>`;
       }
       function matrixCell(ctx, rowId, clo) {
         const key = matrixKey(ctx.structureMode, rowId, clo.id),
           n = +ctx.matrix[key] || 0,
           available = eligibleForCell(ctx, rowId, clo.id).length;
-        return `<td><input class="v122-matrix-input" type="number" min="0" max="200" value="${n}" data-key="${key}" ${ctx.locked ? "disabled" : ""}><small>${available} có sẵn</small></td>`;
+        return `<td data-label="${escapeHtml(clo.code)}"><div class="ub-matrix-cell"><input class="v122-matrix-input" type="number" min="0" max="${Math.max(available, n)}" value="${n}" data-key="${key}" ${ctx.locked ? "disabled" : ""}><span>/ ${available} câu có sẵn</span></div></td>`;
       }
       function optionMap(q) {
         return Object.fromEntries(
@@ -552,9 +540,11 @@
                 topics = ctx.sets.topics.filter((t) => t.chapter_id === id);
               if (el.checked) {
                 ctx.selectedChapters.add(id);
+                ctx.expandedChapters.add(id);
                 topics.forEach((t) => ctx.selectedTopics.add(t.id));
               } else {
                 ctx.selectedChapters.delete(id);
+                ctx.expandedChapters.delete(id);
                 topics.forEach((t) => ctx.selectedTopics.delete(t.id));
               }
               ctx.selected = [];
@@ -563,6 +553,14 @@
               renderBuilder(ctx);
             }),
         );
+        qsa("[data-v123-chapter-toggle]", c).forEach((el) => {
+          el.onclick = () => {
+            const id = el.dataset.v123ChapterToggle;
+            if (ctx.expandedChapters.has(id)) ctx.expandedChapters.delete(id);
+            else ctx.expandedChapters.add(id);
+            renderBuilder(ctx);
+          };
+        });
         qsa("[data-v122-topic]", c).forEach(
           (el) =>
             (el.onchange = () => {
