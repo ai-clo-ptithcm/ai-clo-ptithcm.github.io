@@ -123,13 +123,23 @@ Deno.serve(async (req) => {
     const questionMap = new Map<string, { content: string; clo: string | null; correct: number; total: number; choices: Record<string, number> }>();
     for (const q of attemptQuestions || []) {
       const a = answerMap.get(`${q.attempt_id}|${q.question_id}`) as any;
-      const key = `${q.attempt_id}|${q.question_id}`;
+      const key = String(q.question_id);
       const item = questionMap.get(key) || { content: q.content || "", clo: q.clo_code || null, correct: 0, total: 0, choices: {} };
       item.total++; if (a?.is_correct === true) item.correct++;
       const choice = String(a?.selected_option || "Không chọn"); item.choices[choice] = (item.choices[choice] || 0) + 1; questionMap.set(key, item);
     }
     const difficultQuestions = [...questionMap.values()].map(x => ({ content: x.content, clo: x.clo, correct_rate: x.total ? Math.round(x.correct * 1000 / x.total) / 10 : 0, responses: x.total, selected_options: x.choices })).sort((a,b)=>a.correct_rate-b.correct_rate).slice(0,8);
-    const avgScore = Math.round(attempts.reduce((s, a) => s + Number(a.score || 0), 0) * 100 / attempts.length) / 100;
+    let avgScore = 0;
+    if (scope === "class") {
+      const byStudent = new Map<string, number[]>();
+      for (const a of attempts) {
+        const rows = byStudent.get(a.student_id) || []; rows.push(Number(a.score || 0)); byStudent.set(a.student_id, rows);
+      }
+      const studentAverages = [...byStudent.values()].map(rows => rows.reduce((s, x) => s + x, 0) / rows.length);
+      avgScore = studentAverages.length ? Math.round(studentAverages.reduce((s, x) => s + x, 0) * 100 / studentAverages.length) / 100 : 0;
+    } else {
+      avgScore = Math.round(attempts.reduce((s, a) => s + Number(a.score || 0), 0) * 100 / attempts.length) / 100;
+    }
 
     let studentInfo: any = null;
     if (studentId) { const { data } = await admin.from("profiles").select("full_name,mssv").eq("id", studentId).maybeSingle(); studentInfo = data; }
