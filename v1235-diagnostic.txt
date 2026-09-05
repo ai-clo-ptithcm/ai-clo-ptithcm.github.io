@@ -1,0 +1,17 @@
+online-lifecycle:0
+/home/runner/work/ai-clo-ptithcm.github.io/ai-clo-ptithcm.github.io/js/exams/online-export.js:16
+function texForVariant(ctx,v){const exam=ctx.exam||{},sub=ctx.subject||{},now=new Date().toLocaleString('vi-VN');const lines=[];lines.push('\\documentclass[12pt,a4paper]{article}','\\usepackage[utf8]{inputenc}','\\usepackage[T5]{fontenc}','\\usepackage[vietnamese]{babel}','\\usepackage{amsmath,amssymb}','\\usepackage{geometry}','\\usepackage{enumitem}','\\usepackage{fancyhdr}','\\geometry{margin=1.6cm}','\\setlength{\\parindent}{0pt}','\\pagestyle{fancy}','\\fancyhf{}',`\\lfoot{${texEscapePlain(sub.name||'AI-CLO PTITHCM')}}`,`\\rfoot{Mã đề ${texEscapePlain(v.code)} -- Trang \\thepage}`,'\\begin{document}','\\begin{center}','{\\bfseries\\Large BÀI KIỂM TRA}\\\\[4pt]',`{\\bfseries ${texEscapePlain(exam.title||'Bài kiểm tra')}}`,`\\end{center}',`\\textbf{Học phần:} ${texEscapePlain(sub.name||'')}\\hfill \\textbf{Mã học phần:} ${texEscapePlain(sub.code||sub.subject_code||'')}\\\\`,`\\textbf{Mã đề:} '+texEscapePlain(v.code)+'\\hfill \\textbf{Thời gian:} '+texEscapePlain(exam.duration_minutes||'—')+' phút\\\\',`\\textbf{Mô tả:} ${texText(exam.description||'')}\\\\`,`\\textit{Xuất từ AI-CLO PTITHCM: ${texEscapePlain(now)}}`,`\\vspace{0.5em}`);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ^^^^^^^^^^^^^^^^^
+
+SyntaxError: missing ) after argument list
+    at wrapSafe (node:internal/modules/cjs/loader:1713:18)
+    at checkSyntax (node:internal/main/check_syntax:78:3)
+
+Node.js v22.23.2
+online-export:1
+office-libs:0
+button:0
+script:0
+css:0
+cache:0
+schema:0
