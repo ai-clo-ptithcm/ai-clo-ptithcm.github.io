@@ -1,0 +1,35 @@
+name: V12.3.5 Export Center
+on:
+  push:
+    branches: [v12.3.5-export-center-work]
+    paths: [.github/workflows/v12.3.5-export-center.yml]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v12.3.5-export-center-work
+      - name: Apply export center
+        run: python3 scripts/v12.3.5-export-center.py
+      - name: Static checks
+        run: |
+          node --check js/assessment/online-lifecycle.js
+          node --check js/exams/online-export.js
+          node --check js/core/office-libs.js
+          grep -q 'v1235ExportCenter' js/assessment/online-lifecycle.js
+          grep -q 'online-export.js?v=12.3.5' app.html
+          grep -q 'online-export.css?v=12.3.5' app.html
+          grep -q 'online-lifecycle.js?v=12.3.5' app.html
+          grep -q 'return String(data || "") === "12.3.1"' js/assessment.js
+      - name: Commit result
+        run: |
+          git config user.name 'AI-CLO V12.3.5 Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add js/assessment/online-lifecycle.js app.html
+          if ! git diff --cached --quiet; then
+            git commit -m 'feat(assessment): add online export and variant center'
+            git push origin HEAD:v12.3.5-export-center-work
+          fi
