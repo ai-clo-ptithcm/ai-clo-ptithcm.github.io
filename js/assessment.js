@@ -12,7 +12,7 @@
     if (root) runtime.root = root;
     return getAssessmentRoot();
   };
-  const VERSION = "12.3.0";
+  const VERSION = "12.3.1";
   const {
     qs,
     qsa,
@@ -48,13 +48,13 @@
     try {
       const { data, error } = await db.rpc("assessment_schema_version");
       if (error) throw error;
-      return String(data || "") === "12.2";
+      return String(data || "") === "12.3.1";
     } catch {
       return false;
     }
   }
   function migrationNotice(c) {
-    c.innerHTML = `<div class="panel migration-panel"><h3>Cần hoàn tất Assessment V12.2 trên Supabase</h3><p>Frontend V12.2 chỉ chạy khi backend contract 12.2 đã được cài.</p><ol><li>Mở <b>Supabase → SQL Editor</b>.</li><li>Chạy <code>docs/assessment-v12.2-migration.sql</code>.</li><li>Tải lại trang.</li></ol></div>`;
+    c.innerHTML = `<div class="panel migration-panel"><h3>Cần hoàn tất Assessment V12.3.1 trên Supabase</h3><p>Phiên bản này tách quyền xem lại bài và quyền hiện đáp án đúng.</p><ol><li>Mở <b>Supabase → SQL Editor</b>.</li><li>Chạy <code>docs/assessment-v12.3.1-review-ai.sql</code>.</li><li>Tải lại trang.</li></ol></div>`;
   }
   async function ask(title, message, label = "Xác nhận") {
     if (typeof confirmAction === "function")
@@ -229,6 +229,7 @@
   const studentAttemptModule = window.AICLO_ASSESSMENT_MODULES?.createStudentAttemptModule?.({
     db,
     state,
+    subjectId,
     fetchExams,
     statusMeta,
     escapeHtml,

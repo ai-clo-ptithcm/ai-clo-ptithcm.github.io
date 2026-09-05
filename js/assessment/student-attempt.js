@@ -3,8 +3,8 @@
   "use strict";
   window.AICLO_ASSESSMENT_MODULES = window.AICLO_ASSESSMENT_MODULES || {};
   window.AICLO_ASSESSMENT_MODULES.createStudentAttemptModule = function createStudentAttemptModule(ctx) {
-    const { db, state, fetchExams, statusMeta, escapeHtml, qs, qsa, ask, showError, notify, openDrawer, replaceDrawer } = ctx;
-    if (!db || !state || !fetchExams || !statusMeta || !escapeHtml || !qs || !qsa || !ask || !showError || !notify) {
+    const { db, state, subjectId, fetchExams, statusMeta, escapeHtml, qs, qsa, ask, showError, notify, openDrawer, replaceDrawer } = ctx;
+    if (!db || !state || !subjectId || !fetchExams || !statusMeta || !escapeHtml || !qs || !qsa || !ask || !showError || !notify) {
       throw new Error("Assessment Student Attempt dependencies are incomplete");
     }
           let liveTimer = null;
@@ -310,9 +310,41 @@
           }
         }
       }
-      function studentResultHtml(result) {
-        return `<div class="preview-result result-v122"><div class="result-score"><small>Điểm tổng</small><b>${Number(result.score || 0).toFixed(2)}</b><span>${Number(result.correct || 0)}/${Number(result.total || 0)} câu đúng</span></div><h4>Kết quả theo CLO</h4><div class="clo-results">${(result.clo_scores || []).map((x) => `<div><b>${escapeHtml(x.code || "CLO")}</b><strong>${Number(x.score || 0).toFixed(2)}</strong><span>${x.correct}/${x.total} câu đúng</span></div>`).join("") || "<p>Chưa có dữ liệu CLO.</p>"}</div>${result.show_answers && result.review?.length ? `<h4>Chi tiết bài làm</h4><div class="answer-review">${result.review.map((x, i) => `<details class="${x.is_correct ? "right" : "wrong"}"><summary>Câu ${i + 1} — ${x.is_correct ? "Đúng" : "Chưa đúng"} · ${escapeHtml(x.clo_code || "")}</summary><div>${escapeHtml(x.content || "")}</div><p>Bạn chọn: <b>${escapeHtml(x.selected || "Chưa trả lời")}</b> · Đáp án đúng: <b>${escapeHtml(x.correct_answer || "")}</b></p><p>${escapeHtml(x.explanation || "")}</p></details>`).join("")}</div>` : '<p class="hint">Bài kiểm tra này không hiển thị đáp án chi tiết.</p>'}</div>`;
+      function attemptAiAnalysisHtml(a) {
+        const actions = a?.recommendations || a?.next_actions || [];
+        return `<div class="ai-analysis-v122"><p>${escapeHtml(a?.summary || "")}</p>${a?.strengths?.length ? `<h4>Điểm mạnh</h4><ul>${a.strengths.map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul>` : ""}${a?.needs_improvement?.length ? `<h4>Cần cải thiện</h4><ul>${a.needs_improvement.map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul>` : ""}${actions.length ? `<h4>Khuyến nghị</h4><ul>${actions.map((x) => `<li>${escapeHtml(x)}</li>`).join("")}</ul>` : ""}</div>`;
       }
+      async function requestAttemptAi(attemptId, button) {
+        const old = button?.textContent;
+        if (button) { button.disabled = true; button.textContent = "✦ Đang nhận xét…"; }
+        try {
+          const { data, error } = await db.functions.invoke("analyze-assessment", {
+            body: { subject_id: subjectId(), scope: "attempt", attempt_id: attemptId },
+          });
+          if (error) throw error;
+          if (!data?.success) throw new Error(data?.error || "AI chưa tạo được nhận xét");
+          const out = qs(`[data-v123-ai-output="${attemptId}"]`);
+          if (out) out.innerHTML = attemptAiAnalysisHtml(data.analysis);
+          else notify("AI đã tạo nhận xét nhưng vùng kết quả không còn mở.");
+        } catch (e) { showError(e); }
+        finally { if (button) { button.disabled = false; button.textContent = old; } }
+      }
+      function studentResultHtml(result) {
+        const reviewAllowed = !!result.show_review;
+        const answersAllowed = !!result.show_answers;
+        const detail = reviewAllowed && result.review?.length
+          ? `<h4>Chi tiết bài làm</h4><div class="answer-review">${result.review.map((x, i) => `<details class="${x.is_correct ? "right" : "wrong"}"><summary>Câu ${i + 1} — ${x.is_correct ? "Đúng" : "Chưa đúng"} · ${escapeHtml(x.clo_code || "")}</summary><div>${escapeHtml(x.content || "")}</div><p>Bạn chọn: <b>${escapeHtml(x.selected || "Chưa trả lời")}</b>${answersAllowed ? ` · Đáp án đúng: <b>${escapeHtml(x.correct_answer || "")}</b>` : ""}</p>${answersAllowed && x.explanation ? `<p>${escapeHtml(x.explanation)}</p>` : ""}</details>`).join("")}</div>`
+          : '<p class="hint">Giảng viên chưa cho phép xem lại chi tiết bài làm.</p>';
+        const ai = result.allow_ai_feedback && result.attempt_id
+          ? `<div class="result-ai-actions"><button type="button" class="ai-btn" data-v123-ai-attempt="${escapeHtml(result.attempt_id)}">✦ AI nhận xét bài làm</button></div><div data-v123-ai-output="${escapeHtml(result.attempt_id)}"></div>` : "";
+        return `<div class="preview-result result-v122"><div class="result-score"><small>Điểm tổng</small><b>${Number(result.score || 0).toFixed(2)}</b><span>${Number(result.correct || 0)}/${Number(result.total || 0)} câu đúng</span></div><h4>Kết quả theo CLO</h4><div class="clo-results">${(result.clo_scores || []).map((x) => `<div><b>${escapeHtml(x.code || "CLO")}</b><strong>${Number(x.score || 0).toFixed(2)}</strong><span>${x.correct}/${x.total} câu đúng</span></div>`).join("") || "<p>Chưa có dữ liệu CLO.</p>"}</div>${ai}${detail}</div>`;
+      }
+      document.addEventListener("click", (event) => {
+        const button = event.target?.closest?.("[data-v123-ai-attempt]");
+        if (!button) return;
+        const attemptId = button.dataset.v123AiAttempt;
+        if (attemptId) requestAttemptAi(attemptId, button);
+      });
       function showStudentResult(exam, result) {
         clearLiveTimer();
         const html = studentResultHtml(result);

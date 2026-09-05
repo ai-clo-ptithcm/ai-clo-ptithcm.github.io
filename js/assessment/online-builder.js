@@ -25,6 +25,7 @@
             score_policy: exam?.score_policy || "highest",
             opens_at: localInput(exam?.opens_at),
             closes_at: localInput(exam?.closes_at),
+            show_review: !!exam?.show_review || !!exam?.show_answers,
             show_answers: !!exam?.show_answers,
             shuffle_questions: exam?.shuffle_questions !== false,
             shuffle_options: exam?.shuffle_options !== false,
@@ -217,7 +218,7 @@
       function builderInfo(ctx) {
         const s = ctx.settings,
           dis = ctx.locked ? "disabled" : "";
-        return `<section class="panel"><div class="panel-head"><div><h3>1. Thông tin</h3><p class="hint">Các trường vận hành vẫn có thể sửa sau khi có lượt làm; cấu trúc đo lường thì không.</p></div></div><div class="form-grid"><label class="field wide">Tên bài<input data-v122-setting="title" value="${escapeHtml(s.title)}" required></label><label class="field wide">Mô tả<textarea data-v122-setting="description">${escapeHtml(s.description)}</textarea></label><label class="field">Thời gian (phút)<input type="number" min="1" max="300" data-v122-setting="duration_minutes" value="${s.duration_minutes}" ${dis}></label><label class="field">Số lần làm<input type="number" min="1" max="20" data-v122-setting="max_attempts" value="${s.max_attempts}"></label><label class="field">Cách rút câu<select data-v122-setting="question_mode" ${dis}><option value="common_fixed" ${s.question_mode === "common_fixed" ? "selected" : ""}>Đề chung cố định</option><option value="student_fixed" ${s.question_mode === "student_fixed" ? "selected" : ""}>Đề riêng theo sinh viên</option><option value="attempt_random" ${s.question_mode === "attempt_random" ? "selected" : ""}>Rút lại mỗi lần làm</option></select></label><label class="field">Cách ghi nhận<select data-v122-setting="score_policy"><option value="highest" ${s.score_policy === "highest" ? "selected" : ""}>Điểm cao nhất</option><option value="latest" ${s.score_policy === "latest" ? "selected" : ""}>Lần cuối</option><option value="average" ${s.score_policy === "average" ? "selected" : ""}>Trung bình</option></select></label><label class="field">Mở từ<input type="datetime-local" data-v122-setting="opens_at" value="${s.opens_at}" ${dis}></label><label class="field">Đóng lúc<input type="datetime-local" data-v122-setting="closes_at" value="${s.closes_at}"></label><div class="field wide assessment-options"><label><input type="checkbox" data-v122-check="show_answers" ${s.show_answers ? "checked" : ""}> Cho xem đáp án sau khi nộp</label><label><input type="checkbox" data-v122-check="shuffle_questions" ${s.shuffle_questions ? "checked" : ""} ${dis}> Trộn thứ tự câu</label><label><input type="checkbox" data-v122-check="shuffle_options" ${s.shuffle_options ? "checked" : ""} ${dis}> Trộn đáp án</label><label><input type="checkbox" data-v122-check="allow_ai_feedback" ${s.allow_ai_feedback ? "checked" : ""}> Cho phép AI nhận xét</label><label><input type="checkbox" data-v122-check="counts_toward_grade" ${s.counts_toward_grade ? "checked" : ""}> Tính vào kết quả CLO học phần</label></div></div></section>`;
+        return `<section class="panel"><div class="panel-head"><div><h3>1. Thông tin</h3><p class="hint">Các trường vận hành vẫn có thể sửa sau khi có lượt làm; cấu trúc đo lường thì không.</p></div></div><div class="form-grid"><label class="field wide">Tên bài<input data-v122-setting="title" value="${escapeHtml(s.title)}" required></label><label class="field wide">Mô tả<textarea data-v122-setting="description">${escapeHtml(s.description)}</textarea></label><label class="field">Thời gian (phút)<input type="number" min="1" max="300" data-v122-setting="duration_minutes" value="${s.duration_minutes}" ${dis}></label><label class="field">Số lần làm<input type="number" min="1" max="20" data-v122-setting="max_attempts" value="${s.max_attempts}"></label><label class="field">Cách rút câu<select data-v122-setting="question_mode" ${dis}><option value="common_fixed" ${s.question_mode === "common_fixed" ? "selected" : ""}>Đề chung cố định</option><option value="student_fixed" ${s.question_mode === "student_fixed" ? "selected" : ""}>Đề riêng theo sinh viên</option><option value="attempt_random" ${s.question_mode === "attempt_random" ? "selected" : ""}>Rút lại mỗi lần làm</option></select></label><label class="field">Cách ghi nhận<select data-v122-setting="score_policy"><option value="highest" ${s.score_policy === "highest" ? "selected" : ""}>Điểm cao nhất</option><option value="latest" ${s.score_policy === "latest" ? "selected" : ""}>Lần cuối</option><option value="average" ${s.score_policy === "average" ? "selected" : ""}>Trung bình</option></select></label><label class="field">Mở từ<input type="datetime-local" data-v122-setting="opens_at" value="${s.opens_at}" ${dis}></label><label class="field">Đóng lúc<input type="datetime-local" data-v122-setting="closes_at" value="${s.closes_at}"></label><div class="field wide assessment-options"><label><input type="checkbox" data-v122-check="show_review" ${s.show_review ? "checked" : ""}> Cho xem lại bài và biết đúng/sai</label><label><input type="checkbox" data-v122-check="show_answers" ${s.show_answers ? "checked" : ""} ${s.show_review ? "" : "disabled"}> Hiện đáp án đúng và lời giải</label><label><input type="checkbox" data-v122-check="shuffle_questions" ${s.shuffle_questions ? "checked" : ""} ${dis}> Trộn thứ tự câu</label><label><input type="checkbox" data-v122-check="shuffle_options" ${s.shuffle_options ? "checked" : ""} ${dis}> Trộn đáp án</label><label><input type="checkbox" data-v122-check="allow_ai_feedback" ${s.allow_ai_feedback ? "checked" : ""}> Cho phép AI nhận xét</label><label><input type="checkbox" data-v122-check="counts_toward_grade" ${s.counts_toward_grade ? "checked" : ""}> Tính vào kết quả CLO học phần</label></div></div></section>`;
       }
       function builderStructure(ctx) {
         const chapterRows = ctx.sets.chapters
@@ -471,7 +472,13 @@
         );
         qsa("[data-v122-check]", c).forEach(
           (el) =>
-            (el.onchange = () => (ctx.settings[el.dataset.v122Check] = el.checked)),
+            (el.onchange = () => {
+              const key = el.dataset.v122Check;
+              ctx.settings[key] = el.checked;
+              if (key === "show_review" && !el.checked) ctx.settings.show_answers = false;
+              if (key === "show_answers" && el.checked) ctx.settings.show_review = true;
+              if (key === "show_review" || key === "show_answers") renderBuilder(ctx);
+            }),
         );
         qsa("[data-v122-chapter]", c).forEach(
           (el) =>
@@ -594,6 +601,7 @@
             score_policy: ctx.settings.score_policy,
             opens_at: toIsoOrNull(ctx.settings.opens_at),
             closes_at: toIsoOrNull(ctx.settings.closes_at),
+            show_review: !!ctx.settings.show_review,
             show_answers: !!ctx.settings.show_answers,
             shuffle_questions: !!ctx.settings.shuffle_questions,
             shuffle_options: !!ctx.settings.shuffle_options,
