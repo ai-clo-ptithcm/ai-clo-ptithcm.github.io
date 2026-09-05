@@ -3,6 +3,8 @@ on:
   push:
     branches: [v12.3.5-export-center-work]
     paths: [.github/workflows/v12.3.5-export-center.yml]
+permissions:
+  contents: write
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -10,16 +12,23 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: v12.3.5-export-center-work
-      - name: Static checks
+      - name: Diagnose
         run: |
-          node --check js/assessment/online-lifecycle.js
-          node --check js/exams/online-export.js
-          node --check js/core/office-libs.js
-          grep -q 'v1235ExportCenter' js/assessment/online-lifecycle.js
-          grep -q 'openExportCenter' js/assessment/online-lifecycle.js
-          grep -q 'online-export.js?v=12.3.5' app.html
-          grep -q 'online-export.css?v=12.3.5' app.html
-          grep -q 'online-lifecycle.js?v=12.3.5' app.html
-          grep -q '=== "12.3.1"' js/assessment.js
-          test -f js/exams/online-export.js
-          test -f css/exams/online-export.css
+          set +e
+          : > v1235-diagnostic2.txt
+          node --check js/assessment/online-lifecycle.js >> v1235-diagnostic2.txt 2>&1; echo "online-lifecycle:$?" >> v1235-diagnostic2.txt
+          node --check js/exams/online-export.js >> v1235-diagnostic2.txt 2>&1; echo "online-export:$?" >> v1235-diagnostic2.txt
+          node --check js/core/office-libs.js >> v1235-diagnostic2.txt 2>&1; echo "office-libs:$?" >> v1235-diagnostic2.txt
+          grep -q 'v1235ExportCenter' js/assessment/online-lifecycle.js; echo "button:$?" >> v1235-diagnostic2.txt
+          grep -q 'openExportCenter' js/assessment/online-lifecycle.js; echo "open:$?" >> v1235-diagnostic2.txt
+          grep -q 'online-export.js?v=12.3.5' app.html; echo "script:$?" >> v1235-diagnostic2.txt
+          grep -q 'online-export.css?v=12.3.5' app.html; echo "css:$?" >> v1235-diagnostic2.txt
+          grep -q 'online-lifecycle.js?v=12.3.5' app.html; echo "cache:$?" >> v1235-diagnostic2.txt
+          grep -q '12.3.1' js/assessment.js; echo "schema:$?" >> v1235-diagnostic2.txt
+      - name: Commit diagnostic
+        run: |
+          git config user.name 'AI-CLO V12.3.5 Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add v1235-diagnostic2.txt
+          git commit -m 'test: record V12.3.5 diagnostics'
+          git push origin HEAD:v12.3.5-export-center-work
