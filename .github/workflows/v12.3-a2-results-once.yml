@@ -1,0 +1,94 @@
+name: V12.3 Assessment Results Once
+
+on:
+  push:
+    branches: [v12.3-assessment-modular]
+    paths: ['.github/workflows/v12.3-a2-results-once.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  split-results:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v12.3-assessment-modular
+          fetch-depth: 0
+
+      - name: Extract Results factory
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const p='js/assessment.js';
+          let s=fs.readFileSync(p,'utf8');
+          const start='  /* ============================================================\n   * SECTION 6/7 — Official results, GPA/CLO aggregation and explicit AI analysis\n   * ============================================================ */';
+          const end='  /* ============================================================\n   * SECTION 7/7 — Public Assessment entry points and single runtime ownership\n   * ============================================================ */';
+          const a=s.indexOf(start), b=s.indexOf(end);
+          if(a<0||b<a) throw new Error('Results section markers not found');
+          const body=s.slice(a+start.length,b).trim();
+          if(!body.includes('async function loadOfficialResultBundle')||!body.includes('function renderStudentResults')) throw new Error('Unexpected Results body');
+          const module=`/* AI-CLO PTITHCM V12.3 — Official Results module. */\n(() => {\n  "use strict";\n  window.AICLO_ASSESSMENT_MODULES = window.AICLO_ASSESSMENT_MODULES || {};\n  window.AICLO_ASSESSMENT_MODULES.createResultsModule = function createResultsModule(ctx) {\n    const { db, state, subjectId, escapeHtml, qs, qsa, openDrawer, modal, showError } = ctx;\n    if (!db || !state || !subjectId || !escapeHtml || !qs || !qsa || !showError) throw new Error("Assessment Results dependencies are incomplete");\n${body.split('\n').map(x=>'    '+x.trimStart()).join('\n')}\n    return Object.freeze({ loadOfficialResultBundle, buildOfficialMetrics, renderTeacherResults, renderStudentResults });\n  };\n})();\n`;
+          fs.mkdirSync('js/assessment',{recursive:true});
+          fs.writeFileSync('js/assessment/results.js',module);
+          const bridge=`  /* SECTION 6/7 moved to js/assessment/results.js */\n  const resultsModule = window.AICLO_ASSESSMENT_MODULES?.createResultsModule?.({\n    db,\n    state,\n    subjectId,\n    escapeHtml,\n    qs,\n    qsa,\n    openDrawer: typeof openDrawer === "function" ? openDrawer : null,\n    modal: typeof modal === "function" ? modal : null,\n    showError,\n  });\n  if (!resultsModule) throw new Error("Assessment Results module was not loaded");\n  const { loadOfficialResultBundle, buildOfficialMetrics, renderTeacherResults, renderStudentResults } = resultsModule;\n\n`;
+          s=s.slice(0,a)+bridge+s.slice(b);
+          s=s.replace('const VERSION = "12.3.0-a1";','const VERSION = "12.3.0-a2";');
+          fs.writeFileSync(p,s);
+          NODE
+          npx --yes prettier@3.3.3 --write js/assessment.js js/assessment/results.js
+
+      - name: Wire Results before owner
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const p='app.html';
+          let s=fs.readFileSync(p,'utf8');
+          const old='<script defer src="js/assessment/common.js?v=12.3.0"></script><script defer src="js/assessment.js?v=12.3.0"></script>';
+          if(!s.includes(old)) throw new Error('A1 script anchor not found');
+          const next='<script defer src="js/assessment/common.js?v=12.3.0"></script><script defer src="js/assessment/results.js?v=12.3.0"></script><script defer src="js/assessment.js?v=12.3.0"></script>';
+          fs.writeFileSync(p,s.replace(old,next));
+          NODE
+
+      - name: Static verification
+        shell: bash
+        run: |
+          node --check js/assessment/common.js
+          node --check js/assessment/results.js
+          node --check js/assessment.js
+          node <<'NODE'
+          const fs=require('fs');
+          const owner=fs.readFileSync('js/assessment.js','utf8');
+          const mod=fs.readFileSync('js/assessment/results.js','utf8');
+          const app=fs.readFileSync('app.html','utf8');
+          const must=(x,m)=>{if(!x)throw new Error(m)};
+          const count=(s,re)=>(s.match(re)||[]).length;
+          must(owner.includes('12.3.0-a2'),'A2 owner version missing');
+          must(!owner.includes('function freshMetric('),'Results internals still in owner');
+          must(!owner.includes('async function requestAssessmentAi('),'Results AI still in owner');
+          must(owner.includes('createResultsModule'),'Owner bridge missing');
+          must(mod.includes('function freshMetric(')&&mod.includes('async function requestAssessmentAi('),'Results internals missing from module');
+          must(mod.includes('return Object.freeze({'),'Results factory does not return frozen API');
+          must(!mod.includes('window.exams')&&!mod.includes('window.results'),'Results module became owner');
+          must(count(owner,/window\.exams\s*=/g)===1&&count(owner,/window\.results\s*=/g)===1,'Single-owner contract changed');
+          must(!owner.includes('MutationObserver')&&!mod.includes('MutationObserver'),'Observer introduced');
+          const c=app.indexOf('js/assessment/common.js?v=12.3.0');
+          const r=app.indexOf('js/assessment/results.js?v=12.3.0');
+          const o=app.indexOf('js/assessment.js?v=12.3.0');
+          must(c>=0&&r>c&&o>r,'Assessment module load order invalid');
+          must(count(app,/js\/assessment\/results\.js/g)===1,'Results script duplicated');
+          console.log('V12.3-A2 PASS');
+          NODE
+
+      - name: Commit A2 and remove workflow
+        shell: bash
+        run: |
+          git config user.name 'AI-CLO V12.3 Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git rm .github/workflows/v12.3-a2-results-once.yml
+          git add js/assessment.js js/assessment/results.js app.html
+          git commit -m 'refactor(assessment): extract V12.3 results module'
+          git push origin HEAD:v12.3-assessment-modular
