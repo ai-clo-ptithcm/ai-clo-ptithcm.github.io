@@ -136,6 +136,20 @@ begin
   if v_selected_distinct<>p_total_questions then raise exception 'Bộ câu được chọn có câu trùng'; end if;
   if v_pool_count<p_total_questions then raise exception 'Pool câu hỏi nhỏ hơn bộ đề'; end if;
 
+  -- Server-side bank boundary: an online assessment can never freeze secure-only questions.
+  if exists(
+    select 1
+    from jsonb_array_elements(p_pool) x
+    left join public.questions q on q.id=(x->>'question_id')::uuid
+    where q.id is null
+       or q.subject_id<>v_exam.subject_id
+       or q.status<>'active'
+       or coalesce(q.approval_status,'')<>'approved'
+       or coalesce(q.question_scope,'practice') not in ('practice','both')
+  ) then
+    raise exception 'Pool bài trực tuyến chỉ được dùng câu đã duyệt từ Ngân hàng luyện tập - kiểm tra';
+  end if;
+
   delete from public.exam_questions where exam_id=p_exam_id;
   delete from public.exam_question_pool where exam_id=p_exam_id;
   delete from public.exam_chapters where exam_id=p_exam_id;
@@ -339,6 +353,27 @@ begin
   if coalesce(jsonb_typeof(p_matrix),'')<>'array' then raise exception 'Ma trận đề thi không hợp lệ'; end if;
   if coalesce(jsonb_typeof(p_selected_questions),'')<>'array' then raise exception 'Danh sách câu đã chọn không hợp lệ'; end if;
   if coalesce(jsonb_typeof(p_variants),'')<>'array' then raise exception 'Danh sách mã đề đã sinh không hợp lệ'; end if;
+
+  -- Server-side bank boundary: final packages may only snapshot approved secure-exam questions.
+  if exists(
+    select 1
+    from jsonb_array_elements(p_selected_questions) x
+    left join public.questions q on q.id=(x->>'question_id')::uuid
+    where q.id is null
+       or q.subject_id<>p_subject_id
+       or q.status<>'active'
+       or coalesce(q.approval_status,'')<>'approved'
+       or coalesce(q.question_scope,'') not in ('secure_exam','both')
+  ) then
+    raise exception 'Hồ sơ đề cuối kỳ chỉ được dùng câu đã duyệt từ Ngân hàng đề thi - bảo mật';
+  end if;
+
+  if p_status='generated' then
+    if jsonb_array_length(p_selected_questions)=0 then raise exception 'Không thể sinh đề khi chưa có bộ câu'; end if;
+    if jsonb_array_length(p_variants)<>jsonb_array_length(coalesce(p_metadata->'variant_codes','[]'::jsonb)) then
+      raise exception 'Số phiên bản đã sinh không khớp danh sách mã đề';
+    end if;
+  end if;
 
   if p_package_id is null then
     insert into public.final_exam_packages(

@@ -130,10 +130,17 @@ Deno.serve(async (req) => {
     }
     const difficultQuestions = [...questionMap.values()].map(x => ({ content: x.content, clo: x.clo, correct_rate: x.total ? Math.round(x.correct * 1000 / x.total) / 10 : 0, responses: x.total, selected_options: x.choices })).sort((a,b)=>a.correct_rate-b.correct_rate).slice(0,8);
     let avgScore = 0;
-    if (scope === "class") {
-      const byStudent = new Map<string, number[]>();
+    if (scope === "class" || scope === "student") {
+      const byStudentExam = new Map<string, { studentId: string; scores: number[] }>();
       for (const a of attempts) {
-        const rows = byStudent.get(a.student_id) || []; rows.push(Number(a.score || 0)); byStudent.set(a.student_id, rows);
+        const key = `${a.student_id}|${a.exam_id}`;
+        const g = byStudentExam.get(key) || { studentId: a.student_id, scores: [] };
+        g.scores.push(Number(a.score || 0)); byStudentExam.set(key, g);
+      }
+      const byStudent = new Map<string, number[]>();
+      for (const g of byStudentExam.values()) {
+        const examScore = g.scores.reduce((s, x) => s + x, 0) / g.scores.length;
+        const rows = byStudent.get(g.studentId) || []; rows.push(examScore); byStudent.set(g.studentId, rows);
       }
       const studentAverages = [...byStudent.values()].map(rows => rows.reduce((s, x) => s + x, 0) / rows.length);
       avgScore = studentAverages.length ? Math.round(studentAverages.reduce((s, x) => s + x, 0) * 100 / studentAverages.length) / 100 : 0;
