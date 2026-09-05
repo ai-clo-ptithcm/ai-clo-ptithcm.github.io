@@ -305,13 +305,16 @@
         if (ce) throw ce;
         if (pe) throw pe;
         const map = new Map((pool || []).map((x) => [x.question_id, x]));
-        if (exam.shuffle_questions) qs = shuffle(qs);
+        let questions = (chosen || [])
+          .map((x) => map.get(x.question_id))
+          .filter(Boolean);
+        if (exam.shuffle_questions) questions = shuffle(questions);
         if (exam.shuffle_options)
-          qs = qs.map((q) => ({
+          questions = questions.map((q) => ({
             ...q,
             options: shuffle(q.options || []),
           }));
-        return qs;
+        return questions;
       }
       async function openTeacherPreview(exam) {
         try {
@@ -387,14 +390,15 @@
           ).length,
           codes = [...new Set(questions.map((q) => q.clo_code).filter(Boolean))];
         const byClo = codes.map((code) => {
-          const right = questions.filter(
+          const cloQuestions = questions.filter((q) => q.clo_code === code);
+          const right = cloQuestions.filter(
             (q) => answers[q.question_id] === q.correct_answer,
           ).length;
           return {
             code,
-            total: qs.length,
+            total: cloQuestions.length,
             correct: right,
-            score: qs.length ? (right * 10) / qs.length : 0,
+            score: cloQuestions.length ? (right * 10) / cloQuestions.length : 0,
           };
         });
         const html = `<div class="preview-result"><div class="result-score"><small>Điểm bài thử</small><b>${questions.length ? ((correct * 10) / questions.length).toFixed(2) : "0.00"}</b><span>${correct}/${questions.length} câu đúng</span></div><div class="clo-results">${byClo.map((x) => `<div><b>${escapeHtml(x.code)}</b><strong>${x.score.toFixed(2)}</strong><span>${x.correct}/${x.total} câu đúng</span></div>`).join("")}</div><p class="hint">Làm thử chỉ dùng frozen snapshot, không tạo lượt làm, không ghi điểm và không gọi AI.</p><div class="drawer-actions"><button id="v122PreviewRetry" class="primary">Làm lại</button></div></div>`;
