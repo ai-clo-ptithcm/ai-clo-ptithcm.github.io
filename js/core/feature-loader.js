@@ -122,7 +122,7 @@ async function ensureView(view){
    await loadScript(ASSESSMENT_SUBPAGES);
    await loadScript(ASSESSMENT_V121);
   }
-  await loadScript('js/exams/attempt-autosave.js');
+  await loadScript('js/exams/attempt-autosave.js?v=12.1.0');
   return;
  }
  if(view==='results'){
