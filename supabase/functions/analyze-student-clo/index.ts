@@ -1,6 +1,6 @@
 // Supabase Edge Function: analyze-student-clo
 // Secret required: GEMINI_API_KEY
-// V10.5.2: multi-model fallback + quota/timeout protection.
+// V12.1: aggregate only exams that count toward course CLO results.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "npm:@supabase/server@1";
 
@@ -342,7 +342,7 @@ function friendlyAiMessage(error: GeminiCallError) {
   }
 }
 
-console.info("analyze-student-clo V10.5.2 started");
+console.info("analyze-student-clo V12.1 started");
 
 export default {
   fetch: withSupabase(
@@ -404,7 +404,7 @@ export default {
             .select("id, code, description")
             .eq("subject_id", subjectId)
             .order("code"),
-          admin.from("exams").select("id").eq("subject_id", subjectId),
+          admin.from("exams").select("id").eq("subject_id", subjectId).eq("counts_toward_grade", true),
         ]);
 
         if (subjectResult.error) throw subjectResult.error;
@@ -421,7 +421,7 @@ export default {
 
         const examIds = (exams ?? []).map((exam: any) => exam.id);
         if (!examIds.length) {
-          return jsonResponse({ error: "Học phần chưa có bài thi đã tạo." }, 409);
+          return jsonResponse({ error: "Học phần chưa có bài kiểm tra được tính vào kết quả CLO." }, 409);
         }
 
         const { data: attempts, error: attemptsError } = await admin
@@ -435,7 +435,7 @@ export default {
         if (attemptsError) throw attemptsError;
         if (!attempts?.length) {
           return jsonResponse(
-            { error: "Bạn chưa có bài làm đã nộp trong học phần này để Gemini nhận xét." },
+            { error: "Bạn chưa có bài làm đã nộp được tính vào kết quả CLO để Gemini nhận xét." },
             409,
           );
         }
