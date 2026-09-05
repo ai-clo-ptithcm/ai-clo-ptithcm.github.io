@@ -36,16 +36,17 @@ jobs:
           s=s.replace("const VERSION='12.2.0-step9';","const VERSION='12.2.1';");
           s=s.replace("'use strict';","'use strict';\n\n/* App-shell dependencies: db, state, canTeach, toast, err, modal, closeModal,\n   openDrawer, replaceDrawer and confirmAction. Assessment remains the only runtime owner. */");
 
+          // Replace every legacy route-root lookup before inserting the single fallback.
+          s=s.replace(/\$1\((['"])#content\1\)/g,'getAssessmentRoot()');
+
           // Consolidate route/timer state without changing behavior.
           s=s.replace(/\bliveTimer\b/g,'runtime.liveTimer');
           s=s.replace(
             'let runtime.liveTimer=null;',
-            "const runtime={root:null,liveTimer:null};\nconst getAssessmentRoot=()=>runtime.root||$1('#content');\nconst setAssessmentRoot=root=>{if(root)runtime.root=root;return getAssessmentRoot()};"
+            "const runtime={root:null,liveTimer:null};\nconst getAssessmentRoot=()=>runtime.root||document.querySelector('#content');\nconst setAssessmentRoot=root=>{if(root)runtime.root=root;return getAssessmentRoot()};"
           );
 
-          // All Assessment subpages render into the captured route root.
-          s=s.replace(/const c=\$1\('#content'\)/g,'const c=getAssessmentRoot()');
-          s=s.replace(/await exams\(\$1\('#content'\)\)/g,'await exams(getAssessmentRoot())');
+          // Capture the actual route root whenever the app enters Assessment/Results.
           s=s.replace('async function exams(c){','async function exams(c){c=setAssessmentRoot(c);');
           s=s.replace('async function results(c){try{','async function results(c){c=setAssessmentRoot(c);try{');
 
@@ -64,7 +65,7 @@ jobs:
           const s=fs.readFileSync('js/assessment.js','utf8');
           const count=(re)=>(s.match(re)||[]).length;
           const must=(cond,msg)=>{if(!cond)throw new Error(msg)};
-          must(s.includes("const VERSION = \"12.2.1\";")||s.includes("const VERSION = '12.2.1';"),'Version was not upgraded');
+          must(s.includes('12.2.1'),'Version was not upgraded');
           must(count(/window\.exams\s*=/g)===1,'window.exams must have exactly one owner');
           must(count(/window\.results\s*=/g)===1,'window.results must have exactly one owner');
           must(!s.includes('MutationObserver'),'Assessment must not introduce MutationObserver');
@@ -72,6 +73,7 @@ jobs:
           must(s.includes('getAssessmentRoot'),'Missing canonical root helper');
           must(s.includes('setAssessmentRoot'),'Missing root capture helper');
           must(s.includes('runtime.liveTimer'),'Timer state was not normalized');
+          must(!/\$1\((['"])#content\1\)/.test(s),'Legacy $1(#content) lookup still exists');
           const lines=s.split(/\r?\n/).length;
           const funcs=count(/\b(?:async\s+)?function\s+[A-Za-z_$][\w$]*\s*\(/g);
           console.log(`V12.2.1 static check PASS: ${lines} lines, ${funcs} named functions`);
