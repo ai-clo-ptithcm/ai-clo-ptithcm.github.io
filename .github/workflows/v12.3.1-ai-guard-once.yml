@@ -1,0 +1,39 @@
+name: V12.3.1 AI Guard Once
+on:
+  push:
+    branches:
+      - v12.3.1-result-ai-review
+    paths:
+      - .github/workflows/v12.3.1-ai-guard-once.yml
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v12.3.1-result-ai-review
+      - name: Enforce allow_ai_feedback in Edge Function
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('supabase/functions/analyze-assessment/index.ts')
+          s=p.read_text()
+          old='admin.from("exams").select("id,title,score_policy,counts_toward_grade").eq("subject_id", subjectId)'
+          new='admin.from("exams").select("id,title,score_policy,counts_toward_grade,allow_ai_feedback").eq("subject_id", subjectId)'
+          assert old in s
+          s=s.replace(old,new,1)
+          old2='''      if (!data || !allExamIds.includes(data.exam_id)) return json({ success: false, error: "Không tìm thấy lượt làm đã nộp trong học phần." }, 404);\n      attempts = [data]; studentId = data.student_id;'''
+          new2='''      if (!data || !allExamIds.includes(data.exam_id)) return json({ success: false, error: "Không tìm thấy lượt làm đã nộp trong học phần." }, 404);\n      const attemptExam = allExams.find(x => x.id === data.exam_id);\n      if (attemptExam?.allow_ai_feedback === false) return json({ success: false, error: "Bài kiểm tra này không cho phép AI nhận xét." }, 403);\n      attempts = [data]; studentId = data.student_id;'''
+          assert old2 in s
+          s=s.replace(old2,new2,1)
+          p.write_text(s)
+          PY
+          grep -q 'attemptExam?.allow_ai_feedback === false' supabase/functions/analyze-assessment/index.ts
+          rm .github/workflows/v12.3.1-ai-guard-once.yml
+          git config user.name 'AI-CLO V12.3.1 Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix(ai): enforce per-exam attempt feedback permission'
+          git push origin HEAD:v12.3.1-result-ai-review
