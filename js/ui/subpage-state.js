@@ -3,7 +3,7 @@
    Module-specific draft stores remain the source of form data; this layer restores WHERE the user was. */
 (()=>{
 'use strict';
-const VERSION='11.8.3';
+const VERSION='11.8.4';
 const TTL=24*60*60*1000;
 let restoring=false,queued=false,observer=null,pendingStudentId='',navigationInstalled=false;
 const registry=new Map();
@@ -40,7 +40,7 @@ async function restore(reason='auto'){
  try{ok=!!(await spec.restore(x));if(ok&&Number.isFinite(+x.scrollY)){const y=Math.max(0,+x.scrollY);requestAnimationFrame(()=>requestAnimationFrame(()=>window.scrollTo({top:y,left:0,behavior:'auto'})))}}catch(e){console.warn(`AI-CLO subpage restore (${reason}/${x.kind})`,e)}finally{restoring=false}
  return ok
 }
-function liveChildWorkspace(){return !!document.querySelector('.ub-workspace,.assessment-detail-page,.academic-profile-page,.question-workspace')}
+function liveChildWorkspace(){return !!document.querySelector('.ub-workspace,.assessment-detail-page,.assessment-detail-v122,.assessment-final-builder-v122,.assessment-final-detail-v122,.academic-profile-page,.question-workspace,#sideDrawer:not(.hidden)')}
 function queueRestore(reason){
  if(queued||document.hidden)return;
  /* If the child page is still mounted, do not reopen it just because Chrome resumed the tab.
