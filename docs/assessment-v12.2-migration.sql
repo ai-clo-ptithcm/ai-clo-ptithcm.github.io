@@ -260,23 +260,64 @@ end;
 $$;
 grant execute on function public.start_exam_attempt(uuid) to authenticated;
 
--- Final-exam packages have one canonical source in V12.2.
-create or replace function public.force_secure_final_exam_source()
+-- Final-exam packages have one canonical source in V12.2 and one canonical list of
+-- variant codes. Existing legacy packages without metadata.variant_codes are repaired
+-- from variants[].code; only as a last legacy fallback do they receive 101–104.
+create or replace function public.normalize_final_exam_package()
 returns trigger
 language plpgsql
 security definer
 set search_path=public,pg_temp
 as $$
+declare
+  v_codes jsonb;
+  v_count integer;
+  v_distinct integer;
 begin
   new.source_scope:='secure_exam';
   new.metadata:=jsonb_set(coalesce(new.metadata,'{}'::jsonb),'{source_scope}','"secure_exam"'::jsonb,true);
+
+  v_codes:=new.metadata->'variant_codes';
+  if jsonb_typeof(v_codes)<>'array' or jsonb_array_length(v_codes)=0 then
+    if jsonb_typeof(new.variants)='array' and jsonb_array_length(new.variants)>0 then
+      select coalesce(jsonb_agg(to_jsonb(code) order by ord),'[]'::jsonb)
+      into v_codes
+      from (
+        select nullif(trim(x.value->>'code'),'') as code,x.ord
+        from jsonb_array_elements(new.variants) with ordinality x(value,ord)
+        where nullif(trim(x.value->>'code'),'') is not null
+      ) q;
+    end if;
+  end if;
+
+  -- Legacy repair only. New V12.2 UI always sends an explicit 1–20 code list.
+  if jsonb_typeof(v_codes)<>'array' or jsonb_array_length(v_codes)=0 then
+    v_codes:='["101","102","103","104"]'::jsonb;
+  end if;
+
+  select count(*),count(distinct trim(value))
+  into v_count,v_distinct
+  from jsonb_array_elements_text(v_codes) s(value)
+  where nullif(trim(value),'') is not null;
+
+  if v_count<1 or v_count>20 then
+    raise exception 'Số mã đề phải từ 1 đến 20';
+  end if;
+  if v_distinct<>v_count or v_count<>jsonb_array_length(v_codes) then
+    raise exception 'Danh sách mã đề không được rỗng hoặc trùng mã';
+  end if;
+
+  new.metadata:=jsonb_set(new.metadata,'{variant_codes}',v_codes,true);
+  new.metadata:=jsonb_set(new.metadata,'{variant_count}',to_jsonb(v_count),true);
   return new;
 end;
 $$;
+
 drop trigger if exists trg_force_secure_final_exam_source on public.final_exam_packages;
-create trigger trg_force_secure_final_exam_source
+drop trigger if exists trg_normalize_final_exam_package on public.final_exam_packages;
+create trigger trg_normalize_final_exam_package
 before insert or update on public.final_exam_packages
-for each row execute function public.force_secure_final_exam_source();
+for each row execute function public.normalize_final_exam_package();
 
 commit;
 
