@@ -23,15 +23,13 @@ jobs:
           node <<'NODE'
           const fs=require('fs');
           let a=fs.readFileSync('js/assessment/student-attempt.js','utf8');
-          const old='''      function showStudentQuestion(payload, answers, index, first = false) {\n        clearLiveTimer();\n        const x = qs[index];''';
-          const neu='''      function showStudentQuestion(payload, answers, index, first = false) {\n        clearLiveTimer();\n        const questions = payload.questions || [];\n        const x = questions[index];''';
-          if(!a.includes(old)) throw new Error('Student question anchor not found');
-          a=a.replace(old,neu);
-          a=a.replace(/\$\{index \+ 1\}\/\$\{qs\.length\}/g,'${index + 1}/${questions.length}');
-          a=a.replace(/\$\{qs\.map\(\(q, i\) =>/g,'${questions.map((q, i) =>');
+          const anchor='      function showStudentQuestion(payload, answers, index, first = false) {\n        clearLiveTimer();\n        const x = qs[index];';
+          const replacement='      function showStudentQuestion(payload, answers, index, first = false) {\n        clearLiveTimer();\n        const questions = payload.questions || [];\n        const x = questions[index];';
+          if(!a.includes(anchor)) throw new Error('Student question anchor not found');
+          a=a.replace(anchor,replacement);
+          a=a.replace('${index + 1}/${qs.length}','${index + 1}/${questions.length}');
+          a=a.replace('${qs.map((q, i) =>','${questions.map((q, i) =>');
           if(a.includes('const x = qs[index]')) throw new Error('qs[index] remains');
-          if(a.includes('${index + 1}/${qs.length}')) throw new Error('qs.length remains in question counter');
-          if(a.includes('${qs.map((q, i) =>')) throw new Error('qs.map remains in question jump');
           fs.writeFileSync('js/assessment/student-attempt.js',a);
 
           let o=fs.readFileSync('js/assessment.js','utf8');
@@ -66,6 +64,8 @@ jobs:
           const must=(x,m)=>{if(!x)throw new Error(m)};
           must(a.includes('const questions = payload.questions || [];'),'Attempt question collection not normalized');
           must(!a.includes('const x = qs[index]'),'Attempt still indexes DOM helper');
+          must(!a.includes('${index + 1}/${qs.length}'),'Attempt counter still uses DOM helper');
+          must(!a.includes('${qs.map((q, i) =>'),'Attempt jump still uses DOM helper');
           must(o.includes('const right = questions.filter('),'Teacher preview CLO not fixed');
           must(!o.includes('runtime.liveTimer'),'Owner still references live timer');
           must(o.includes('const runtime = { root: null };'),'Owner runtime not root-only');
