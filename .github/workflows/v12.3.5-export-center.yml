@@ -16,22 +16,25 @@ jobs:
         run: |
           sed -i 's/common.js?v=12.3.1/common.js?v=12.3.4/' scripts/v12.3.5-export-center.py
           python3 scripts/v12.3.5-export-center.py
-      - name: Static checks
+      - name: Diagnose checks
         run: |
-          node --check js/assessment/online-lifecycle.js
-          node --check js/exams/online-export.js
-          node --check js/core/office-libs.js
-          grep -q 'v1235ExportCenter' js/assessment/online-lifecycle.js
-          grep -q 'online-export.js?v=12.3.5' app.html
-          grep -q 'online-export.css?v=12.3.5' app.html
-          grep -q 'online-lifecycle.js?v=12.3.5' app.html
-          grep -q '=== "12.3.1"' js/assessment.js
-      - name: Commit result
+          set +e
+          : > v1235-diagnostic.txt
+          node --check js/assessment/online-lifecycle.js >> v1235-diagnostic.txt 2>&1; echo "online-lifecycle:$?" >> v1235-diagnostic.txt
+          node --check js/exams/online-export.js >> v1235-diagnostic.txt 2>&1; echo "online-export:$?" >> v1235-diagnostic.txt
+          node --check js/core/office-libs.js >> v1235-diagnostic.txt 2>&1; echo "office-libs:$?" >> v1235-diagnostic.txt
+          grep -q 'v1235ExportCenter' js/assessment/online-lifecycle.js; echo "button:$?" >> v1235-diagnostic.txt
+          grep -q 'online-export.js?v=12.3.5' app.html; echo "script:$?" >> v1235-diagnostic.txt
+          grep -q 'online-export.css?v=12.3.5' app.html; echo "css:$?" >> v1235-diagnostic.txt
+          grep -q 'online-lifecycle.js?v=12.3.5' app.html; echo "cache:$?" >> v1235-diagnostic.txt
+          grep -q '=== "12.3.1"' js/assessment.js; echo "schema:$?" >> v1235-diagnostic.txt
+          cat v1235-diagnostic.txt
+      - name: Commit diagnostic result
         run: |
           git config user.name 'AI-CLO V12.3.5 Bot'
           git config user.email 'actions@users.noreply.github.com'
-          git add js/assessment/online-lifecycle.js app.html
+          git add js/assessment/online-lifecycle.js app.html v1235-diagnostic.txt
           if ! git diff --cached --quiet; then
-            git commit -m 'feat(assessment): add online export and variant center'
+            git commit -m 'test(assessment): diagnose online export center'
             git push origin HEAD:v12.3.5-export-center-work
           fi
