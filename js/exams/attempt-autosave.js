@@ -1,4 +1,5 @@
-/* AI-CLO PTITHCM v10.3 — autosave/resume for student attempts. */
+/* AI-CLO PTITHCM V12.1 — autosave/resume for student attempts only.
+   Teacher preview stays owned by assessment.js and always uses the frozen exam_question_pool snapshot. */
 (() => {
 'use strict';
 const localKey=id=>`ai-clo:v103:attempt:${state.user?.id||'user'}:${id}`;
@@ -6,18 +7,11 @@ const saveLocal=(id,answers,deadline)=>{try{localStorage.setItem(localKey(id),JS
 const readLocal=id=>{try{return JSON.parse(localStorage.getItem(localKey(id))||'null')}catch{return null}};
 const clearLocal=id=>{try{localStorage.removeItem(localKey(id))}catch{}};
 
-// Giảng viên làm thử bài kiểm tra: giữ đáp án cục bộ khi rời trang.
-const teacherPreviewKey=id=>`ai-clo:v103:teacher-preview:${state.user?.id||'user'}:${id}`;
-const readTeacherPreview=id=>{try{return JSON.parse(localStorage.getItem(teacherPreviewKey(id))||'{}')}catch{return {}}};
-const saveTeacherPreview=(id,a)=>{try{localStorage.setItem(teacherPreviewKey(id),JSON.stringify(a))}catch{}};
-const clearTeacherPreview=id=>{try{localStorage.removeItem(teacherPreviewKey(id))}catch{}};
-previewTeacherExam=async function(exam){try{let links=await q('exam_questions','*',x=>x.eq('exam_id',exam.id).order('question_order'));if(!links.length)return toast('Bài chưa có câu hỏi',true);let ids=links.map(x=>x.question_id),[questions,clos]=await Promise.all([q('questions','*, question_options(*)',x=>x.in('id',ids)),q('clos','id,code',x=>contentFilter(x,exam.subject_id))]),ordered=links.map(l=>questions.find(q=>q.id===l.question_id)).filter(Boolean),answers=readTeacherPreview(exam.id);showTeacherPreviewQuestion(exam,ordered,clos,answers,0)}catch(ex){err(ex)}};
-const oldTeacherQuestion=showTeacherPreviewQuestion;
-showTeacherPreviewQuestion=function(exam,questions,clos,answers,index){oldTeacherQuestion(exam,questions,clos,answers,index);$$('input[name="previewAnswer"]').forEach(r=>{let old=r.onchange;r.onchange=()=>{old?.();saveTeacherPreview(exam.id,answers)}})};
-const oldTeacherResult=showTeacherPreviewResult;
-showTeacherPreviewResult=function(exam,questions,clos,answers){clearTeacherPreview(exam.id);return oldTeacherResult(exam,questions,clos,answers)};
+// V12.1: do not wrap previewTeacherExam/showTeacherPreviewQuestion/showTeacherPreviewResult.
+// assessment.js owns teacher preview with the current signature:
+// showTeacherPreviewQuestion(exam, questions, answers, index, navMode)
+// and reads from exam_question_pool, so the preview cannot drift when the live bank changes.
 
-const oldOpenStudentAttempt=openStudentAttempt;
 openStudentAttempt=async function(attemptId){
  try{
   let {data,error}=await db.rpc('get_exam_attempt_payload',{p_attempt_id:attemptId});
@@ -48,7 +42,6 @@ showStudentQuestion=function(payload,answers,index){
  if(payload.deadline_ms!=null){liveTimer=setInterval(()=>{let sec=Math.max(0,Math.ceil((payload.deadline_ms-Date.now())/1000)),box=$('#examTimer');if(box)box.textContent=timerText(sec);if(sec<=0){clearTimer();submitStudentAttempt(payload,answers,true)}},1000)}
 };
 
-const oldSubmit=submitStudentAttempt;
 submitStudentAttempt=async function(payload,answers,auto){
  clearTimer();let unanswered=(payload.questions||[]).filter(q=>!answers[q.id]).length;if(!auto&&unanswered&&!confirm(`Còn ${unanswered} câu chưa trả lời. Bạn vẫn muốn nộp bài?`))return;
  let btn=$('#liveSubmit');if(btn){btn.disabled=true;btn.textContent=auto?'Hết giờ — đang nộp…':'Đang nộp…'}
