@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.4.0 — Student Attempt module. */
+/* AI-CLO PTITHCM V12.4.2 — Student Attempt module. */
 (() => {
   "use strict";
   window.AICLO_ASSESSMENT_MODULES = window.AICLO_ASSESSMENT_MODULES || {};
@@ -34,6 +34,20 @@
       try {
         localStorage.removeItem(attemptLocalKey(id));
       } catch {}
+    }
+    function clampQuestionIndex(value, length) {
+      if (!length) return 0;
+      const parsed = Number(value);
+      const index = Number.isFinite(parsed) ? Math.floor(parsed) : 0;
+      return Math.min(length - 1, Math.max(0, index));
+    }
+    function saveAttemptWorkspace(payload, answers, currentQuestionIndex) {
+      saveAttemptLocal(payload.attempt_id, {
+        answers,
+        pending: payload._pending || {},
+        deadline: payload._deadlineMs,
+        currentQuestionIndex,
+      });
     }
     function clearLiveTimer() {
       if (liveTimer) {
@@ -186,12 +200,13 @@
               ? Math.min(serverDeadline, local.deadline)
               : serverDeadline;
         data._pending = pending;
-        saveAttemptLocal(attemptId, {
-          answers,
-          pending,
-          deadline: data._deadlineMs,
-        });
-        showStudentQuestion(data, answers, 0, true);
+        const currentQuestionIndex = clampQuestionIndex(
+          local.currentQuestionIndex,
+          (data.questions || []).length,
+        );
+        data._currentQuestionIndex = currentQuestionIndex;
+        saveAttemptWorkspace(data, answers, currentQuestionIndex);
+        showStudentQuestion(data, answers, currentQuestionIndex, true);
       } catch (e) {
         showError(e);
       }
@@ -199,8 +214,11 @@
     function showStudentQuestion(payload, answers, index, first = false) {
       clearLiveTimer();
       const questions = payload.questions || [];
+      index = clampQuestionIndex(index, questions.length);
       const x = questions[index];
       if (!x) return notify("Không đọc được câu hỏi của bài kiểm tra.", true);
+      payload._currentQuestionIndex = index;
+      saveAttemptWorkspace(payload, answers, index);
       const current =
         payload._deadlineMs == null
           ? null
@@ -218,11 +236,7 @@
               answers[x.id] = r.value;
               payload._pending = payload._pending || {};
               payload._pending[x.id] = r.value;
-              saveAttemptLocal(payload.attempt_id, {
-                answers,
-                pending: payload._pending,
-                deadline: payload._deadlineMs,
-              });
+              saveAttemptWorkspace(payload, answers, index);
               qsa(".live-options label", page).forEach((l) =>
                 l.classList.toggle("selected", l.contains(r)),
               );
@@ -241,11 +255,7 @@
                 console.warn("V12.2 autosave", rr.error);
               } else {
                 delete payload._pending[x.id];
-                saveAttemptLocal(payload.attempt_id, {
-                  answers,
-                  pending: payload._pending,
-                  deadline: payload._deadlineMs,
-                });
+                saveAttemptWorkspace(payload, answers, index);
                 if (s) s.textContent = "✓ Đã lưu";
               }
             }),
