@@ -1,7 +1,9 @@
-/* AI-CLO PTITHCM V12.4.12 — application layout + shared sizing. */
-/* Header/sidebar chrome and responsive behavior are owned by css/ui/shell.css. */
+/* AI-CLO PTITHCM V12.4.16 — application layout + shared sizing. */
+/* Header/sidebar/footer chrome and responsive behavior are owned by css/ui/shell.css. */
 html,body{width:100%;max-width:100%;overflow-x:hidden}
 .app,.app>main,.content,.app header{width:100%;max-width:100%;min-width:0}
+.app>main{display:flex;min-height:100vh;flex-direction:column}
+.app .content{width:100%;flex:1}
 .table-wrap{max-width:100%}
 button:disabled{opacity:.5;cursor:not-allowed}
 .class-stats{grid-template-columns:repeat(3,1fr)}
@@ -26,4 +28,4 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .v95-question-tools{grid-template-columns:minmax(210px,1.4fr) repeat(5,minmax(135px,.8fr))}.question-clo{margin-top:7px}.question-analysis{display:grid;grid-template-columns:1fr 1fr;gap:14px}.analysis-number{padding:16px;border:1px solid var(--line);border-radius:10px}.analysis-number small{display:block;color:var(--muted)}.analysis-number b{display:block;font-size:28px;margin-top:5px}.question-analysis h4,.question-analysis .hint,.choice-stat{grid-column:1/-1}.choice-stat{display:grid;grid-template-columns:25px 1fr 30px;align-items:center;gap:9px}.choice-stat .bar i{display:block;height:100%;background:var(--red);border-radius:9px}.forgot-admin{padding:25px;text-align:center}.forgot-admin h3{margin:10px 0}.forgot-admin>p{line-height:1.6;color:var(--muted)}.forgot-icon{width:46px;height:46px;margin:auto;border-radius:50%;display:grid;place-items:center;background:#fff0f2;color:var(--red);font-size:23px;font-weight:900}.support-email{margin:18px auto;padding:14px;border:1px solid var(--line);border-radius:10px;display:grid;gap:5px;background:#f8fafc}.support-email small{color:var(--muted)}.forgot-admin .form-actions{display:flex;justify-content:center}.last-login-cell{white-space:nowrap}.message-student{color:var(--red)!important}
 @media(max-width:1180px){.course-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.v95-question-tools{grid-template-columns:repeat(3,minmax(150px,1fr))}}
 @media(max-width:900px){.content{overflow-x:hidden}.course-grid{grid-template-columns:1fr 1fr}.v95-question-tools{grid-template-columns:1fr 1fr}}
-@media(max-width:620px){.course-grid{grid-template-columns:1fr}.course-card{min-height:175px}.v95-question-tools{grid-template-columns:1fr}.question-table table,.question-table tbody,.question-table tr,.question-table td{display:block}.question-table thead{display:none}.question-table tr{padding:14px;border-bottom:1px solid var(--line)}.question-table td{padding:5px 0;border:0}.question-table .row-actions{padding-top:10px}.question-analysis{grid-template-columns:1fr}.site-footer nav{flex-wrap:wrap}}
+@media(max-width:620px){.course-grid{grid-template-columns:1fr}.course-card{min-height:175px}.v95-question-tools{grid-template-columns:1fr}.question-table table,.question-table tbody,.question-table tr,.question-table td{display:block}.question-table thead{display:none}.question-table tr{padding:14px;border-bottom:1px solid var(--line)}.question-table td{padding:5px 0;border:0}.question-table .row-actions{padding-top:10px}.question-analysis{grid-template-columns:1fr}}
