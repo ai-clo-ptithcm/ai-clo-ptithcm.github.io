@@ -11,1084 +11,600 @@
     if (!db || !ask || !notify || !showError || !getAssessmentRoot || !exams || !openExamBuilder || !studentResultHtml || !statusMeta || !modeLabel || !structureLabel || !escapeHtml || !formatDateTime || !qs || !qsa || !shuffle || !isAdmin) {
       throw new Error("Assessment Online Lifecycle dependencies are incomplete");
     }
-
-    function onlineTable(items, counts) {
-      return `<div class="toolbar"><span class="hint">Mỗi bài có một trang Chi tiết duy nhất.</span><button id="v122CreateExam" class="primary">+ Tạo bài kiểm tra</button></div><div class="panel table-wrap"><table class="assessment-table"><thead><tr><th>Bài kiểm tra</th><th>Cấu trúc</th><th>Chế độ câu</th><th>Thời gian</th><th>Bài làm</th><th>Trạng thái</th><th></th></tr></thead><tbody>${
-        items
-          .map((x) => {
-            const s = statusMeta(x);
-            const n = counts.get(x.id) || { all: 0, submitted: 0 };
-            return `<tr><td><button type="button" class="exam-title-link" data-v122-detail="${x.id}"><b>${escapeHtml(x.title || "Bài kiểm tra")}</b></button><br><small>${escapeHtml(x.description || "")}</small></td><td><b>${Number(x.total_questions || 0)}</b> câu<br><small>${escapeHtml(structureLabel(x.structure_mode))}</small></td><td><span class="badge">${escapeHtml(modeLabel(x.question_mode))}</span></td><td>${x.duration_minutes || "—"} phút<br><small>${x.opens_at ? formatDateTime(x.opens_at) : "Khi phát hành"} → ${x.closes_at ? formatDateTime(x.closes_at) : "Không giới hạn"}</small></td><td><b>${n.submitted}</b> đã nộp<br><small>${n.all} lượt</small></td><td><span class="badge ${s.className}">${s.label}</span></td><td><button type="button" class="primary" data-v122-detail="${x.id}">Chi tiết →</button></td></tr>`;
-          })
-          .join("") ||
-        '<tr><td colspan="7" class="empty">Chưa có bài kiểm tra.</td></tr>'
-      }</tbody></table></div>`;
-    }
-
-    function bindOnlineList(root, items) {
-      qsa("[data-v122-detail]", root).forEach(
-        (b) =>
-          (b.onclick = () => {
-            const x = items.find((v) => v.id === b.dataset.v122Detail);
-            if (x) openExamDetail(x);
-          }),
-      );
-      const add = qs("#v122CreateExam", root);
-      if (add) add.onclick = () => openExamBuilder(null);
-    }
-
-    async function setStatus(exam, next) {
-      const label =
-        next === "active"
-          ? exam.status === "closed"
-            ? "Mở lại"
-            : "Phát hành"
-          : "Tạm dừng";
-      const message =
-        next === "closed"
-          ? "Sinh viên sẽ không thể bắt đầu lượt mới. Lượt đang làm vẫn được phép tiếp tục."
-          : next === "active"
-            ? "Bài sẽ cho phép sinh viên bắt đầu lượt mới theo thời gian mở/đóng đã cấu hình."
-            : "";
-      if (!(await ask(label, message, label))) return false;
-      const payload = { status: next };
-      if (next === "active" && !exam.published_at)
-        payload.published_at = new Date().toISOString();
-      const { data, error } = await db
-        .from("exams")
-        .update(payload)
-        .eq("id", exam.id)
-        .select("*")
-        .single();
-      if (error) throw error;
-      if (!data || data.status !== next)
-        throw new Error(`Supabase chưa đổi trạng thái sang ${next}`);
-      Object.assign(exam, data);
-      notify(
-        label === "Tạm dừng"
-          ? "Đã tạm dừng bài kiểm tra"
-          : label === "Mở lại"
-            ? "Đã mở lại bài kiểm tra"
-            : "Đã phát hành bài kiểm tra",
-      );
-      return true;
-    }
-
-    async function deleteExam(exam) {
-      const { count, error } = await db
-        .from("exam_attempts")
-        .select("id", { count: "exact", head: true })
-        .eq("exam_id", exam.id);
-      if (error) throw error;
-
-      if (!isAdmin() && count > 0)
-        return notify("Bài đã có lượt làm. Chỉ Admin mới có thể xóa toàn bộ bài và dữ liệu lượt làm.", true);
-
-      const adminCascade = isAdmin() && count > 0;
-      const message = adminCascade
-        ? `Bài “${exam.title || "Bài kiểm tra"}” có ${count} lượt làm. Xóa bài sẽ xóa toàn bộ lượt làm, điểm, câu trả lời và dữ liệu liên quan. Thao tác này không thể hoàn tác.`
-        : `Xóa “${exam.title || "Bài kiểm tra"}”? Thao tác này không thể hoàn tác.`;
-      if (!(await ask("Xóa bài kiểm tra", message, "Xóa"))) return;
-
-      if (isAdmin()) {
-        const r = await db.rpc("admin_delete_exam", { p_exam_id: exam.id });
-        if (r.error) throw r.error;
-      } else {
-        const r = await db.from("exams").delete().eq("id", exam.id);
-        if (r.error) throw r.error;
-      }
-      notify("Đã xóa bài kiểm tra");
-      window.AICLO_SUBPAGE_STATE?.clear?.();
-      await exams(getAssessmentRoot());
-    }
-
-    function detailActions(exam) {
-      let html = "";
-      if (exam.status === "draft")
-        html = `<button id="v122Edit" class="secondary">Chỉnh sửa</button><button id="v122Publish" class="primary">Phát hành</button>`;
-      else if (exam.status === "closed")
-        html = `<button id="v122Edit" class="secondary">Chỉnh sửa</button><button id="v122Reopen" class="primary">Mở lại</button>`;
-      else
-        html = `<button id="v122Edit" class="secondary">Chỉnh sửa</button><button id="v122Pause" class="secondary">Tạm dừng</button>`;
-
-      if (exam.status === "draft" || isAdmin())
-        html += `<button id="v122Delete" class="danger">Xóa bài</button>`;
-      return html;
-    }
-
-    async function loadExamAttempts(examId) {
-      const { data, error } = await db
-        .from("exam_attempts")
-        .select(
-          "id,exam_id,student_id,attempt_number,started_at,submitted_at,score,profiles:student_id(id,full_name,mssv,email)",
-        )
-        .eq("exam_id", examId)
-        .order("started_at", { ascending: false });
-      if (error) throw error;
-      return data || [];
-    }
-
-    function attemptStudentName(a) {
-      return a.profiles?.full_name || a.profiles?.email || "Sinh viên";
-    }
-
-    function attemptSort(rows, mode) {
-      const out = [...rows];
-      if (mode === "name")
-        out.sort((a, b) =>
-          attemptStudentName(a).localeCompare(attemptStudentName(b), "vi"),
-        );
-      else if (mode === "score")
-        out.sort(
-          (a, b) =>
-            (b.score == null ? -Infinity : +b.score) -
-            (a.score == null ? -Infinity : +a.score),
-        );
-      else
-        out.sort(
-          (a, b) =>
-            new Date(b.submitted_at || b.started_at || 0) -
-            new Date(a.submitted_at || a.started_at || 0),
-        );
-      return out;
-    }
-
-    async function loadAttemptCloBundle(exam, attempts) {
-      const { data: clos, error: ce } = await db
-        .from("clos")
-        .select("id,code,description")
-        .eq("subject_id", exam.subject_id)
-        .order("code");
-      if (ce) throw ce;
-      const ids = attempts.map((x) => x.id);
-      if (!ids.length) return { clos: clos || [], attempts };
-      const [qr, ar] = await Promise.all([
-        db
-          .from("attempt_questions")
-          .select("attempt_id,question_id,clo_code")
-          .in("attempt_id", ids),
-        db
-          .from("student_answers")
-          .select("attempt_id,question_id,is_correct")
-          .in("attempt_id", ids),
-      ]);
-      if (qr.error) throw qr.error;
-      if (ar.error) throw ar.error;
-      const answerMap = new Map(
-        (ar.data || []).map((a) => [`${a.attempt_id}|${a.question_id}`, a]),
-      );
-      const metricMap = new Map(ids.map((id) => [id, {}]));
-      for (const q of qr.data || []) {
-        if (!q.clo_code) continue;
-        const m = metricMap.get(q.attempt_id) || {};
-        const c = m[q.clo_code] || { correct: 0, total: 0, score: null };
-        c.total++;
-        if (
-          answerMap.get(`${q.attempt_id}|${q.question_id}`)?.is_correct === true
-        )
-          c.correct++;
-        c.score = c.total ? (c.correct * 10) / c.total : null;
-        m[q.clo_code] = c;
-        metricMap.set(q.attempt_id, m);
-      }
-      return {
-        clos: clos || [],
-        attempts: attempts.map((a) => ({
-          ...a,
-          _clo: metricMap.get(a.id) || {},
-        })),
-      };
-    }
-
-    function cloScore(a, code) {
-      const x = a?._clo?.[code];
-      return a?.submitted_at && x?.total ? Number(x.score) : null;
-    }
-
-    function attemptTableHtml(rows, clos, mode = "date") {
-      const sorted = attemptSort(rows, mode);
-      const cloHeads = (clos || [])
-        .map((c) => `<th>${escapeHtml(c.code)}</th>`)
-        .join("");
-      const colspan = 7 + (clos || []).length;
-      const admin = isAdmin();
-      return `<div class="toolbar assessment-attempt-toolbar"><span class="hint">${rows.length} lượt làm · ${rows.filter((x) => x.submitted_at).length} đã nộp${admin ? " · Admin có thể xóa lượt làm" : ""}</span><div class="assessment-attempt-tools"><label class="field compact-field">Sắp xếp<select id="v122AttemptSort"><option value="date" ${mode === "date" ? "selected" : ""}>Mới nhất</option><option value="name" ${mode === "name" ? "selected" : ""}>Tên sinh viên</option><option value="score" ${mode === "score" ? "selected" : ""}>Điểm cao</option></select></label><details class="assessment-export-dropdown"><summary class="secondary">Tải kết quả Excel ▾</summary><div class="assessment-export-menu"><button type="button" data-v1234-export="highest">Điểm cao nhất</button><button type="button" data-v1234-export="all">Tất cả lần làm</button><button type="button" data-v1234-export="average">Điểm trung bình</button></div></details></div></div><div class="table-wrap"><table class="assessment-attempt-table"><thead><tr><th>STT</th><th>Sinh viên</th><th>Lần</th><th>Thời gian</th><th>Điểm tổng</th>${cloHeads}<th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>${sorted
-        .map(
-          (a, i) =>
-            `<tr><td>${i + 1}</td><td><b>${escapeHtml(attemptStudentName(a))}</b><br><small>${escapeHtml(a.profiles?.mssv || a.profiles?.email || "")}</small></td><td>${a.attempt_number || 1}</td><td class="attempt-time-cell"><small><b>Bắt đầu:</b> ${formatDateTime(a.started_at)}</small><small><b>Nộp:</b> ${a.submitted_at ? formatDateTime(a.submitted_at) : "—"}</small></td><td>${a.submitted_at && a.score != null ? `<b>${Number(a.score).toFixed(2)}</b>` : "—"}</td>${(clos || [])
-              .map((c) => {
-                const v = cloScore(a, c.code);
-                return `<td>${v == null ? "—" : `<b class="${v < 4 ? "score-below" : ""}">${v.toFixed(2)}</b>`}</td>`;
-              })
-              .join("")}<td><span class="badge ${a.submitted_at ? "green" : ""}">${a.submitted_at ? "Đã nộp" : "Đang làm"}</span></td><td class="row-actions">${a.submitted_at ? `<button type="button" class="secondary compact" data-v122-view-attempt="${a.id}">Xem bài</button>` : '<button type="button" class="secondary compact" disabled>Đang làm</button>'}${admin ? `<button type="button" class="danger compact" data-v122-delete-attempt="${a.id}">Xóa lượt</button>` : ""}</td></tr>`,
-        )
-        .join("") || `<tr><td colspan="${colspan}" class="empty">Chưa có lượt làm.</td></tr>`}</tbody></table></div>`;
-    }
-
-    function exportRowsByMode(rows, clos, mode) {
-      const submitted = rows.filter((x) => x.submitted_at);
-      const groups = new Map();
-      for (const a of submitted) {
-        const g = groups.get(a.student_id) || [];
-        g.push(a);
-        groups.set(a.student_id, g);
-      }
-      if (mode === "all")
-        return submitted.map((a) => ({
-          ...a,
-          _exportAttempt: a.attempt_number || 1,
-        }));
-      if (mode === "highest")
-        return [...groups.values()]
-          .map(
-            (g) =>
-              [...g].sort(
-                (a, b) =>
-                  Number(b.score || 0) - Number(a.score || 0) ||
-                  new Date(b.submitted_at) - new Date(a.submitted_at),
-              )[0],
-          )
-          .map((a) => ({ ...a, _exportAttempt: a.attempt_number || 1 }));
-      return [...groups.values()].map((g) => {
-        const base = g[0];
-        const avg = (vals) =>
-          vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
-        const clone = {
-          ...base,
-          score: avg(g.map((x) => Number(x.score)).filter(Number.isFinite)),
-          started_at: null,
-          submitted_at: null,
-          _exportAttempt: `TB (${g.length})`,
-          _clo: {},
-        };
-        for (const c of clos || []) {
-          const vals = g.map((x) => cloScore(x, c.code)).filter((v) => v != null);
-          const v = avg(vals);
-          clone._clo[c.code] =
-            v == null ? { total: 0, score: null } : { total: 1, score: v };
-        }
-        return clone;
-      });
-    }
-
-    function scorePolicyVi(v) {
-      return (
-        {
-          highest: "Điểm cao nhất",
-          latest: "Lần cuối",
-          average: "Trung bình các lần",
-        }[v] || "Điểm cao nhất"
-      );
-    }
-
-    function reportModeVi(v) {
-      return (
-        {
-          highest: "Điểm cao nhất",
-          all: "Tất cả lần làm",
-          average: "Điểm trung bình",
-        }[v] || v
-      );
-    }
-
-    async function exportAttemptExcel(exam, rows, clos, mode, trigger) {
-      const old = trigger?.textContent;
-      if (trigger) {
-        trigger.disabled = true;
-        trigger.textContent = "Đang tạo Excel…";
-      }
-      try {
-        const ExcelJS = await window.AICLO_OFFICE_LIBS?.exceljs?.();
-        if (!ExcelJS) throw new Error("Không tải được thư viện ExcelJS");
-        const { data: subject } = await db
-          .from("subjects")
-          .select("*")
-          .eq("id", exam.subject_id)
-          .maybeSingle();
-        const exportRows = exportRowsByMode(rows, clos, mode);
-        const wb = new ExcelJS.Workbook();
-        wb.creator = "AI-CLO PTITHCM";
-        wb.created = new Date();
-        const ws = wb.addWorksheet("Kết quả", {
-          pageSetup: {
-            paperSize: 9,
-            orientation: "landscape",
-            fitToPage: true,
-            fitToWidth: 1,
-            fitToHeight: 0,
-            margins: {
-              left: 0.25,
-              right: 0.25,
-              top: 0.45,
-              bottom: 0.45,
-              header: 0.2,
-              footer: 0.2,
-            },
-          },
-        });
-        const totalCols = 9 + (clos || []).length;
-        ws.mergeCells(1, 1, 1, totalCols);
-        const title = ws.getCell(1, 1);
-        title.value = "BÁO CÁO KẾT QUẢ BÀI KIỂM TRA";
-        title.font = { name: "Times New Roman", size: 14, bold: true };
-        title.alignment = { horizontal: "center", vertical: "middle" };
-        ws.getRow(1).height = 24;
-        const info = [
-          ["Tên học phần", subject?.name || subject?.title || "—"],
-          ["Mã học phần", subject?.code || subject?.subject_code || "—"],
-          ["Tên bài kiểm tra", exam.title || "—"],
-          ["Mô tả", exam.description || "—"],
-          [
-            "Loại bài / cấu trúc",
-            `Bài kiểm tra trực tuyến · ${structureLabel(exam.structure_mode)}`,
-          ],
-          ["Thời gian làm bài", `${exam.duration_minutes || "—"} phút`],
-          ["Số câu", Number(exam.total_questions || 0)],
-          ["Số lần làm", Number(exam.max_attempts || 1)],
-          ["Chính sách tính điểm", scorePolicyVi(exam.score_policy)],
-          ["Chế độ báo cáo", reportModeVi(mode)],
-          [
-            "Thời gian mở",
-            exam.opens_at ? formatDateTime(exam.opens_at) : "Khi phát hành",
-          ],
-          [
-            "Thời gian đóng",
-            exam.closes_at ? formatDateTime(exam.closes_at) : "Không giới hạn",
-          ],
-          [
-            "Số sinh viên đã làm",
-            new Set(
-              rows.filter((x) => x.submitted_at).map((x) => x.student_id),
-            ).size,
-          ],
-          ["Ngày xuất báo cáo", formatDateTime(new Date().toISOString())],
-        ];
-        let r = 3;
-        for (const [label, value] of info) {
-          ws.getCell(r, 1).value = label;
-          ws.getCell(r, 1).font = {
-            name: "Times New Roman",
-            size: 12,
-            bold: true,
-          };
-          ws.mergeCells(r, 2, r, totalCols);
-          ws.getCell(r, 2).value = value;
-          r++;
-        }
-        const tableStart = r + 1;
-        const headers = [
-          "STT",
-          "Mã SV",
-          "Họ tên",
-          "Lần",
-          "Bắt đầu",
-          "Nộp",
-          "Điểm tổng",
-          ...(clos || []).map((c) => c.code),
-          "Trạng thái",
-        ];
-        const body = exportRows.map((a, i) => [
-          i + 1,
-          a.profiles?.mssv || "",
-          attemptStudentName(a),
-          a._exportAttempt || a.attempt_number || 1,
-          a.started_at ? formatDateTime(a.started_at) : "—",
-          a.submitted_at ? formatDateTime(a.submitted_at) : "—",
-          a.score == null ? null : Number(a.score),
-          ...(clos || []).map((c) => cloScore(a, c.code)),
-          mode === "average" ? "Trung bình" : "Đã nộp",
-        ]);
-        ws.addTable({
-          name: "BangKetQua",
-          ref: `A${tableStart}`,
-          headerRow: true,
-          totalsRow: false,
-          style: {
-            theme: "TableStyleMedium2",
-            showRowStripes: false,
-          },
-          columns: headers.map((name) => ({ name })),
-          rows: body,
-        });
-        const tableEnd = tableStart + body.length;
-        for (let rr = tableStart; rr <= tableEnd; rr++)
-          for (let cc = 1; cc <= headers.length; cc++) {
-            const cell = ws.getCell(rr, cc);
-            cell.font = {
-              name: "Times New Roman",
-              size: 12,
-              bold: rr === tableStart,
-            };
-            cell.alignment = {
-              vertical: "middle",
-              horizontal: [
-                1,
-                4,
-                7,
-                ...Array.from({ length: (clos || []).length }, (_, i) => 8 + i),
-              ].includes(cc)
-                ? "center"
-                : "left",
-              wrapText: true,
-            };
-            cell.border = {
-              top: { style: "thin" },
-              left: { style: "thin" },
-              bottom: { style: "thin" },
-              right: { style: "thin" },
-            };
-          }
-        const scoreCols = [
-          7,
-          ...(clos || []).map((_, i) => 8 + i),
-        ];
-        for (let rr = tableStart + 1; rr <= tableEnd; rr++)
-          for (const cc of scoreCols) {
-            const cell = ws.getCell(rr, cc);
-            if (typeof cell.value === "number") {
-              cell.numFmt = "0.00";
-              if (cell.value < 4)
-                cell.fill = {
-                  type: "pattern",
-                  pattern: "solid",
-                  fgColor: { argb: "FFF4CCCC" },
+      function onlineTable(items, counts) {
+        return `<div class="toolbar"><span class="hint">Mỗi bài có một trang Chi tiết duy nhất.</span><button id="v122CreateExam" class="primary">+ Tạo bài kiểm tra</button></div><div class="panel table-wrap"><table class="assessment-table"><thead><tr><th>Bài kiểm tra</th><th>Cấu trúc</th><th>Chế độ câu</th><th>Thời gian</th><th>Bài làm</th><th>Trạng thái</th><th></th></tr></thead><tbody>${
+          items
+            .map((x) => {
+              const s = statusMeta(x),
+                n = counts.get(x.id) || {
+                  all: 0,
+                  submitted: 0,
                 };
-            }
-          }
-        let sr = tableEnd + 3;
-        ws.mergeCells(sr, 1, sr, totalCols);
-        ws.getCell(sr, 1).value = "TỔNG HỢP";
-        ws.getCell(sr, 1).font = {
-          name: "Times New Roman",
-          size: 12,
-          bold: true,
-        };
-        sr++;
-        const scores = exportRows
-          .map((x) => Number(x.score))
-          .filter(Number.isFinite);
-        const summary = [
-          [
-            "Điểm trung bình",
-            scores.length
-              ? scores.reduce((a, b) => a + b, 0) / scores.length
-              : null,
-          ],
-          ["Điểm cao nhất", scores.length ? Math.max(...scores) : null],
-          ["Điểm thấp nhất", scores.length ? Math.min(...scores) : null],
-          ["Số điểm tổng dưới 4", scores.filter((x) => x < 4).length],
-        ];
-        for (const c of clos || []) {
-          const vals = exportRows
-            .map((x) => cloScore(x, c.code))
-            .filter((v) => v != null);
-          summary.push(
-            [
-              `Trung bình ${c.code}`,
-              vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null,
-            ],
-            [`Số SV/lượt ${c.code} dưới 4`, vals.filter((x) => x < 4).length],
-            [
-              `Tỷ lệ đạt ${c.code} (≥4)`,
-              vals.length
-                ? vals.filter((x) => x >= 4).length / vals.length
-                : null,
-            ],
-          );
-        }
-        for (const [label, value] of summary) {
-          ws.getCell(sr, 1).value = label;
-          ws.getCell(sr, 1).font = {
-            name: "Times New Roman",
-            size: 12,
-            bold: true,
-          };
-          ws.getCell(sr, 2).value = value;
-          ws.getCell(sr, 2).font = { name: "Times New Roman", size: 12 };
-          if (typeof value === "number")
-            ws.getCell(sr, 2).numFmt = label.startsWith("Tỷ lệ")
-              ? "0.00%"
-              : "0.00";
-          sr++;
-        }
-        ws.views = [{ state: "frozen", ySplit: tableStart }];
-        ws.columns.forEach((col, i) => {
-          col.width =
-            i === 2
-              ? 28
-              : i === 4 || i === 5
-                ? 19
-                : i === 1
-                  ? 15
-                  : i >= 7 && i < 7 + (clos || []).length
-                    ? 11
-                    : 13;
-        });
-        ws.eachRow((row) =>
-          row.eachCell((cell) => {
-            if (!cell.font?.name)
-              cell.font = { name: "Times New Roman", size: 12 };
-          }),
-        );
-        ws.headerFooter.oddFooter =
-          "&L AI-CLO PTITHCM&CTrang &P / &N&R" +
-          new Date().toLocaleDateString("vi-VN");
-        const buf = await wb.xlsx.writeBuffer();
-        const blob = new Blob([buf], {
-          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        });
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        const safe = String(exam.title || "bai-kiem-tra")
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .replace(/[^a-zA-Z0-9_-]+/g, "-")
-          .replace(/^-|-$/g, "");
-        a.download = `${safe || "bai-kiem-tra"}-${mode}.xlsx`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-        notify(`Đã tạo Excel: ${reportModeVi(mode)}`);
-      } catch (e) {
-        showError(e);
-      } finally {
-        if (trigger) {
-          trigger.disabled = false;
-          trigger.textContent = old;
-        }
+              return `<tr><td><button type="button" class="exam-title-link" data-v122-detail="${x.id}"><b>${escapeHtml(x.title || "Bài kiểm tra")}</b></button><br><small>${escapeHtml(x.description || "")}</small></td><td><b>${Number(x.total_questions || 0)}</b> câu<br><small>${escapeHtml(structureLabel(x.structure_mode))}</small></td><td><span class="badge">${escapeHtml(modeLabel(x.question_mode))}</span></td><td>${x.duration_minutes || "—"} phút<br><small>${x.opens_at ? formatDateTime(x.opens_at) : "Khi phát hành"} → ${x.closes_at ? formatDateTime(x.closes_at) : "Không giới hạn"}</small></td><td><b>${n.submitted}</b> đã nộp<br><small>${n.all} lượt</small></td><td><span class="badge ${s.className}">${s.label}</span></td><td><button type="button" class="primary" data-v122-detail="${x.id}">Chi tiết →</button></td></tr>`;
+            })
+            .join("") ||
+          '<tr><td colspan="7" class="empty">Chưa có bài kiểm tra.</td></tr>'
+        }</tbody></table></div>`;
       }
-    }
 
-    async function openExamDetail(examOrId) {
-      try {
-        let exam = typeof examOrId === "string" ? null : examOrId;
-        if (!exam) {
-          const { data, error } = await db
-            .from("exams")
-            .select("*")
-            .eq("id", examOrId)
-            .single();
-          if (error) throw error;
-          exam = data;
-        }
-        const rawAttempts = await loadExamAttempts(exam.id);
-        const bundle = await loadAttemptCloBundle(exam, rawAttempts);
-        const attempts = bundle.attempts;
-        const clos = bundle.clos;
-        const c = getAssessmentRoot();
-        if (!c) return;
-        const s = statusMeta(exam);
-        c.innerHTML = `<div class="assessment-detail-v122"><div class="subpage-head"><div><button id="v122Back" class="secondary compact">← Quay lại</button><small>BÀI KIỂM TRA TRỰC TUYẾN</small><h3>${escapeHtml(exam.title || "Bài kiểm tra")}</h3><p>${escapeHtml(exam.description || "")}</p></div><span class="badge ${s.className}">${s.label}</span></div><section class="panel"><div class="panel-head"><div><h3>Thông tin bài kiểm tra</h3><p class="hint">Một nguồn trạng thái duy nhất từ bảng exams.</p></div><div class="assessment-detail-actions"><button id="v122Preview" class="secondary">Làm thử</button><button id="v1235ExportCenter" class="secondary">Xuất đề / Tạo mã đề</button>${detailActions(exam)}</div></div><div class="detail-grid"><div><small>Số câu</small><b>${Number(exam.total_questions || 0)}</b></div><div><small>Thời gian</small><b>${exam.duration_minutes || "—"} phút</b></div><div><small>Số lần làm</small><b>${exam.max_attempts || 1}</b></div><div><small>Lượt đã tạo</small><b>${attempts.length}</b></div><div><small>Rút câu</small><b>${escapeHtml(modeLabel(exam.question_mode))}</b></div><div><small>Cấu trúc</small><b>${escapeHtml(structureLabel(exam.structure_mode))}</b></div></div></section><section class="panel"><div class="panel-head"><div><h3>Cấu trúc và bộ câu</h3><p class="hint">Làm thử đọc trực tiếp frozen snapshot; không tạo lượt làm và không ghi điểm.</p></div></div><div id="v122DesignSummary"></div></section><section class="panel"><div class="panel-head"><div><h3>Danh sách bài làm</h3><p class="hint">${isAdmin() ? "Admin có thể xem hoặc xóa từng lượt làm của sinh viên." : "Xem từng bài đã nộp của sinh viên."}</p></div></div><div id="v122AttemptList">${attemptTableHtml(attempts, clos)}</div></section></div>`;
-        qs("#v122Back")?.addEventListener("click", () => exams(c));
-        qs("#v122Preview")?.addEventListener("click", () =>
-          openTeacherPreview(exam),
-        );
-        qs("#v1235ExportCenter")?.addEventListener("click", () =>
-          openExportCenter(exam),
-        );
-        qs("#v122Edit")?.addEventListener("click", () => openExamBuilder(exam));
-        qs("#v122Publish")?.addEventListener("click", async () => {
-          try {
-            if (await setStatus(exam, "active")) await openExamDetail(exam);
-          } catch (e) {
-            showError(e);
-          }
-        });
-        qs("#v122Pause")?.addEventListener("click", async () => {
-          try {
-            if (await setStatus(exam, "closed")) await openExamDetail(exam);
-          } catch (e) {
-            showError(e);
-          }
-        });
-        qs("#v122Reopen")?.addEventListener("click", async () => {
-          try {
-            if (await setStatus(exam, "active")) await openExamDetail(exam);
-          } catch (e) {
-            showError(e);
-          }
-        });
-        qs("#v122Delete")?.addEventListener("click", async () => {
-          try {
-            await deleteExam(exam);
-          } catch (e) {
-            showError(e);
-          }
-        });
-        bindAttemptTable(exam, attempts, clos, "date");
-        await renderDesignSummary(exam);
-      } catch (e) {
-        showError(e);
-      }
-    }
-
-    function bindAttemptTable(exam, attempts, clos, mode) {
-      const box = qs("#v122AttemptList");
-      if (!box) return;
-      const sort = qs("#v122AttemptSort", box);
-      if (sort)
-        sort.onchange = () => {
-          box.innerHTML = attemptTableHtml(attempts, clos, sort.value);
-          bindAttemptTable(exam, attempts, clos, sort.value);
-        };
-      qsa("[data-v1234-export]", box).forEach((b) => {
-        b.onclick = () =>
-          exportAttemptExcel(exam, attempts, clos, b.dataset.v1234Export, b);
-      });
-      qsa("[data-v122-view-attempt]", box).forEach(
-        (b) =>
-          (b.onclick = () =>
-            openTeacherAttemptResult(exam, b.dataset.v122ViewAttempt)),
-      );
-      if (isAdmin())
-        qsa("[data-v122-delete-attempt]", box).forEach(
+      function bindOnlineList(root, items) {
+        qsa("[data-v122-detail]", root).forEach(
           (b) =>
-            (b.onclick = () =>
-              deleteAttempt(exam, b.dataset.v122DeleteAttempt)),
-        );
-    }
-
-    async function deleteAttempt(exam, attemptId) {
-      try {
-        if (!isAdmin())
-          return notify("Chỉ Admin được xóa lượt làm của sinh viên.", true);
-        if (
-          !(await ask(
-            "Xóa lượt làm",
-            "Xóa lượt làm này? Điểm, câu trả lời và dữ liệu liên quan của lượt sẽ bị xóa. Thao tác này không thể hoàn tác.",
-            "Xóa lượt",
-          ))
-        )
-          return;
-        const r = await db.rpc("admin_delete_attempt", {
-          p_attempt_id: attemptId,
-        });
-        if (r.error) throw r.error;
-        notify("Đã xóa lượt làm");
-        await openExamDetail(exam.id);
-      } catch (e) {
-        showError(e);
-      }
-    }
-
-    async function openTeacherAttemptResult(exam, attemptId) {
-      try {
-        const { data, error } = await db.rpc("get_attempt_result", {
-          p_attempt_id: attemptId,
-        });
-        if (error) throw error;
-        const html = studentResultHtml(data);
-        if (typeof openDrawer === "function")
-          openDrawer(`Bài làm · ${exam.title}`, html, null, {
-            wide: true,
-            eyebrow: "GIẢNG VIÊN XEM BÀI",
-          });
-        else notify(`Điểm: ${Number(data.score || 0).toFixed(2)}`);
-      } catch (e) {
-        showError(e);
-      }
-    }
-
-    function exportCodes(start, count) {
-      const raw = String(start || "101").trim() || "101";
-      const width = raw.length;
-      const n = Math.max(1, Math.min(20, Number(count) || 1));
-      if (!/^\d+$/.test(raw))
-        return Array.from({ length: n }, (_, i) =>
-          `${raw}${i ? `-${i + 1}` : ""}`,
-        );
-      const first = Number(raw);
-      return Array.from({ length: n }, (_, i) =>
-        String(first + i).padStart(width, "0"),
-      );
-    }
-
-    function parseExportCodes(value) {
-      return [
-        ...new Set(
-          String(value || "")
-            .split(/[\s,;]+/)
-            .map((x) => x.trim())
-            .filter(Boolean),
-        ),
-      ].slice(0, 20);
-    }
-
-    async function loadExportSnapshot(exam) {
-      const [subjectRes, chosenRes, poolRes] = await Promise.all([
-        db.from("subjects").select("*").eq("id", exam.subject_id).maybeSingle(),
-        db
-          .from("exam_questions")
-          .select("question_id,question_order")
-          .eq("exam_id", exam.id)
-          .order("question_order"),
-        db
-          .from("exam_question_pool")
-          .select(
-            "question_id,chapter_name,topic_name,clo_code,content,correct_answer,explanation,options",
-          )
-          .eq("exam_id", exam.id),
-      ]);
-      if (chosenRes.error) throw chosenRes.error;
-      if (poolRes.error) throw poolRes.error;
-      const chosen = chosenRes.data || [];
-      const pool = poolRes.data || [];
-      if (!chosen.length)
-        throw new Error("Bài kiểm tra chưa có frozen snapshot để xuất đề.");
-      const ids = chosen.map((x) => x.question_id).filter(Boolean);
-      let codes = new Map();
-      if (ids.length) {
-        const qr = await db
-          .from("questions")
-          .select("id,display_code")
-          .in("id", ids);
-        if (!qr.error)
-          codes = new Map(
-            (qr.data || []).map((x) => [x.id, x.display_code]),
-          );
-      }
-      const byId = new Map(pool.map((x) => [x.question_id, x]));
-      const questions = chosen
-        .map((x) => {
-          const q = byId.get(x.question_id);
-          if (!q) return null;
-          return {
-            ...q,
-            display_code: codes.get(x.question_id) || "",
-            question_order: x.question_order,
-          };
-        })
-        .filter(Boolean);
-      if (!questions.length)
-        throw new Error("Không đọc được nội dung frozen snapshot của bài kiểm tra.");
-      return {
-        exam,
-        subject: subjectRes.data || {},
-        questions,
-      };
-    }
-
-    async function openExportCenter(exam) {
-      try {
-        const api = window.AICLO_ONLINE_EXPORT;
-        if (!api) throw new Error("Chưa tải mô-đun Xuất đề.");
-        const snap = await loadExportSnapshot(exam);
-        const c = getAssessmentRoot();
-        if (!c) return;
-        const state = {
-          start: "101",
-          count: 4,
-          codes: exportCodes("101", 4),
-          shuffleQuestions: !!exam.shuffle_questions,
-          shuffleOptions: !!exam.shuffle_options,
-          printRows: 4,
-          previewCode: "101",
-        };
-        const render = () => {
-          const variants = api.buildVariants(snap.questions, state.codes, {
-            shuffleQuestions: state.shuffleQuestions,
-            shuffleOptions: state.shuffleOptions,
-          });
-          const current =
-            variants.find((v) => v.code === state.previewCode) || variants[0];
-          if (current) state.previewCode = current.code;
-          const subjectCode =
-            snap.subject?.code || snap.subject?.subject_code || "—";
-          c.innerHTML = `<div class="assessment-export-center"><div class="subpage-head"><div><button id="v1235ExportBack" class="secondary compact">← Quay lại</button><small>XUẤT ĐỀ / TẠO MÃ ĐỀ</small><h3>${escapeHtml(exam.title || "Bài kiểm tra")}</h3><p>Tạo các mã đề từ frozen snapshot hiện tại; không rút câu mới và không thay đổi bài kiểm tra trên hệ thống.</p></div><span class="badge">${variants.length} mã đề</span></div>
-            <div class="export-grid"><section class="panel export-controls"><div class="panel-head"><div><h3>Thiết lập xuất đề</h3><p class="hint">Mỗi mã đề là một phép hoán vị ổn định từ cùng bộ câu đã duyệt.</p></div></div>
-              <div class="export-code-row"><label class="field">Mã bắt đầu<input id="v1235CodeStart" value="${escapeHtml(state.start)}"></label><label class="field">Số mã đề<input id="v1235CodeCount" type="number" min="1" max="20" value="${state.count}"></label><div class="field"><span>Tạo mã</span><button id="v1235GenerateCodes" type="button" class="secondary">Tạo danh sách</button></div><label class="field wide">Danh sách mã đề<input id="v1235CodeList" value="${escapeHtml(state.codes.join(", "))}" placeholder="101, 102, 103, 104"></label></div>
-              <div class="export-options"><label><input id="v1235ShuffleQuestions" type="checkbox" ${state.shuffleQuestions ? "checked" : ""}> Trộn thứ tự câu</label><label><input id="v1235ShuffleOptions" type="checkbox" ${state.shuffleOptions ? "checked" : ""}> Trộn đáp án</label></div>
-              <label class="field">Bố cục bản in đáp án Excel<select id="v1235PrintRows"><option value="1" ${state.printRows === 1 ? "selected" : ""}>1 dòng/khối</option><option value="2" ${state.printRows === 2 ? "selected" : ""}>2 dòng/khối</option><option value="4" ${state.printRows === 4 ? "selected" : ""}>4 dòng/khối</option></select></label>
-              <div class="export-note">Excel luôn có sheet <b>Dap_an</b> theo cấu trúc dùng cho Chấm thi CLO. Tùy chọn 1/2/4 chỉ thay đổi sheet <b>Ban_in</b> để tiết kiệm giấy.</div>
-              <div><b>Mã đề</b><div class="export-code-list">${variants.map((v) => `<button type="button" class="export-code-chip ${v.code === state.previewCode ? "active" : ""}" data-v1235-code="${escapeHtml(v.code)}">${escapeHtml(v.code)}</button>`).join("")}</div></div>
-              <div class="export-actions"><button id="v1235DownloadTex" class="secondary" ${current ? "" : "disabled"}>Tải TeX mã đang xem</button><button id="v1235DownloadExcel" class="secondary" ${variants.length ? "" : "disabled"}>Tải Excel đáp án + CLO</button><button id="v1235DownloadZip" class="primary" ${variants.length ? "" : "disabled"}>Tải ZIP toàn bộ</button></div>
-            </section>
-            <section class="panel export-preview"><div class="panel-head"><div><h3>Xem trước mã đề ${escapeHtml(current?.code || "—")}</h3><p class="hint">${escapeHtml(snap.subject?.name || "Học phần")} · ${escapeHtml(subjectCode)}</p></div></div>${current ? `<div class="export-paper"><div class="export-paper-head"><b>BÀI KIỂM TRA</b><h3>${escapeHtml(exam.title || "")}</h3><div class="export-paper-meta"><span><b>Học phần:</b> ${escapeHtml(snap.subject?.name || "—")}</span><span><b>Mã HP:</b> ${escapeHtml(subjectCode)}</span><span><b>Mã đề:</b> ${escapeHtml(current.code)}</span><span><b>Thời gian:</b> ${escapeHtml(exam.duration_minutes || "—")} phút</span></div></div>${current.questions.map((q) => `<article class="export-question"><div class="export-question-head"><b>Câu ${q.number}.</b><span class="badge red">${escapeHtml(q.clo_code || "—")}</span>${q.display_code ? `<span class="badge">${escapeHtml(q.display_code)}</span>` : ""}<small>Đáp án: ${escapeHtml(q.correct_answer || "—")}</small></div><div class="detail-question">${escapeHtml(q.content || "")}</div><div class="export-question-options">${(q.options || []).map((o) => `<div><b>${escapeHtml(o.key)}.</b><span>${escapeHtml(o.content || "")}</span></div>`).join("")}</div></article>`).join("")}</div>` : '<div class="empty"><b>Chưa có mã đề</b><span>Tạo ít nhất một mã đề để xem trước.</span></div>'}</section></div></div>`;
-          qs("#v1235ExportBack", c)?.addEventListener("click", () =>
-            openExamDetail(exam),
-          );
-          qs("#v1235GenerateCodes", c)?.addEventListener("click", () => {
-            state.start = qs("#v1235CodeStart", c)?.value || "101";
-            state.count = Math.max(
-              1,
-              Math.min(20, Number(qs("#v1235CodeCount", c)?.value) || 1),
-            );
-            state.codes = exportCodes(state.start, state.count);
-            state.previewCode = state.codes[0] || "";
-            render();
-          });
-          qs("#v1235CodeList", c)?.addEventListener("change", (e) => {
-            const next = parseExportCodes(e.target.value);
-            if (!next.length) return notify("Cần ít nhất một mã đề.", true);
-            state.codes = next;
-            state.previewCode = next.includes(state.previewCode)
-              ? state.previewCode
-              : next[0];
-            render();
-          });
-          qs("#v1235ShuffleQuestions", c)?.addEventListener("change", (e) => {
-            state.shuffleQuestions = !!e.target.checked;
-            render();
-          });
-          qs("#v1235ShuffleOptions", c)?.addEventListener("change", (e) => {
-            state.shuffleOptions = !!e.target.checked;
-            render();
-          });
-          qs("#v1235PrintRows", c)?.addEventListener("change", (e) => {
-            state.printRows = Number(e.target.value) || 4;
-            render();
-          });
-          qsa("[data-v1235-code]", c).forEach(
-            (b) =>
-              (b.onclick = () => {
-                state.previewCode = b.dataset.v1235Code;
-                render();
-              }),
-          );
-          qs("#v1235DownloadTex", c)?.addEventListener("click", () => {
-            const v = api.buildVariants(snap.questions, [state.previewCode], {
-              shuffleQuestions: state.shuffleQuestions,
-              shuffleOptions: state.shuffleOptions,
-            })[0];
-            if (!v) return;
-            api.download(
-              `% !TeX encoding = UTF-8\n${api.texForVariant(snap, v)}`,
-              `${api.safe(exam.title)}-${api.safe(v.code)}.tex`,
-              "text/x-tex;charset=utf-8",
-            );
-          });
-          qs("#v1235DownloadExcel", c)?.addEventListener("click", async (e) => {
-            const btn = e.currentTarget;
-            const old = btn.textContent;
-            try {
-              btn.disabled = true;
-              btn.textContent = "Đang tạo Excel…";
-              const vs = api.buildVariants(snap.questions, state.codes, {
-                shuffleQuestions: state.shuffleQuestions,
-                shuffleOptions: state.shuffleOptions,
-              });
-              await api.downloadWorkbook(snap, vs, state.printRows);
-            } catch (err) {
-              showError(err);
-            } finally {
-              btn.disabled = false;
-              btn.textContent = old;
-            }
-          });
-          qs("#v1235DownloadZip", c)?.addEventListener("click", async (e) => {
-            const btn = e.currentTarget;
-            const old = btn.textContent;
-            try {
-              btn.disabled = true;
-              btn.textContent = "Đang tạo ZIP…";
-              const vs = api.buildVariants(snap.questions, state.codes, {
-                shuffleQuestions: state.shuffleQuestions,
-                shuffleOptions: state.shuffleOptions,
-              });
-              await api.downloadZip(snap, vs, state.printRows);
-            } catch (err) {
-              showError(err);
-            } finally {
-              btn.disabled = false;
-              btn.textContent = old;
-            }
-          });
-          if (typeof window.renderMath === "function")
-            requestAnimationFrame(() => window.renderMath(c));
-        };
-        render();
-      } catch (e) {
-        showError(e);
-      }
-    }
-
-    async function renderDesignSummary(exam) {
-      const box = qs("#v122DesignSummary");
-      if (!box) return;
-      const [{ data: pool, error }, { data: selected, error: se }] =
-        await Promise.all([
-          db
-            .from("exam_question_pool")
-            .select("question_id,chapter_name,topic_name,clo_code")
-            .eq("exam_id", exam.id),
-          db
-            .from("exam_questions")
-            .select("question_id,question_order")
-            .eq("exam_id", exam.id)
-            .order("question_order"),
-        ]);
-      if (error || se) {
-        box.innerHTML = '<p class="hint">Chưa đọc được snapshot bộ câu.</p>';
-        return;
-      }
-      const rows = pool || [];
-      const clo = {};
-      for (const r of rows)
-        clo[r.clo_code || "—"] = (clo[r.clo_code || "—"] || 0) + 1;
-      box.innerHTML = `<div class="detail-grid"><div><small>Pool đóng băng</small><b>${rows.length} câu</b></div><div><small>Bộ câu mẫu</small><b>${(selected || []).length} câu</b></div><div><small>CLO trong pool</small><b>${
-        Object.entries(clo)
-          .map(([k, v]) => `${escapeHtml(k)}: ${v}`)
-          .join(" · ") || "—"
-      }</b></div></div>`;
-    }
-
-    async function loadTeacherPreviewQuestions(exam) {
-      const [{ data: chosen, error: ce }, { data: pool, error: pe }] =
-        await Promise.all([
-          db
-            .from("exam_questions")
-            .select("question_id,question_order")
-            .eq("exam_id", exam.id)
-            .order("question_order"),
-          db
-            .from("exam_question_pool")
-            .select(
-              "question_id,chapter_name,topic_name,clo_code,content,correct_answer,explanation,options",
-            )
-            .eq("exam_id", exam.id),
-        ]);
-      if (ce) throw ce;
-      if (pe) throw pe;
-      const map = new Map((pool || []).map((x) => [x.question_id, x]));
-      let questions = (chosen || [])
-        .map((x) => map.get(x.question_id))
-        .filter(Boolean);
-      if (exam.shuffle_questions) questions = shuffle(questions);
-      if (exam.shuffle_options)
-        questions = questions.map((q) => ({
-          ...q,
-          options: shuffle(q.options || []),
-        }));
-      return questions;
-    }
-
-    async function openTeacherPreview(exam) {
-      try {
-        const questions = await loadTeacherPreviewQuestions(exam);
-        if (!questions.length)
-          return notify("Bài chưa có bộ câu mẫu để làm thử.", true);
-        showTeacherPreviewQuestion(exam, questions, {}, 0, true);
-      } catch (e) {
-        showError(e);
-      }
-    }
-
-    function showTeacherPreviewQuestion(
-      exam,
-      questions,
-      answers,
-      index,
-      first = false,
-    ) {
-      const qx = questions[index];
-      if (!qx) return;
-      const html = `<div class="exam-preview"><div class="preview-head"><b>Câu ${index + 1}/${questions.length}</b><span class="badge red">${escapeHtml(qx.clo_code || "—")}</span><span>Bộ câu mẫu đóng băng · không lưu kết quả</span></div><div class="live-context"><span>${escapeHtml(qx.chapter_name || "")}</span><span>${escapeHtml(qx.topic_name || "")}</span></div><div class="preview-question">${escapeHtml(qx.content || "")}</div><div class="preview-options">${(qx.options || []).map((o) => `<label class="${answers[qx.question_id] === o.key ? "selected" : ""}"><input type="radio" name="v122PreviewAnswer" value="${escapeHtml(o.key)}" ${answers[qx.question_id] === o.key ? "checked" : ""}><b>${escapeHtml(o.key)}</b><span>${escapeHtml(o.content || "")}</span></label>`).join("")}</div><div class="question-jump">${questions.map((q, i) => `<button type="button" data-v122-preview-jump="${i}" class="${i === index ? "current" : ""} ${answers[q.question_id] ? "answered" : ""}">${i + 1}</button>`).join("")}</div><div class="preview-nav"><button id="v122PreviewPrev" class="secondary" ${index === 0 ? "disabled" : ""}>← Trước</button><button id="v122PreviewNext" class="secondary" ${index === questions.length - 1 ? "disabled" : ""}>Sau →</button><button id="v122PreviewSubmit" class="primary">Nộp bài thử</button></div></div>`;
-      const bind = () => {
-        qsa('input[name="v122PreviewAnswer"]', qs("#drawerBody")).forEach(
-          (r) =>
-            (r.onchange = () => {
-              answers[qx.question_id] = r.value;
-              showTeacherPreviewQuestion(
-                exam,
-                questions,
-                answers,
-                index,
-                false,
-              );
+            (b.onclick = () => {
+              const x = items.find((v) => v.id === b.dataset.v122Detail);
+              if (x) openExamDetail(x);
             }),
         );
-        qsa("[data-v122-preview-jump]", qs("#drawerBody")).forEach(
+        const add = qs("#v122CreateExam", root);
+        if (add) add.onclick = () => openExamBuilder(null);
+      }
+
+
+      async function setStatus(exam, next) {
+        const label =
+          next === "active"
+            ? exam.status === "closed"
+              ? "Mở lại"
+              : "Phát hành"
+            : "Tạm dừng";
+        const message =
+          next === "closed"
+            ? "Sinh viên sẽ không thể bắt đầu lượt mới. Lượt đang làm vẫn được phép tiếp tục."
+            : next === "active"
+              ? "Bài sẽ cho phép sinh viên bắt đầu lượt mới theo thời gian mở/đóng đã cấu hình."
+              : "";
+        if (!(await ask(label, message, label))) return false;
+        const payload = {
+          status: next,
+        };
+        if (next === "active" && !exam.published_at)
+          payload.published_at = new Date().toISOString();
+        const { data, error } = await db
+          .from("exams")
+          .update(payload)
+          .eq("id", exam.id)
+          .select("*")
+          .single();
+        if (error) throw error;
+        if (!data || data.status !== next)
+          throw new Error(`Supabase chưa đổi trạng thái sang ${next}`);
+        Object.assign(exam, data);
+        notify(
+          label === "Tạm dừng"
+            ? "Đã tạm dừng bài kiểm tra"
+            : label === "Mở lại"
+              ? "Đã mở lại bài kiểm tra"
+              : "Đã phát hành bài kiểm tra",
+        );
+        return true;
+      }
+      async function deleteExam(exam) {
+        const { count, error } = await db
+          .from("exam_attempts")
+          .select("id", {
+            count: "exact",
+            head: true,
+          })
+          .eq("exam_id", exam.id);
+        if (error) throw error;
+        if (!isAdmin() && count > 0)
+          return notify("Bài đã có lượt làm. Chỉ Admin mới có thể xóa toàn bộ bài và dữ liệu lượt làm.", true);
+        const message = isAdmin() && count > 0
+          ? `Bài “${exam.title || "Bài kiểm tra"}” có ${count} lượt làm. Xóa bài sẽ xóa toàn bộ lượt làm, điểm, câu trả lời và dữ liệu liên quan. Thao tác này không thể hoàn tác.`
+          : `Xóa “${exam.title || "Bài kiểm tra"}”? Thao tác này không thể hoàn tác.`;
+        if (!(await ask("Xóa bài kiểm tra", message, "Xóa"))) return;
+        if (isAdmin()) {
+          const r = await db.rpc("admin_delete_exam", { p_exam_id: exam.id });
+          if (r.error) throw r.error;
+        } else {
+          const r = await db.from("exams").delete().eq("id", exam.id);
+          if (r.error) throw r.error;
+        }
+        notify("Đã xóa bài kiểm tra");
+        window.AICLO_SUBPAGE_STATE?.clear?.();
+        await exams(getAssessmentRoot());
+      }
+      function detailActions(exam) {
+        let html = "";
+        if (exam.status === "draft")
+          html = `<button id="v122Edit" class="secondary">Chỉnh sửa</button><button id="v122Publish" class="primary">Phát hành</button>`;
+        else if (exam.status === "closed")
+          html = `<button id="v122Edit" class="secondary">Chỉnh sửa</button><button id="v122Reopen" class="primary">Mở lại</button>`;
+        else
+          html = `<button id="v122Edit" class="secondary">Chỉnh sửa</button><button id="v122Pause" class="secondary">Tạm dừng</button>`;
+        if (exam.status === "draft" || isAdmin())
+          html += `<button id="v122Delete" class="danger">Xóa bài</button>`;
+        return html;
+      }
+      async function loadExamAttempts(examId) {
+        const { data, error } = await db
+          .from("exam_attempts")
+          .select(
+            "id,exam_id,student_id,attempt_number,started_at,submitted_at,score,profiles:student_id(id,full_name,mssv,email)",
+          )
+          .eq("exam_id", examId)
+          .order("started_at", {
+            ascending: false,
+          });
+        if (error) throw error;
+        return data || [];
+      }
+      function attemptStudentName(a) {
+        return a.profiles?.full_name || a.profiles?.email || "Sinh viên";
+      }
+      function attemptSort(rows, mode) {
+        const out = [...rows];
+        if (mode === "name")
+          out.sort((a, b) =>
+            attemptStudentName(a).localeCompare(attemptStudentName(b), "vi"),
+          );
+        else if (mode === "score")
+          out.sort(
+            (a, b) =>
+              (b.score == null ? -Infinity : +b.score) -
+              (a.score == null ? -Infinity : +a.score),
+          );
+        else
+          out.sort(
+            (a, b) =>
+              new Date(b.submitted_at || b.started_at || 0) -
+              new Date(a.submitted_at || a.started_at || 0),
+          );
+        return out;
+      }
+      async function loadAttemptCloBundle(exam, attempts) {
+        const { data: clos, error: ce } = await db.from("clos").select("id,code,description").eq("subject_id", exam.subject_id).order("code");
+        if (ce) throw ce;
+        const ids = attempts.map((x) => x.id);
+        if (!ids.length) return { clos: clos || [], attempts };
+        const [qr, ar] = await Promise.all([
+          db.from("attempt_questions").select("attempt_id,question_id,clo_code").in("attempt_id", ids),
+          db.from("student_answers").select("attempt_id,question_id,is_correct").in("attempt_id", ids),
+        ]);
+        if (qr.error) throw qr.error;
+        if (ar.error) throw ar.error;
+        const answerMap = new Map((ar.data || []).map((a) => [`${a.attempt_id}|${a.question_id}`, a]));
+        const metricMap = new Map(ids.map((id) => [id, {}]));
+        for (const q of qr.data || []) {
+          if (!q.clo_code) continue;
+          const m = metricMap.get(q.attempt_id) || {};
+          const c = m[q.clo_code] || { correct: 0, total: 0, score: null };
+          c.total++;
+          if (answerMap.get(`${q.attempt_id}|${q.question_id}`)?.is_correct === true) c.correct++;
+          c.score = c.total ? (c.correct * 10) / c.total : null;
+          m[q.clo_code] = c;
+          metricMap.set(q.attempt_id, m);
+        }
+        return { clos: clos || [], attempts: attempts.map((a) => ({ ...a, _clo: metricMap.get(a.id) || {} })) };
+      }
+      function cloScore(a, code) {
+        const x = a?._clo?.[code];
+        return a?.submitted_at && x?.total ? Number(x.score) : null;
+      }
+      function attemptTableHtml(rows, clos, mode = "date") {
+        const sorted = attemptSort(rows, mode), cloHeads = (clos || []).map((c) => `<th>${escapeHtml(c.code)}</th>`).join("");
+        const colspan = 7 + (clos || []).length, admin = isAdmin();
+        return `<div class="toolbar assessment-attempt-toolbar"><span class="hint">${rows.length} lượt làm · ${rows.filter((x) => x.submitted_at).length} đã nộp${admin ? " · Admin có thể xóa lượt làm" : ""}</span><div class="assessment-attempt-tools"><label class="field compact-field">Sắp xếp<select id="v122AttemptSort"><option value="date" ${mode === "date" ? "selected" : ""}>Mới nhất</option><option value="name" ${mode === "name" ? "selected" : ""}>Tên sinh viên</option><option value="score" ${mode === "score" ? "selected" : ""}>Điểm cao</option></select></label><details class="assessment-export-dropdown"><summary class="secondary">Tải kết quả Excel ▾</summary><div class="assessment-export-menu"><button type="button" data-v1234-export="highest">Điểm cao nhất</button><button type="button" data-v1234-export="all">Tất cả lần làm</button><button type="button" data-v1234-export="average">Điểm trung bình</button></div></details></div></div><div class="table-wrap"><table class="assessment-attempt-table"><thead><tr><th>STT</th><th>Sinh viên</th><th>Lần</th><th>Thời gian</th><th>Điểm tổng</th>${cloHeads}<th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>${sorted.map((a, i) => `<tr><td>${i + 1}</td><td><b>${escapeHtml(attemptStudentName(a))}</b><br><small>${escapeHtml(a.profiles?.mssv || a.profiles?.email || "")}</small></td><td>${a.attempt_number || 1}</td><td class="attempt-time-cell"><small><b>Bắt đầu:</b> ${formatDateTime(a.started_at)}</small><small><b>Nộp:</b> ${a.submitted_at ? formatDateTime(a.submitted_at) : "—"}</small></td><td>${a.submitted_at && a.score != null ? `<b>${Number(a.score).toFixed(2)}</b>` : "—"}</td>${(clos || []).map((c) => { const v=cloScore(a,c.code); return `<td>${v == null ? "—" : `<b class="${v < 4 ? "score-below" : ""}">${v.toFixed(2)}</b>`}</td>`; }).join("")}<td><span class="badge ${a.submitted_at ? "green" : ""}">${a.submitted_at ? "Đã nộp" : "Đang làm"}</span></td><td class="row-actions">${a.submitted_at ? `<button type="button" class="secondary compact" data-v122-view-attempt="${a.id}">Xem bài</button>` : '<button type="button" class="secondary compact" disabled>Đang làm</button>'}${admin ? `<button type="button" class="danger compact" data-v122-delete-attempt="${a.id}">Xóa lượt</button>` : ""}</td></tr>`).join("") || `<tr><td colspan="${colspan}" class="empty">Chưa có lượt làm.</td></tr>`}</tbody></table></div>`;
+      }
+      function exportRowsByMode(rows, clos, mode) {
+        const submitted = rows.filter((x) => x.submitted_at);
+        const groups = new Map();
+        for (const a of submitted) {
+          const g = groups.get(a.student_id) || [];
+          g.push(a); groups.set(a.student_id, g);
+        }
+        if (mode === "all") return submitted.map((a) => ({ ...a, _exportAttempt: a.attempt_number || 1 }));
+        if (mode === "highest") return [...groups.values()].map((g) => [...g].sort((a,b) => Number(b.score || 0)-Number(a.score || 0) || new Date(b.submitted_at)-new Date(a.submitted_at))[0]).map((a) => ({ ...a, _exportAttempt: a.attempt_number || 1 }));
+        return [...groups.values()].map((g) => {
+          const base = g[0];
+          const avg = (vals) => vals.length ? vals.reduce((s,v)=>s+v,0)/vals.length : null;
+          const clone = { ...base, score: avg(g.map((x)=>Number(x.score)).filter(Number.isFinite)), started_at:null, submitted_at:null, _exportAttempt:`TB (${g.length})`, _clo:{} };
+          for (const c of clos || []) {
+            const vals=g.map((x)=>cloScore(x,c.code)).filter((v)=>v!=null);
+            const v=avg(vals); clone._clo[c.code]=v==null?{total:0,score:null}:{total:1,score:v};
+          }
+          return clone;
+        });
+      }
+      function scorePolicyVi(v) { return ({highest:"Điểm cao nhất",latest:"Lần cuối",average:"Trung bình các lần"})[v] || "Điểm cao nhất"; }
+      function reportModeVi(v) { return ({highest:"Điểm cao nhất",all:"Tất cả lần làm",average:"Điểm trung bình"})[v] || v; }
+      async function exportAttemptExcel(exam, rows, clos, mode, trigger) {
+        const old=trigger?.textContent; if(trigger){trigger.disabled=true;trigger.textContent="Đang tạo Excel…";}
+        try {
+          const ExcelJS = await window.AICLO_OFFICE_LIBS?.exceljs?.();
+          if (!ExcelJS) throw new Error("Không tải được thư viện ExcelJS");
+          const { data: subject } = await db.from("subjects").select("*").eq("id", exam.subject_id).maybeSingle();
+          const exportRows = exportRowsByMode(rows, clos, mode);
+          const wb = new ExcelJS.Workbook(); wb.creator="AI-CLO PTITHCM"; wb.created=new Date();
+          const ws = wb.addWorksheet("Kết quả", { pageSetup:{paperSize:9,orientation:"landscape",fitToPage:true,fitToWidth:1,fitToHeight:0,margins:{left:0.25,right:0.25,top:0.45,bottom:0.45,header:0.2,footer:0.2}} });
+          const totalCols=9+(clos||[]).length;
+          ws.mergeCells(1,1,1,totalCols); const title=ws.getCell(1,1); title.value="BÁO CÁO KẾT QUẢ BÀI KIỂM TRA"; title.font={name:"Times New Roman",size:14,bold:true}; title.alignment={horizontal:"center",vertical:"middle"}; ws.getRow(1).height=24;
+          const info=[
+            ["Tên học phần", subject?.name || subject?.title || "—"],["Mã học phần", subject?.code || subject?.subject_code || "—"],["Tên bài kiểm tra", exam.title || "—"],["Mô tả", exam.description || "—"],["Loại bài / cấu trúc", `Bài kiểm tra trực tuyến · ${structureLabel(exam.structure_mode)}`],["Thời gian làm bài", `${exam.duration_minutes || "—"} phút`],["Số câu", Number(exam.total_questions || 0)],["Số lần làm", Number(exam.max_attempts || 1)],["Chính sách tính điểm", scorePolicyVi(exam.score_policy)],["Chế độ báo cáo", reportModeVi(mode)],["Thời gian mở", exam.opens_at ? formatDateTime(exam.opens_at) : "Khi phát hành"],["Thời gian đóng", exam.closes_at ? formatDateTime(exam.closes_at) : "Không giới hạn"],["Số sinh viên đã làm", new Set(rows.filter((x)=>x.submitted_at).map((x)=>x.student_id)).size],["Ngày xuất báo cáo", formatDateTime(new Date().toISOString())]
+          ];
+          let r=3;
+          for (const [label,value] of info){ ws.getCell(r,1).value=label; ws.getCell(r,1).font={name:"Times New Roman",size:12,bold:true}; ws.mergeCells(r,2,r,totalCols); ws.getCell(r,2).value=value; r++; }
+          const tableStart=r+1;
+          const headers=["STT","Mã SV","Họ tên","Lần","Bắt đầu","Nộp","Điểm tổng",...(clos||[]).map((c)=>c.code),"Trạng thái"];
+          const body=exportRows.map((a,i)=>[i+1,a.profiles?.mssv || "",attemptStudentName(a),a._exportAttempt || a.attempt_number || 1,a.started_at?formatDateTime(a.started_at):"—",a.submitted_at?formatDateTime(a.submitted_at):"—",a.score==null?null:Number(a.score),...(clos||[]).map((c)=>cloScore(a,c.code)),mode==="average"?`Trung bình`:"Đã nộp"]);
+          ws.addTable({name:"BangKetQua",ref:`A${tableStart}`,headerRow:true,totalsRow:false,style:{theme:"TableStyleMedium2",showRowStripes:false},columns:headers.map((name)=>({name})),rows:body});
+          const tableEnd=tableStart+body.length;
+          for(let rr=tableStart;rr<=tableEnd;rr++) for(let cc=1;cc<=headers.length;cc++){ const cell=ws.getCell(rr,cc); cell.font={name:"Times New Roman",size:12,bold:rr===tableStart}; cell.alignment={vertical:"middle",horizontal:[1,4,7,...Array.from({length:(clos||[]).length},(_,i)=>8+i)].includes(cc)?"center":"left",wrapText:true}; cell.border={top:{style:"thin"},left:{style:"thin"},bottom:{style:"thin"},right:{style:"thin"}}; }
+          const scoreCols=[7,...(clos||[]).map((_,i)=>8+i)];
+          for(let rr=tableStart+1;rr<=tableEnd;rr++) for(const cc of scoreCols){ const cell=ws.getCell(rr,cc); if(typeof cell.value==="number"){cell.numFmt="0.00"; if(cell.value<4) cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFF4CCCC"}};} }
+          let sr=tableEnd+3; ws.mergeCells(sr,1,sr,totalCols); ws.getCell(sr,1).value="TỔNG HỢP"; ws.getCell(sr,1).font={name:"Times New Roman",size:12,bold:true}; sr++;
+          const scores=exportRows.map((x)=>Number(x.score)).filter(Number.isFinite);
+          const summary=[["Điểm trung bình",scores.length?scores.reduce((a,b)=>a+b,0)/scores.length:null],["Điểm cao nhất",scores.length?Math.max(...scores):null],["Điểm thấp nhất",scores.length?Math.min(...scores):null],["Số điểm tổng dưới 4",scores.filter((x)=>x<4).length]];
+          for(const c of clos||[]){const vals=exportRows.map((x)=>cloScore(x,c.code)).filter((v)=>v!=null);summary.push([`Trung bình ${c.code}`,vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null],[`Số SV/lượt ${c.code} dưới 4`,vals.filter((x)=>x<4).length],[`Tỷ lệ đạt ${c.code} (≥4)`,vals.length?vals.filter((x)=>x>=4).length/vals.length:null]);}
+          for(const [label,value] of summary){ws.getCell(sr,1).value=label;ws.getCell(sr,1).font={name:"Times New Roman",size:12,bold:true};ws.getCell(sr,2).value=value;ws.getCell(sr,2).font={name:"Times New Roman",size:12};if(typeof value==="number") ws.getCell(sr,2).numFmt=label.startsWith("Tỷ lệ")?"0.00%":"0.00";sr++;}
+          ws.views=[{state:"frozen",ySplit:tableStart}];
+          ws.columns.forEach((col,i)=>{col.width=i===2?28:i===4||i===5?19:i===1?15:i>=7&&i<7+(clos||[]).length?11:13;});
+          ws.eachRow((row)=>row.eachCell((cell)=>{ if(!cell.font?.name) cell.font={name:"Times New Roman",size:12}; }));
+          ws.headerFooter.oddFooter="&L AI-CLO PTITHCM&CTrang &P / &N&R"+new Date().toLocaleDateString("vi-VN");
+          const buf=await wb.xlsx.writeBuffer(); const blob=new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); const safe=String(exam.title||"bai-kiem-tra").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-zA-Z0-9_-]+/g,"-").replace(/^-|-$/g,""); a.download=`${safe||"bai-kiem-tra"}-${mode}.xlsx`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); notify(`Đã tạo Excel: ${reportModeVi(mode)}`);
+        } catch(e){ showError(e); } finally { if(trigger){trigger.disabled=false;trigger.textContent=old;} }
+      }
+      async function openExamDetail(examOrId) {
+        try {
+          let exam = typeof examOrId === "string" ? null : examOrId;
+          if (!exam) {
+            const { data, error } = await db
+              .from("exams")
+              .select("*")
+              .eq("id", examOrId)
+              .single();
+            if (error) throw error;
+            exam = data;
+          }
+          const rawAttempts = await loadExamAttempts(exam.id),
+            bundle = await loadAttemptCloBundle(exam, rawAttempts),
+            attempts = bundle.attempts,
+            clos = bundle.clos,
+            c = getAssessmentRoot();
+          if (!c) return;
+          const s = statusMeta(exam);
+          c.innerHTML = `<div class="assessment-detail-v122"><div class="subpage-head"><div><button id="v122Back" class="secondary compact">← Quay lại</button><small>BÀI KIỂM TRA TRỰC TUYẾN</small><h3>${escapeHtml(exam.title || "Bài kiểm tra")}</h3><p>${escapeHtml(exam.description || "")}</p></div><span class="badge ${s.className}">${s.label}</span></div><section class="panel"><div class="panel-head"><div><h3>Thông tin bài kiểm tra</h3><p class="hint">Một nguồn trạng thái duy nhất từ bảng exams.</p></div><div class="assessment-detail-actions"><button id="v122Preview" class="secondary">Làm thử</button><button id="v1235ExportCenter" class="secondary">Xuất đề / Tạo mã đề</button>${detailActions(exam)}</div></div><div class="detail-grid"><div><small>Số câu</small><b>${Number(exam.total_questions || 0)}</b></div><div><small>Thời gian</small><b>${exam.duration_minutes || "—"} phút</b></div><div><small>Số lần làm</small><b>${exam.max_attempts || 1}</b></div><div><small>Lượt đã tạo</small><b>${attempts.length}</b></div><div><small>Rút câu</small><b>${escapeHtml(modeLabel(exam.question_mode))}</b></div><div><small>Cấu trúc</small><b>${escapeHtml(structureLabel(exam.structure_mode))}</b></div></div></section><section class="panel"><div class="panel-head"><div><h3>Cấu trúc và bộ câu</h3><p class="hint">Làm thử đọc trực tiếp frozen snapshot; không tạo lượt làm và không ghi điểm.</p></div></div><div id="v122DesignSummary"></div></section><section class="panel"><div class="panel-head"><div><h3>Danh sách bài làm</h3><p class="hint">${isAdmin() ? "Admin có thể xem hoặc xóa từng lượt làm của sinh viên." : "Xem từng bài đã nộp của sinh viên."}</p></div></div><div id="v122AttemptList">${attemptTableHtml(attempts, clos)}</div></section></div>`;
+          qs("#v122Back")?.addEventListener("click", () => exams(c));
+          qs("#v122Preview")?.addEventListener("click", () =>
+            openTeacherPreview(exam),
+          );
+          qs("#v1235ExportCenter")?.addEventListener("click", () =>
+            openExportCenter(exam),
+          );
+          qs("#v122Edit")?.addEventListener("click", () => openExamBuilder(exam));
+          qs("#v122Publish")?.addEventListener("click", async () => {
+            try {
+              if (await setStatus(exam, "active")) await openExamDetail(exam);
+            } catch (e) {
+              showError(e);
+            }
+          });
+          qs("#v122Pause")?.addEventListener("click", async () => {
+            try {
+              if (await setStatus(exam, "closed")) await openExamDetail(exam);
+            } catch (e) {
+              showError(e);
+            }
+          });
+          qs("#v122Reopen")?.addEventListener("click", async () => {
+            try {
+              if (await setStatus(exam, "active")) await openExamDetail(exam);
+            } catch (e) {
+              showError(e);
+            }
+          });
+          qs("#v122Delete")?.addEventListener("click", async () => {
+            try {
+              await deleteExam(exam);
+            } catch (e) {
+              showError(e);
+            }
+          });
+          bindAttemptTable(exam, attempts, clos, "date");
+          await renderDesignSummary(exam);
+        } catch (e) {
+          showError(e);
+        }
+      }
+      function bindAttemptTable(exam, attempts, clos, mode) {
+        const box = qs("#v122AttemptList");
+        if (!box) return;
+        const sort = qs("#v122AttemptSort", box);
+        if (sort)
+          sort.onchange = () => {
+            box.innerHTML = attemptTableHtml(attempts, clos, sort.value);
+            bindAttemptTable(exam, attempts, clos, sort.value);
+          };
+        qsa("[data-v1234-export]", box).forEach((b) => {
+          b.onclick = () => exportAttemptExcel(exam, attempts, clos, b.dataset.v1234Export, b);
+        });
+        qsa("[data-v122-view-attempt]", box).forEach(
           (b) =>
             (b.onclick = () =>
-              showTeacherPreviewQuestion(
-                exam,
-                questions,
-                answers,
-                +b.dataset.v122PreviewJump,
-                false,
-              )),
+              openTeacherAttemptResult(exam, b.dataset.v122ViewAttempt)),
         );
-        qs("#v122PreviewPrev").onclick = () =>
-          showTeacherPreviewQuestion(
-            exam,
-            questions,
-            answers,
-            index - 1,
-            false,
+        if (isAdmin())
+          qsa("[data-v122-delete-attempt]", box).forEach(
+            (b) =>
+              (b.onclick = () => deleteAttempt(exam, b.dataset.v122DeleteAttempt)),
           );
-        qs("#v122PreviewNext").onclick = () =>
-          showTeacherPreviewQuestion(
-            exam,
-            questions,
-            answers,
-            index + 1,
-            false,
-          );
-        qs("#v122PreviewSubmit").onclick = async () => {
-          const missing = questions.filter(
-            (q) => !answers[q.question_id],
-          ).length;
+      }
+      async function deleteAttempt(exam, attemptId) {
+        try {
+          if (!isAdmin()) return notify("Chỉ Admin được xóa lượt làm của sinh viên.", true);
           if (
-            missing &&
             !(await ask(
-              "Nộp bài thử",
-              `Còn ${missing} câu chưa trả lời. Vẫn xem kết quả?`,
-              "Xem kết quả",
+              "Xóa lượt làm",
+              "Xóa lượt làm này? Điểm, câu trả lời và dữ liệu liên quan của lượt sẽ bị xóa. Thao tác này không thể hoàn tác.",
+              "Xóa lượt",
             ))
           )
             return;
-          showTeacherPreviewResult(exam, questions, answers);
+          const r = await db.rpc("admin_delete_attempt", { p_attempt_id: attemptId });
+          if (r.error) throw r.error;
+          notify("Đã xóa lượt làm");
+          await openExamDetail(exam.id);
+        } catch (e) {
+          showError(e);
+        }
+      }
+      async function openTeacherAttemptResult(exam, attemptId) {
+        try {
+          const { data, error } = await db.rpc("get_attempt_result", {
+            p_attempt_id: attemptId,
+          });
+          if (error) throw error;
+          const html = studentResultHtml(data);
+          if (typeof openDrawer === "function")
+            openDrawer(`Bài làm · ${exam.title}`, html, null, {
+              wide: true,
+              eyebrow: "GIẢNG VIÊN XEM BÀI",
+            });
+          else notify(`Điểm: ${Number(data.score || 0).toFixed(2)}`);
+        } catch (e) {
+          showError(e);
+        }
+      }
+      function exportCodes(start, count) {
+        const raw = String(start || "101").trim() || "101";
+        const width = raw.length;
+        const n = Math.max(1, Math.min(20, Number(count) || 1));
+        if (!/^\d+$/.test(raw)) return Array.from({ length: n }, (_, i) => `${raw}${i ? `-${i + 1}` : ""}`);
+        const first = Number(raw);
+        return Array.from({ length: n }, (_, i) => String(first + i).padStart(width, "0"));
+      }
+      function parseExportCodes(value) {
+        return [...new Set(String(value || "").split(/[\s,;]+/).map((x) => x.trim()).filter(Boolean))].slice(0, 20);
+      }
+      async function loadExportSnapshot(exam) {
+        const [subjectRes, chosenRes, poolRes] = await Promise.all([
+          db.from("subjects").select("*").eq("id", exam.subject_id).maybeSingle(),
+          db.from("exam_questions").select("question_id,question_order").eq("exam_id", exam.id).order("question_order"),
+          db.from("exam_question_pool").select("question_id,chapter_name,topic_name,clo_code,content,correct_answer,explanation,options").eq("exam_id", exam.id),
+        ]);
+        if (chosenRes.error) throw chosenRes.error;
+        if (poolRes.error) throw poolRes.error;
+        const chosen = chosenRes.data || [], pool = poolRes.data || [];
+        if (!chosen.length) throw new Error("Bài kiểm tra chưa có frozen snapshot để xuất đề.");
+        const ids = chosen.map((x) => x.question_id).filter(Boolean);
+        let codes = new Map();
+        if (ids.length) {
+          const qr = await db.from("questions").select("id,display_code").in("id", ids);
+          if (!qr.error) codes = new Map((qr.data || []).map((x) => [x.id, x.display_code]));
+        }
+        const byId = new Map(pool.map((x) => [x.question_id, x]));
+        const questions = chosen.map((x) => {
+          const q = byId.get(x.question_id);
+          if (!q) return null;
+          return { ...q, display_code: codes.get(x.question_id) || "", question_order: x.question_order };
+        }).filter(Boolean);
+        if (!questions.length) throw new Error("Không đọc được nội dung frozen snapshot của bài kiểm tra.");
+        return { exam, subject: subjectRes.data || {}, questions };
+      }
+      async function openExportCenter(exam) {
+        try {
+          const api = window.AICLO_ONLINE_EXPORT;
+          if (!api) throw new Error("Chưa tải mô-đun Xuất đề.");
+          const snap = await loadExportSnapshot(exam), c = getAssessmentRoot();
+          if (!c) return;
+          const state = {
+            start: "101",
+            count: 4,
+            codes: exportCodes("101", 4),
+            shuffleQuestions: !!exam.shuffle_questions,
+            shuffleOptions: !!exam.shuffle_options,
+            printRows: 4,
+            previewCode: "101",
+          };
+          const render = () => {
+            const variants = api.buildVariants(snap.questions, state.codes, { shuffleQuestions: state.shuffleQuestions, shuffleOptions: state.shuffleOptions });
+            const current = variants.find((v) => v.code === state.previewCode) || variants[0];
+            if (current) state.previewCode = current.code;
+            const subjectCode = snap.subject?.code || snap.subject?.subject_code || "—";
+            c.innerHTML = `<div class="assessment-export-center"><div class="subpage-head"><div><button id="v1235ExportBack" class="secondary compact">← Quay lại</button><small>XUẤT ĐỀ / TẠO MÃ ĐỀ</small><h3>${escapeHtml(exam.title || "Bài kiểm tra")}</h3><p>Tạo các mã đề từ frozen snapshot hiện tại; không rút câu mới và không thay đổi bài kiểm tra trên hệ thống.</p></div><span class="badge">${variants.length} mã đề</span></div>
+              <div class="export-grid"><section class="panel export-controls"><div class="panel-head"><div><h3>Thiết lập xuất đề</h3><p class="hint">Mỗi mã đề là một phép hoán vị ổn định từ cùng bộ câu đã duyệt.</p></div></div>
+                <div class="export-code-row"><label class="field">Mã bắt đầu<input id="v1235CodeStart" value="${escapeHtml(state.start)}"></label><label class="field">Số mã đề<input id="v1235CodeCount" type="number" min="1" max="20" value="${state.count}"></label><div class="field"><span>Tạo mã</span><button id="v1235GenerateCodes" type="button" class="secondary">Tạo danh sách</button></div><label class="field wide">Danh sách mã đề<input id="v1235CodeList" value="${escapeHtml(state.codes.join(", "))}" placeholder="101, 102, 103, 104"></label></div>
+                <div class="export-options"><label><input id="v1235ShuffleQuestions" type="checkbox" ${state.shuffleQuestions ? "checked" : ""}> Trộn thứ tự câu</label><label><input id="v1235ShuffleOptions" type="checkbox" ${state.shuffleOptions ? "checked" : ""}> Trộn đáp án</label></div>
+                <label class="field">Bố cục bản in đáp án Excel<select id="v1235PrintRows"><option value="1" ${state.printRows===1?"selected":""}>1 dòng/khối</option><option value="2" ${state.printRows===2?"selected":""}>2 dòng/khối</option><option value="4" ${state.printRows===4?"selected":""}>4 dòng/khối</option></select></label>
+                <div class="export-note">Excel luôn có sheet <b>Dap_an</b> theo cấu trúc dùng cho Chấm thi CLO. Tùy chọn 1/2/4 chỉ thay đổi sheet <b>Ban_in</b> để tiết kiệm giấy.</div>
+                <div><b>Mã đề</b><div class="export-code-list">${variants.map((v) => `<button type="button" class="export-code-chip ${v.code===state.previewCode?"active":""}" data-v1235-code="${escapeHtml(v.code)}">${escapeHtml(v.code)}</button>`).join("")}</div></div>
+                <div class="export-actions"><button id="v1235DownloadTex" class="secondary" ${current?"":"disabled"}>Tải TeX mã đang xem</button><button id="v1235DownloadExcel" class="secondary" ${variants.length?"":"disabled"}>Tải Excel đáp án + CLO</button><button id="v1235DownloadZip" class="primary" ${variants.length?"":"disabled"}>Tải ZIP toàn bộ</button></div>
+              </section>
+              <section class="panel export-preview"><div class="panel-head"><div><h3>Xem trước mã đề ${escapeHtml(current?.code || "—")}</h3><p class="hint">${escapeHtml(snap.subject?.name || "Học phần")} · ${escapeHtml(subjectCode)}</p></div></div>${current ? `<div class="export-paper"><div class="export-paper-head"><b>BÀI KIỂM TRA</b><h3>${escapeHtml(exam.title || "")}</h3><div class="export-paper-meta"><span><b>Học phần:</b> ${escapeHtml(snap.subject?.name || "—")}</span><span><b>Mã HP:</b> ${escapeHtml(subjectCode)}</span><span><b>Mã đề:</b> ${escapeHtml(current.code)}</span><span><b>Thời gian:</b> ${escapeHtml(exam.duration_minutes || "—")} phút</span></div></div>${current.questions.map((q) => `<article class="export-question"><div class="export-question-head"><b>Câu ${q.number}.</b><span class="badge red">${escapeHtml(q.clo_code || "—")}</span>${q.display_code?`<span class="badge">${escapeHtml(q.display_code)}</span>`:""}<small>Đáp án: ${escapeHtml(q.correct_answer || "—")}</small></div><div class="detail-question">${escapeHtml(q.content || "")}</div><div class="export-question-options">${(q.options||[]).map((o)=>`<div><b>${escapeHtml(o.key)}.</b><span>${escapeHtml(o.content||"")}</span></div>`).join("")}</div></article>`).join("")}</div>` : '<div class="empty"><b>Chưa có mã đề</b><span>Tạo ít nhất một mã đề để xem trước.</span></div>'}</section></div></div>`;
+            qs("#v1235ExportBack", c)?.addEventListener("click", () => openExamDetail(exam));
+            qs("#v1235GenerateCodes", c)?.addEventListener("click", () => { state.start = qs("#v1235CodeStart",c)?.value || "101"; state.count = Math.max(1,Math.min(20,Number(qs("#v1235CodeCount",c)?.value)||1)); state.codes = exportCodes(state.start,state.count); state.previewCode = state.codes[0] || ""; render(); });
+            qs("#v1235CodeList", c)?.addEventListener("change", (e) => { const next=parseExportCodes(e.target.value); if(!next.length)return notify("Cần ít nhất một mã đề.",true); state.codes=next; state.previewCode=next.includes(state.previewCode)?state.previewCode:next[0]; render(); });
+            qs("#v1235ShuffleQuestions", c)?.addEventListener("change", (e) => { state.shuffleQuestions=!!e.target.checked; render(); });
+            qs("#v1235ShuffleOptions", c)?.addEventListener("change", (e) => { state.shuffleOptions=!!e.target.checked; render(); });
+            qs("#v1235PrintRows", c)?.addEventListener("change", (e) => { state.printRows=Number(e.target.value)||4; render(); });
+            qsa("[data-v1235-code]", c).forEach((b)=>b.onclick=()=>{state.previewCode=b.dataset.v1235Code;render();});
+            qs("#v1235DownloadTex", c)?.addEventListener("click", () => { const v=api.buildVariants(snap.questions,[state.previewCode],{shuffleQuestions:state.shuffleQuestions,shuffleOptions:state.shuffleOptions})[0]; if(!v)return; api.download(`% !TeX encoding = UTF-8\n${api.texForVariant(snap,v)}`,`${api.safe(exam.title)}-${api.safe(v.code)}.tex`,'text/x-tex;charset=utf-8'); });
+            qs("#v1235DownloadExcel", c)?.addEventListener("click", async (e) => { const btn=e.currentTarget,old=btn.textContent;try{btn.disabled=true;btn.textContent="Đang tạo Excel…";const vs=api.buildVariants(snap.questions,state.codes,{shuffleQuestions:state.shuffleQuestions,shuffleOptions:state.shuffleOptions});await api.downloadWorkbook(snap,vs,state.printRows);}catch(err){showError(err)}finally{btn.disabled=false;btn.textContent=old;} });
+            qs("#v1235DownloadZip", c)?.addEventListener("click", async (e) => { const btn=e.currentTarget,old=btn.textContent;try{btn.disabled=true;btn.textContent="Đang tạo ZIP…";const vs=api.buildVariants(snap.questions,state.codes,{shuffleQuestions:state.shuffleQuestions,shuffleOptions:state.shuffleOptions});await api.downloadZip(snap,vs,state.printRows);}catch(err){showError(err)}finally{btn.disabled=false;btn.textContent=old;} });
+            if (typeof window.renderMath === "function") requestAnimationFrame(() => window.renderMath(c));
+          };
+          render();
+        } catch (e) { showError(e); }
+      }
+      async function renderDesignSummary(exam) {
+        const box = qs("#v122DesignSummary");
+        if (!box) return;
+        const [{ data: pool, error }, { data: selected, error: se }] =
+          await Promise.all([
+            db
+              .from("exam_question_pool")
+              .select("question_id,chapter_name,topic_name,clo_code")
+              .eq("exam_id", exam.id),
+            db
+              .from("exam_questions")
+              .select("question_id,question_order")
+              .eq("exam_id", exam.id)
+              .order("question_order"),
+          ]);
+        if (error || se) {
+          box.innerHTML = '<p class="hint">Chưa đọc được snapshot bộ câu.</p>';
+          return;
+        }
+        const rows = pool || [],
+          clo = {};
+        for (const r of rows)
+          clo[r.clo_code || "—"] = (clo[r.clo_code || "—"] || 0) + 1;
+        box.innerHTML = `<div class="detail-grid"><div><small>Pool đóng băng</small><b>${rows.length} câu</b></div><div><small>Bộ câu mẫu</small><b>${(selected || []).length} câu</b></div><div><small>CLO trong pool</small><b>${
+          Object.entries(clo)
+            .map(([k, v]) => `${escapeHtml(k)}: ${v}`)
+            .join(" · ") || "—"
+        }</b></div></div>`;
+      }
+      async function loadTeacherPreviewQuestions(exam) {
+        const [{ data: chosen, error: ce }, { data: pool, error: pe }] =
+          await Promise.all([
+            db
+              .from("exam_questions")
+              .select("question_id,question_order")
+              .eq("exam_id", exam.id)
+              .order("question_order"),
+            db
+              .from("exam_question_pool")
+              .select(
+                "question_id,chapter_name,topic_name,clo_code,content,correct_answer,explanation,options",
+              )
+              .eq("exam_id", exam.id),
+          ]);
+        if (ce) throw ce;
+        if (pe) throw pe;
+        const map = new Map((pool || []).map((x) => [x.question_id, x]));
+        let questions = (chosen || [])
+          .map((x) => map.get(x.question_id))
+          .filter(Boolean);
+        if (exam.shuffle_questions) questions = shuffle(questions);
+        if (exam.shuffle_options)
+          questions = questions.map((q) => ({
+            ...q,
+            options: shuffle(q.options || []),
+          }));
+        return questions;
+      }
+      async function openTeacherPreview(exam) {
+        try {
+          const questions = await loadTeacherPreviewQuestions(exam);
+          if (!questions.length)
+            return notify("Bài chưa có bộ câu mẫu để làm thử.", true);
+          showTeacherPreviewQuestion(exam, questions, {}, 0, true);
+        } catch (e) {
+          showError(e);
+        }
+      }
+      function showTeacherPreviewQuestion(
+        exam,
+        questions,
+        answers,
+        index,
+        first = false,
+      ) {
+        const qx = questions[index];
+        if (!qx) return;
+        const html = `<div class="exam-preview"><div class="preview-head"><b>Câu ${index + 1}/${questions.length}</b><span class="badge red">${escapeHtml(qx.clo_code || "—")}</span><span>Bộ câu mẫu đóng băng · không lưu kết quả</span></div><div class="live-context"><span>${escapeHtml(qx.chapter_name || "")}</span><span>${escapeHtml(qx.topic_name || "")}</span></div><div class="preview-question">${escapeHtml(qx.content || "")}</div><div class="preview-options">${(qx.options || []).map((o) => `<label class="${answers[qx.question_id] === o.key ? "selected" : ""}"><input type="radio" name="v122PreviewAnswer" value="${escapeHtml(o.key)}" ${answers[qx.question_id] === o.key ? "checked" : ""}><b>${escapeHtml(o.key)}</b><span>${escapeHtml(o.content || "")}</span></label>`).join("")}</div><div class="question-jump">${questions.map((q, i) => `<button type="button" data-v122-preview-jump="${i}" class="${i === index ? "current" : ""} ${answers[q.question_id] ? "answered" : ""}">${i + 1}</button>`).join("")}</div><div class="preview-nav"><button id="v122PreviewPrev" class="secondary" ${index === 0 ? "disabled" : ""}>← Trước</button><button id="v122PreviewNext" class="secondary" ${index === questions.length - 1 ? "disabled" : ""}>Sau →</button><button id="v122PreviewSubmit" class="primary">Nộp bài thử</button></div></div>`;
+        const bind = () => {
+          qsa('input[name="v122PreviewAnswer"]', qs("#drawerBody")).forEach(
+            (r) =>
+              (r.onchange = () => {
+                answers[qx.question_id] = r.value;
+                showTeacherPreviewQuestion(exam, questions, answers, index, false);
+              }),
+          );
+          qsa("[data-v122-preview-jump]", qs("#drawerBody")).forEach(
+            (b) =>
+              (b.onclick = () =>
+                showTeacherPreviewQuestion(
+                  exam,
+                  questions,
+                  answers,
+                  +b.dataset.v122PreviewJump,
+                  false,
+                )),
+          );
+          qs("#v122PreviewPrev").onclick = () =>
+            showTeacherPreviewQuestion(exam, questions, answers, index - 1, false);
+          qs("#v122PreviewNext").onclick = () =>
+            showTeacherPreviewQuestion(exam, questions, answers, index + 1, false);
+          qs("#v122PreviewSubmit").onclick = async () => {
+            const missing = questions.filter((q) => !answers[q.question_id]).length;
+            if (
+              missing &&
+              !(await ask(
+                "Nộp bài thử",
+                `Còn ${missing} câu chưa trả lời. Vẫn xem kết quả?`,
+                "Xem kết quả",
+              ))
+            )
+              return;
+            showTeacherPreviewResult(exam, questions, answers);
+          };
         };
-      };
-      if (first && typeof openDrawer === "function")
-        openDrawer(`Làm thử · ${exam.title}`, html, bind, {
-          wide: true,
-          eyebrow: "CHẾ ĐỘ GIẢNG VIÊN",
-        });
-      else if (typeof replaceDrawer === "function")
-        replaceDrawer(`Làm thử · ${exam.title}`, html, bind, {
-          wide: true,
-          eyebrow: "CHẾ ĐỘ GIẢNG VIÊN",
-        });
-    }
-
-    function showTeacherPreviewResult(exam, questions, answers) {
-      const correct = questions.filter(
-        (q) => answers[q.question_id] === q.correct_answer,
-      ).length;
-      const codes = [
-        ...new Set(questions.map((q) => q.clo_code).filter(Boolean)),
-      ];
-      const byClo = codes.map((code) => {
-        const cloQuestions = questions.filter((q) => q.clo_code === code);
-        const right = cloQuestions.filter(
-          (q) => answers[q.question_id] === q.correct_answer,
-        ).length;
-        return {
-          code,
-          total: cloQuestions.length,
-          correct: right,
-          score: cloQuestions.length
-            ? (right * 10) / cloQuestions.length
-            : 0,
-        };
-      });
-      const html = `<div class="preview-result"><div class="result-score"><small>Điểm bài thử</small><b>${questions.length ? ((correct * 10) / questions.length).toFixed(2) : "0.00"}</b><span>${correct}/${questions.length} câu đúng</span></div><div class="clo-results">${byClo.map((x) => `<div><b>${escapeHtml(x.code)}</b><strong>${x.score.toFixed(2)}</strong><span>${x.correct}/${x.total} câu đúng</span></div>`).join("")}</div><p class="hint">Làm thử chỉ dùng frozen snapshot, không tạo lượt làm, không ghi điểm và không gọi AI.</p><div class="drawer-actions"><button id="v122PreviewRetry" class="primary">Làm lại</button></div></div>`;
-      if (typeof replaceDrawer === "function")
-        replaceDrawer(
-          `Kết quả làm thử · ${exam.title}`,
-          html,
-          () => {
-            qs("#v122PreviewRetry").onclick = () =>
-              showTeacherPreviewQuestion(exam, questions, {}, 0, false);
-          },
-          {
+        if (first && typeof openDrawer === "function")
+          openDrawer(`Làm thử · ${exam.title}`, html, bind, {
             wide: true,
-            eyebrow: "KẾT QUẢ LÀM THỬ",
-          },
-        );
-    }
+            eyebrow: "CHẾ ĐỘ GIẢNG VIÊN",
+          });
+        else if (typeof replaceDrawer === "function")
+          replaceDrawer(`Làm thử · ${exam.title}`, html, bind, {
+            wide: true,
+            eyebrow: "CHẾ ĐỘ GIẢNG VIÊN",
+          });
+      }
+      function showTeacherPreviewResult(exam, questions, answers) {
+        const correct = questions.filter(
+            (q) => answers[q.question_id] === q.correct_answer,
+          ).length,
+          codes = [...new Set(questions.map((q) => q.clo_code).filter(Boolean))];
+        const byClo = codes.map((code) => {
+          const cloQuestions = questions.filter((q) => q.clo_code === code);
+          const right = cloQuestions.filter(
+            (q) => answers[q.question_id] === q.correct_answer,
+          ).length;
+          return {
+            code,
+            total: cloQuestions.length,
+            correct: right,
+            score: cloQuestions.length ? (right * 10) / cloQuestions.length : 0,
+          };
+        });
+        const html = `<div class="preview-result"><div class="result-score"><small>Điểm bài thử</small><b>${questions.length ? ((correct * 10) / questions.length).toFixed(2) : "0.00"}</b><span>${correct}/${questions.length} câu đúng</span></div><div class="clo-results">${byClo.map((x) => `<div><b>${escapeHtml(x.code)}</b><strong>${x.score.toFixed(2)}</strong><span>${x.correct}/${x.total} câu đúng</span></div>`).join("")}</div><p class="hint">Làm thử chỉ dùng frozen snapshot, không tạo lượt làm, không ghi điểm và không gọi AI.</p><div class="drawer-actions"><button id="v122PreviewRetry" class="primary">Làm lại</button></div></div>`;
+        if (typeof replaceDrawer === "function")
+          replaceDrawer(
+            `Kết quả làm thử · ${exam.title}`,
+            html,
+            () => {
+              qs("#v122PreviewRetry").onclick = () =>
+                showTeacherPreviewQuestion(exam, questions, {}, 0, false);
+            },
+            {
+              wide: true,
+              eyebrow: "KẾT QUẢ LÀM THỬ",
+            },
+          );
+      }
+
 
     return Object.freeze({ onlineTable, bindOnlineList, openExamDetail });
   };
