@@ -1,9 +1,9 @@
-/* AI-CLO PTITHCM V11.8.4 — shared layout adapter.
-   Tags recurring KPI/action/filter patterns so the CSS framework controls responsive layout centrally.
-   Auto-tagging is deliberately conservative; known page layouts also have direct CSS aliases. */
+/* AI-CLO PTITHCM V12.4.24 — shared layout adapter.
+   Tags recurring KPI/action/filter patterns so the generic layout framework controls responsive behavior after render.
+   Domain/module CSS owns first-paint layout; this adapter does not rely on direct module selectors in layout-system.css. */
 (()=>{
 'use strict';
-const VERSION='11.8.4';
+const VERSION='12.4.24';
 let observer=null,queued=false;
 
 const directElements=el=>[...el.children].filter(x=>!x.hidden&&getComputedStyle(x).display!=='none');
