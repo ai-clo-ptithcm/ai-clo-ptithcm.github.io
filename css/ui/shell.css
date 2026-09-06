@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.4.15 — shared app shell chrome. */
+/* AI-CLO PTITHCM V12.4.16 — shared app shell chrome. */
 :root{--v108-red:#b51f32;--v108-soft:#fff4f6;--v108-border:#e4e8ef;--v108-text:#172033;--v108-muted:#667085}
 
 /* Shared app header chrome — canonical owner. */
@@ -77,6 +77,14 @@
  #app.app main>header:has(.subject-pick:not(.hidden))>.subject-pick .subject-value small{display:none}
  #app.app main>header:has(.subject-pick.hidden){display:flex!important;height:68px!important;min-height:68px!important;padding:0 14px!important}
 }
+
+/* Shared app footer chrome — canonical shell owner. */
+.app-footer.site-footer{min-height:52px;padding:13px 28px;background:#fff;border-top:1px solid var(--line);color:var(--muted);font-size:12px;display:flex;align-items:center;justify-content:space-between;gap:18px}
+.app-footer.site-footer nav{display:flex;align-items:center;gap:22px}
+.app-footer.site-footer a{color:var(--muted);font-weight:700;text-decoration:none}
+.app-footer.site-footer a:hover{color:var(--red)}
+@media(max-width:620px){.app-footer.site-footer nav{flex-wrap:wrap}}
+@media(max-width:560px){.app-footer.site-footer{align-items:flex-start;flex-direction:column;gap:8px;padding:13px 16px}.app-footer.site-footer nav{gap:16px}}
 
 /* Shared detail drawer chrome — canonical shell owner. */
 .drawer-backdrop{position:fixed;inset:0;background:#11182742;z-index:39;backdrop-filter:blur(1px)}
