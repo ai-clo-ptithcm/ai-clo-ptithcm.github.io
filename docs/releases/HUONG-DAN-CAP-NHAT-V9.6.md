@@ -12,7 +12,7 @@ Sao lưu mã nguồn đang chạy và cơ sở dữ liệu Supabase trước khi
 
 Mở Supabase → SQL Editor và chạy:
 
-`supabase/v9.6-question-bank.sql`
+`supabase/migrations/v9.6-question-bank.sql`
 
 Chỉ chạy tệp này sau khi các migration đến V9.5 đã hoàn tất. Tệp sẽ:
 
