@@ -2,7 +2,7 @@
 
 > File này là **nguồn ghi nhớ kỹ thuật ưu tiên** để tiếp tục phát triển dự án trong các phiên sau. Khi bắt đầu chỉnh sửa AI-CLO, hãy đọc file này trước các changelog phiên bản nếu cần hiểu các quyết định đã chốt.
 
-Cập nhật gần nhất: **06/09/2026 — V12.4.24**
+Cập nhật gần nhất: **06/09/2026 — V12.5.0**
 
 Bản đồ kiến trúc hiện hành nằm tại `docs/project/ARCHITECTURE-AI-CLO.md`. Khi cần tìm đúng owner/file trước khi sửa, đọc file kiến trúc này ngay sau PROJECT-NOTES.
 
@@ -84,7 +84,9 @@ Ownership kỹ thuật:
 - `css/system/notifications.css` sở hữu **notification UI**: badge chưa đọc, task cards trên dashboard, `v109-notices`/“Thông báo gần đây”, Trung tâm thông báo và trang chi tiết; `css/system/activity.css` chỉ sở hữu **Nhật ký hoạt động** (`activity-filter`). Không tạo lại stylesheet trộn `activity-notifications.css`.
 - `css/questions/bank.css` là owner canonical cho **tab ngân hàng, scope chooser, fallback toolbar, bảng desktop và card mobile**. Các lớp V10.5/V10.5.3 phải được hợp nhất trong file này thay vì thêm tầng override/`!important`; `css/questions/bank-layout.css` chỉ sở hữu enhancement toolbar/filter drawer/chips. Không tạo lại late override riêng cho Question Bank.
 - `css/system/question-banks.css` sở hữu **quản trị Ngân hàng câu hỏi cấp hệ thống** do `js/system/question-banks.js` render (`v112/v113/v114`); không đưa các selector này về global UI.
-- `css/exams/assessment-shared.css` sở hữu **Assessment runtime dùng chung**, gồm `v109-tabs`, `v109-workspace-head`, `v109-assessment-workspace` và `online-matrix-*`; `css/exams/detail-enhancements.css` sở hữu toàn bộ **trang Chi tiết bài kiểm tra/attempt table**, cả layout lẫn chrome và first-paint KPI/action/filter breakpoints khớp generic layout contract; `css/exams/final-workflow.css` sở hữu compatibility của danh sách đề cuối kỳ như `v102-final-list`.
+- `css/exams/assessment-shared.css` sở hữu **Assessment runtime dùng chung**, gồm preview/result/live controls, `v109-tabs`, `v109-workspace-head`, `v109-assessment-workspace` và `online-matrix-*`; không sở hữu list/detail sinh viên nữa.
+- `css/exams/student-attempt.css` là owner duy nhất cho **danh sách bài kiểm tra sinh viên + trang con Chi tiết bài + lịch sử lượt làm + workspace làm bài**. Không đưa lại `student-exam-grid/card` vào `assessment-shared.css`.
+- `css/exams/detail-enhancements.css` sở hữu toàn bộ **trang Chi tiết bài kiểm tra/attempt table phía giảng viên**, cả layout lẫn chrome và first-paint KPI/action/filter breakpoints khớp generic layout contract; `css/exams/final-workflow.css` sở hữu compatibility của danh sách đề cuối kỳ như `v102-final-list`.
 - `css/students/profile.css` sở hữu **Hồ sơ học tập sinh viên**, gồm `academic-profile-summary` và breakpoint first-paint khớp generic KPI contract.
 - `css/ui/final-layer.css` đã **được loại khỏi runtime và xóa ở V12.4.22**. Không tạo lại “late compatibility layer”; rule còn sống phải về đúng owner domain/UI.
 - `app.html` **không load `css/public.css`**. Landing/public hiện dùng stylesheet riêng (`landing-v11.css`, `public-nav-static.css`); `public.css` chỉ được giữ như tài sản lịch sử nếu còn cần đối chiếu, không được để rule public/generic rò vào app runtime.
@@ -222,12 +224,26 @@ Trang chi tiết giảng viên cần có nút **Phát hành / Tạm đóng / M�
 
 ## 7. Trang Chi tiết bài kiểm tra
 
+### Giảng viên / Admin
+
 Desktop cần bố trí gọn:
 
 - **5 card KPI trên 1 hàng**: Đã nộp · Đang làm · GPA trung bình · GPA dưới 4 · Thời lượng.
 - **5 nút trên 1 hàng**: AI phân tích · Sửa cấu trúc · Làm thử · Phát hành/Tạm đóng/Mở lại · Xóa bài.
 - Toolbar danh sách lượt làm: **Tìm kiếm · Trạng thái · Sắp xếp · Xuất báo cáo** trên 1 hàng ở desktop.
 - “Sửa cấu trúc” không mở UI legacy; phải vào đúng builder framework mới theo `exam_type`.
+- **Admin** có quyền xóa bài kiểm tra ở mọi trạng thái bằng RPC `admin_delete_exam`; nếu bài đã có lượt làm, phải cảnh báo rõ rằng điểm/câu trả lời/lượt làm liên quan cũng bị xóa.
+- **Admin** có quyền xóa từng lượt làm sinh viên bằng RPC `admin_delete_attempt`. Giảng viên không hiện nút xóa lượt.
+- Migration `supabase/migrations/v12.5-admin-assessment-delete.sql` harden `admin_delete_attempt`: sau khi xóa bất kỳ lượt lịch sử nào, đánh số lại các lượt còn lại trong cùng transaction để không va unique constraint khi sinh viên làm tiếp.
+
+### Sinh viên — V12.5.0
+
+- Trang **Bài kiểm tra** hiển thị theo **danh sách gọn**, không dùng card grid cũ.
+- Nhấn cả dòng hoặc nút **Chi tiết →** mở **trang con full-width** của bài kiểm tra, không mở Drawer.
+- Trang con hiển thị thông tin bài và **danh sách tất cả lượt làm của chính sinh viên**.
+- Lượt chưa nộp có nút **Tiếp tục**; lượt đã nộp có nút **Xem câu hỏi**.
+- Chỉ **Xem câu hỏi / kết quả lượt đã nộp** mở Drawer/panel; Drawer không thay thế trang con phía sau.
+- Khi đang làm bài, nút Quay lại trở về **Chi tiết bài kiểm tra**; sau khi nộp, Drawer kết quả cũng nằm trên đúng trang Chi tiết bài.
 
 ## 8. Subpage State Manager — V11.8.2
 
@@ -254,7 +270,10 @@ State chung lưu tối thiểu:
 
 Các trang đã/đang nối vào cơ chế này:
 
-- Chi tiết bài kiểm tra;
+- Chi tiết bài kiểm tra phía giảng viên;
+- **Chi tiết bài kiểm tra phía sinh viên (`assessment-student-detail`)**;
+- **workspace đang làm bài (`assessment-attempt`)**;
+- Drawer kết quả/xem câu hỏi của lượt làm (`assessment-attempt-result`) giữ parent `assessment-student-detail` khi mở từ trang sinh viên;
 - unified builder 4 loại bài;
 - Hồ sơ sinh viên;
 - workspace Ngân hàng câu hỏi (tạo/sửa câu, AI, duplicate scan, AI review);
@@ -291,6 +310,10 @@ Không xóa state chỉ vì `visibilitychange`, `pagehide`, hoặc render lại 
 
 ### File runtime quan trọng
 
+- `js/assessment.js` — owner/router Assessment và registry persistence cho detail/builder/student-detail/attempt/result.
+- `js/assessment/online-lifecycle.js` — lifecycle bài online phía giảng viên/Admin, gồm status, danh sách lượt, preview/export và quyền xóa Admin.
+- `js/assessment/student-attempt.js` — owner danh sách bài sinh viên, trang Chi tiết bài, lịch sử lượt làm, workspace làm bài và Drawer kết quả.
+- `css/exams/student-attempt.css` — owner UI sinh viên tương ứng.
 - `js/exams/unified-builder.js` — framework chung 4 loại bài.
 - `css/exams/unified-builder.css` — giao diện builder chung.
 - `js/exams/unified-list-adapter.js` — adapter danh sách/trang chi tiết cho framework mới.
@@ -300,6 +323,12 @@ Không xóa state chỉ vì `visibilitychange`, `pagehide`, hoặc render lại 
 - `js/exams/detail-enhancements.js` — chi tiết bài kiểm tra, sort/scroll/layout hiện hành; nên dần phụ thuộc lớp chung thay vì tự giữ lifecycle riêng.
 - `js/questions/workspace.js` — cơ chế workspace câu hỏi cũ nhưng ổn định; khi refactor tiếp cần tích hợp registry chung, không phá lưu nháp câu hỏi.
 - `js/exams/final-workflow.js` — engine cuối kỳ/biểu mẫu đã kiểm nghiệm; không xóa vội.
+
+### Backend liên quan V12.5.0
+
+- RPC đã có từ V9.2: `admin_delete_exam(uuid)`, `admin_delete_attempt(uuid)` — chỉ Admin.
+- V12.5.0 **không đổi bảng/schema Assessment và không đổi `assessment_schema_version = 12.3.1`**.
+- Cần chạy `supabase/migrations/v12.5-admin-assessment-delete.sql` để harden việc xóa lượt giữa và đánh số lại lịch sử an toàn.
 
 ## 10. Việc cần tiếp tục kiểm tra
 
@@ -311,6 +340,8 @@ Không xóa state chỉ vì `visibilitychange`, `pagehide`, hoặc render lại 
 - login/Auth;
 - Question Bank desktop/mobile, filter, card/table, quick edit;
 - Assessment Detail/Builder/Attempt;
+- **Admin xóa bài/xóa lượt với dữ liệu thật sau khi chạy migration V12.5.0**;
+- **Student list → detail → attempt → result Drawer → quay lại detail**;
 - kiểm tra Chrome tab-switch/reload/discard cho từng trang con;
 - teacher/student qua Supabase/RLS;
 - đổi học phần không lẫn state/feedback;
