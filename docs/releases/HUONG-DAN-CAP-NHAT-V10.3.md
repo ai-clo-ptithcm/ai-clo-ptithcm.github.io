@@ -20,4 +20,4 @@ Giữ nguyên 4 Edge Function self-contained của V10.2:
 - analyze-student-clo
 - generate-one-question
 
-Nếu V10.2 đã chạy `supabase/v10.2-upgrade.sql` thì chỉ cần cập nhật frontend V10.3 lên GitHub.
+Nếu V10.2 đã chạy `supabase/migrations/v10.2-upgrade.sql` thì chỉ cần cập nhật frontend V10.3 lên GitHub.
