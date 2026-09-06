@@ -1,9 +1,10 @@
-/* AI-CLO PTITHCM V12.4.23 — reusable app UI primitives. */
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:22px}
+/* AI-CLO PTITHCM V12.4.24 — reusable app UI primitives. */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin-bottom:22px;min-width:0}
+.stats>*{min-width:0}
 .stat,.panel{background:white;border:1px solid var(--line);border-radius:12px}
 .stat{padding:20px}
 .stat small{color:var(--muted)}
-.stat b{font-size:30px;display:block;margin-top:10px}
+.stat b{font-size:30px;display:block;margin-top:10px;overflow-wrap:anywhere}
 .stat i{font-style:normal;color:var(--red);float:right}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 .panel{padding:20px;margin-bottom:18px}
@@ -27,12 +28,10 @@ th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4p
 .toast.error{background:#a61d2d}
 .bar{height:8px;background:#edf0f4;border-radius:9px;overflow:hidden}
 .bar span{display:block;height:100%;background:var(--red)}
-@media(max-width:900px){
- .stats{grid-template-columns:1fr 1fr}
+@media(max-width:1000px){
+ .stats{grid-template-columns:repeat(3,minmax(0,1fr))}
  .grid2{grid-template-columns:1fr}
  .panel{max-width:100%;min-width:0}
 }
-@media(max-width:560px){
- .stats{grid-template-columns:1fr 1fr}
- .stat{padding:16px;min-width:0}
-}
+@media(max-width:700px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.stat{padding:16px;min-width:0}}
+@media(max-width:430px){.stats{grid-template-columns:1fr}}
