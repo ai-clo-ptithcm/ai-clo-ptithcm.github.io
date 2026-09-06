@@ -71,7 +71,7 @@ Mục 1 có switch iPhone:
 
 Cần chạy một lần:
 
-`supabase/assessment-v11.9-migration.sql`
+`supabase/migrations/assessment-v11.9-migration.sql`
 
 Migration chỉ thêm:
 
