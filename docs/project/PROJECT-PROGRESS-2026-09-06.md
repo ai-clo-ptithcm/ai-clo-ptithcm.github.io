@@ -206,6 +206,7 @@ Các backup/checkpoint mới ngày 06/09/2026:
 - `backup-before-current-question-restore-20260906`
 - `backup-before-assessment-shared-persistence-20260906`
 - `backup-before-docs-checkpoint-20260906`
+- `backup-before-repo-file-organization-20260906`
 
 Các backup V12.3.x trước đó vẫn giữ nguyên.
 
@@ -250,13 +251,20 @@ Sau khi 5 hạng mục ổn định đã hoàn thành, ưu tiên chuyển sang k
 
 ## 9. Tài liệu liên quan
 
-- `README.md`
+- `../../README.md`
 - `PROJECT-PROGRESS-2026-09-05.md` — checkpoint trước V12.4.x
 - `PROJECT-STATUS-2026-09-05.md` — trạng thái V12 đầu ngày 05/09
-- `VERSION-v12.0.md`
-- `HUONG-DAN-CAP-NHAT-V12.md`
+- `../releases/VERSION-v12.0.md`
+- `../releases/HUONG-DAN-CAP-NHAT-V12.md`
 - `PROJECT-NOTES-AI-CLO.md`
-- `docs/assessment-v12.3.1-review-ai.sql`
+- `../../supabase/assessment-v12.3.1-review-ai.sql`
+
+## 10. Tổ chức tài liệu từ 06/09/2026
+
+- `docs/releases/`: VERSION, hướng dẫn cập nhật, upgrade và technical notes theo phiên bản.
+- `docs/project/`: project notes, progress/status checkpoint và thỏa thuận kỹ thuật.
+- `supabase/`: SQL migration/schema/policy và Edge Functions.
+- `supabase/docs/`: hướng dẫn triển khai Supabase/Gemini.
 
 ---
 
