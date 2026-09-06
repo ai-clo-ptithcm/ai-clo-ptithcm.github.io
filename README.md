@@ -23,13 +23,20 @@
 4. Đăng ký các workspace Assessment với shared persistence; theo dõi đúng `exam_id` / `attempt_id` và xóa state khi người dùng chủ động quay lại.
 5. Đồng bộ README và checkpoint tài liệu với trạng thái V12.4.3.
 
+## Cấu trúc tài liệu
+
+- `docs/releases/` — lịch sử phiên bản, hướng dẫn cập nhật, upgrade và technical notes theo phiên bản.
+- `docs/project/` — checkpoint tiến trình, trạng thái dự án, ghi chú và thỏa thuận kỹ thuật.
+- `supabase/` — migration, schema/policy và mã nguồn Edge Function.
+- `supabase/docs/` — hướng dẫn triển khai Supabase/Gemini.
+
 ## Tài liệu checkpoint
 
-- [`PROJECT-PROGRESS-2026-09-06.md`](PROJECT-PROGRESS-2026-09-06.md) — checkpoint hiện tại sau V12.4.3.
-- [`PROJECT-PROGRESS-2026-09-05.md`](PROJECT-PROGRESS-2026-09-05.md) — checkpoint trước chuỗi V12.4.x.
-- [`PROJECT-STATUS-2026-09-05.md`](PROJECT-STATUS-2026-09-05.md) — trạng thái V12 đầu ngày 05/09.
-- [`VERSION-v12.0.md`](VERSION-v12.0.md)
-- [`HUONG-DAN-CAP-NHAT-V12.md`](HUONG-DAN-CAP-NHAT-V12.md)
+- [`PROJECT-PROGRESS-2026-09-06.md`](docs/project/PROJECT-PROGRESS-2026-09-06.md) — checkpoint hiện tại sau V12.4.3.
+- [`PROJECT-PROGRESS-2026-09-05.md`](docs/project/PROJECT-PROGRESS-2026-09-05.md) — checkpoint trước chuỗi V12.4.x.
+- [`PROJECT-STATUS-2026-09-05.md`](docs/project/PROJECT-STATUS-2026-09-05.md) — trạng thái V12 đầu ngày 05/09.
+- [`VERSION-v12.0.md`](docs/releases/VERSION-v12.0.md)
+- [`HUONG-DAN-CAP-NHAT-V12.md`](docs/releases/HUONG-DAN-CAP-NHAT-V12.md)
 
 ## Ưu tiên tiếp theo
 
@@ -80,9 +87,9 @@ V11.5 hoàn thiện không gian quản trị và quy trình đánh giá theo hư
 
 Tài liệu V11:
 
-- [`VERSION-v11.md`](VERSION-v11.md)
-- [`HUONG-DAN-CAP-NHAT-V11.md`](HUONG-DAN-CAP-NHAT-V11.md)
-- [`V11-TECHNICAL-NOTES.md`](V11-TECHNICAL-NOTES.md)
+- [`VERSION-v11.md`](docs/releases/VERSION-v11.md)
+- [`HUONG-DAN-CAP-NHAT-V11.md`](docs/releases/HUONG-DAN-CAP-NHAT-V11.md)
+- [`V11-TECHNICAL-NOTES.md`](docs/releases/V11-TECHNICAL-NOTES.md)
 
 ---
 
@@ -106,7 +113,7 @@ Phiên bản này đồng thời tích hợp công cụ **Chấm thi CLO** tại
 
 V10.6 **không yêu cầu migration Supabase mới và không thay đổi model Gemini** cho các chỉnh sửa trên.
 
-Xem chi tiết tại [`VERSION-v10.6.md`](VERSION-v10.6.md).
+Xem chi tiết tại [`VERSION-v10.6.md`](docs/releases/VERSION-v10.6.md).
 
 ---
 
@@ -120,7 +127,7 @@ Bản này đồng thời thay favicon đỏ AI·CLO, sửa lỗi quay lại mà
 
 Nếu đã triển khai V10.4, chạy `supabase/v10.5-upgrade.sql` rồi cập nhật frontend. **Không cần deploy Edge Function mới.**
 
-Xem `HUONG-DAN-CAP-NHAT-V10.5.md`.
+Xem `docs/releases/HUONG-DAN-CAP-NHAT-V10.5.md`.
 
 ---
 
@@ -132,7 +139,7 @@ V10.4 tập trung hoàn thiện **hồ sơ đề thi cuối kỳ**: BM06/BM07/BM
 
 Nếu đã triển khai V10.3, chỉ cần chạy thêm `supabase/v10.4-upgrade.sql` rồi cập nhật frontend. **Không cần deploy Edge Function mới.** Các Edge Function Gemini vẫn self-contained.
 
-Xem `HUONG-DAN-CAP-NHAT-V10.4.md`.
+Xem `docs/releases/HUONG-DAN-CAP-NHAT-V10.4.md`.
 
 ---
 
@@ -160,7 +167,7 @@ V9.6 bổ sung ngân hàng câu hỏi hai nhóm (luyện tập và đề thi b�
 
 Sau khi cập nhật mã nguồn, chạy `supabase/v9.6-question-bank.sql` trong Supabase SQL Editor. Migration này phải chạy sau các migration đến V9.5.
 
-Xem trình tự chi tiết trong `HUONG-DAN-CAP-NHAT-V9.6.md`.
+Xem trình tự chi tiết trong `docs/releases/HUONG-DAN-CAP-NHAT-V9.6.md`.
 
 ---
 
@@ -196,12 +203,12 @@ V9.1 mở rộng V9 theo hướng hoàn thiện quy trình bài kiểm tra, gi�
 
 Nếu hệ thống hiện tại đã chạy V9, **không chạy lại migration V9**.
 
-1. Chạy `docs/assessment-v9.1-migration.sql` trong Supabase SQL Editor.
+1. Chạy `supabase/assessment-v9.1-migration.sql` trong Supabase SQL Editor.
 2. Redeploy `supabase/functions/analyze-assessment/index.ts` bằng code V9.1.
 3. Đưa toàn bộ mã nguồn V9.1 lên GitHub Pages.
 4. Kiểm thử bằng một tài khoản giảng viên và ít nhất hai tài khoản sinh viên nếu muốn đối chiếu ba chế độ rút câu.
 
-Xem chi tiết trong `UPGRADE-V9.1.md`.
+Xem chi tiết trong `docs/releases/UPGRADE-V9.1.md`.
 
 ## Cấu hình Supabase/Gemini
 
@@ -219,16 +226,16 @@ css/public.css
 js/app.js
 js/assessment.js
 js/assessment-v91.js
-docs/assessment-v9.1-migration.sql
+supabase/assessment-v9.1-migration.sql
 supabase/functions/analyze-assessment/index.ts
-UPGRADE-V9.1.md
-VERSION-v9.1.txt
+docs/releases/UPGRADE-V9.1.md
+docs/releases/VERSION-v9.1.txt
 ```
 
 `js/assessment.js` của V9 vẫn được giữ làm nền tương thích; `js/assessment-v91.js` được nạp sau để cung cấp luồng Bài kiểm tra V9.1.
 
 ## V10.2 (2026-08-31)
-Xem `HUONG-DAN-CAP-NHAT-V10.2.md`. V10.2 bổ sung Gemini auto-fallback, `clos.short_description`, nhập hàng loạt câu hỏi và quy trình đề cuối kỳ BM06 → duyệt câu → BM07/BM08 + đáp án CLO.
+Xem `docs/releases/HUONG-DAN-CAP-NHAT-V10.2.md`. V10.2 bổ sung Gemini auto-fallback, `clos.short_description`, nhập hàng loạt câu hỏi và quy trình đề cuối kỳ BM06 → duyệt câu → BM07/BM08 + đáp án CLO.
 
 ## V10.3
 Autosave/resume cho sinh viên làm bài, giảng viên làm thử và tạo đề cuối kỳ. Không cần SQL/Edge Function mới nếu đã triển khai V10.2.
