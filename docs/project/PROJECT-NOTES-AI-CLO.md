@@ -2,7 +2,7 @@
 
 > File này là **nguồn ghi nhớ kỹ thuật ưu tiên** để tiếp tục phát triển dự án trong các phiên sau. Khi bắt đầu chỉnh sửa AI-CLO, hãy đọc file này trước các changelog phiên bản nếu cần hiểu các quyết định đã chốt.
 
-Cập nhật gần nhất: **06/09/2026 — V12.4.19**
+Cập nhật gần nhất: **06/09/2026 — V12.4.20**
 
 ## 1. Nguyên tắc phát triển
 
@@ -71,10 +71,12 @@ Ownership kỹ thuật:
 - `css/ui/shell.css` sở hữu **shell chrome**: sidebar/header controls và **Drawer xem chi tiết** (`drawer-backdrop`, `side-drawer`, `drawer-head`, `drawer-body`, responsive drawer).
 - `css/login-app.css` sở hữu **giao diện Auth/Login đang chạy**, gồm login card và UI “Quên mật khẩu / liên hệ Quản trị viên”. `css/login-fit.css` chỉ sở hữu **viewport/height fit** của màn đăng nhập; không đưa các rule này trở lại `css/app.css`.
 - `css/courses/structure.css` sở hữu **CSS nghiệp vụ Chương · Chủ đề · CLO**: danh sách chương/chủ đề, action edit/delete, safe-delete/dependency và compatibility `structure-v95`; không đặt các rule này trở lại `css/app.css` hoặc `css/ui/application.css`.
-- `css/courses/catalog.css` sở hữu **danh sách Môn học dạng card** ở không gian hệ thống (`course-grid`, `course-card`, `course-toolbar`).
+- `css/courses/catalog.css` sở hữu **danh sách Môn học dạng card** ở không gian hệ thống (`course-grid`, `course-card`, `course-toolbar`, `course-card-actions` và metadata card liên quan).
 - `css/questions/analysis.css` sở hữu **thống kê/phân tích câu hỏi**; `css/question-exam.css` sở hữu metadata/list/detail của Ngân hàng câu hỏi như `question-clo`; `css/courses/class-list.css` sở hữu action/trạng thái của Danh sách lớp như `last-login-cell`, `message-student`.
-- `css/system/notifications.css` sở hữu **notification UI**: badge chưa đọc, task cards trên dashboard, Trung tâm thông báo và trang chi tiết; `css/system/activity.css` chỉ sở hữu **Nhật ký hoạt động** (`activity-filter`). Không tạo lại stylesheet trộn `activity-notifications.css`.
-- `css/questions/bank.css` là owner canonical cho **tab ngân hàng, scope chooser, fallback toolbar, bảng desktop và card mobile**. Các lớp V10.5/V10.5.3 phải được hợp nhất trong file này thay vì thêm tầng override/`!important`; `css/questions/bank-layout.css` chỉ sở hữu enhancement toolbar/filter drawer/chips. Các rule Question Bank còn sót trong late compatibility layer nên được prune dần, không mở rộng thêm.
+- `css/system/notifications.css` sở hữu **notification UI**: badge chưa đọc, task cards trên dashboard, `v109-notices`/“Thông báo gần đây”, Trung tâm thông báo và trang chi tiết; `css/system/activity.css` chỉ sở hữu **Nhật ký hoạt động** (`activity-filter`). Không tạo lại stylesheet trộn `activity-notifications.css`.
+- `css/questions/bank.css` là owner canonical cho **tab ngân hàng, scope chooser, fallback toolbar, bảng desktop và card mobile**. Các lớp V10.5/V10.5.3 phải được hợp nhất trong file này thay vì thêm tầng override/`!important`; `css/questions/bank-layout.css` chỉ sở hữu enhancement toolbar/filter drawer/chips. `css/ui/final-layer.css` không được giữ lại `bank-actions` hoặc mobile reset của Question Bank.
+- `css/system/question-banks.css` sở hữu **quản trị Ngân hàng câu hỏi cấp hệ thống** do `js/system/question-banks.js` render (`v112/v113/v114`); không đặt lại các selector này vào `css/ui/final-layer.css`.
+- `app.html` **không load `css/public.css`**. Landing/public hiện dùng stylesheet riêng (`landing-v11.css`, `public-nav-static.css`); `public.css` chỉ được giữ như tài sản lịch sử nếu còn cần đối chiếu, không được để rule public/generic rò vào app runtime.
 - `css/legacy/auth-v8.css` và `css/legacy/question-v95.css` là **archive only, không load runtime**. V9.5 question tool grid/mobile table cũ không được đưa trở lại `application.css` khi UI hiện hành đã dùng V9.6/V10.5.
 - Không đặt lại CSS Drawer vào `css/app.css` hoặc CSS nghiệp vụ; `css/app.css` chỉ giữ các primitive/global base còn cần và confirm dialog cho tới khi có owner UI riêng phù hợp.
 - CSS/module nghiệp vụ chỉ sở hữu **nội dung bên trong editor** và khác biệt theo ngữ cảnh.
