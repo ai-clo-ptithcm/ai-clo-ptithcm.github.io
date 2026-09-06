@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.4.5 — question bank/list/detail styles only.
+/* AI-CLO PTITHCM V12.4.18 — question bank/list/detail styles only.
    Assessment preview/result/runtime styles live in css/exams/assessment-shared.css. */
 .question-tools{display:grid;grid-template-columns:minmax(220px,1.7fr) repeat(4,minmax(135px,1fr));gap:9px;margin-bottom:12px}
 .question-tools input,.question-tools select{width:100%}
@@ -9,6 +9,7 @@
 .question-code{font-weight:850;color:var(--red);white-space:nowrap}
 .question-summary{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.55;max-height:3.1em;width:100%}
 .question-summary:hover,.question-code:hover{color:var(--red)}
+.question-clo{margin-top:7px}
 .question-detail{padding:20px;display:grid;gap:18px}
 .detail-meta{display:flex;gap:7px;flex-wrap:wrap}
 .detail-question{font-size:17px;font-weight:750;line-height:1.65}
