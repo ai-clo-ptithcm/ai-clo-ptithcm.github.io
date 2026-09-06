@@ -1,4 +1,4 @@
--- AI-CLO PTITHCM V12.6 — mixed fixed + random online assessment mode.
+-- AI-CLO PTITHCM V12.6.1 — mixed fixed + random online assessment mode.
 -- Run after assessment-v12.3.1-review-ai.sql and assessment-v12.2-migration.sql.
 -- No new table/column. Fixed question ids live in exams.question_blueprint.fixed_question_ids.
 -- Safe to run again.
@@ -9,18 +9,31 @@ alter table public.exams drop constraint if exists exams_question_mode_check;
 alter table public.exams add constraint exams_question_mode_check
   check (question_mode in ('common_fixed','student_fixed','attempt_random','mixed_fixed_random'));
 
+-- Mixed mode has a distinct meaning only when at least one fixed question exists.
+-- NOT VALID avoids blocking an upgrade because of any legacy row, while still
+-- enforcing the rule for new/updated rows after this migration.
+alter table public.exams drop constraint if exists exams_mixed_fixed_random_blueprint_check;
+alter table public.exams add constraint exams_mixed_fixed_random_blueprint_check
+  check (
+    question_mode <> 'mixed_fixed_random'
+    or (
+      jsonb_typeof(question_blueprint->'fixed_question_ids')='array'
+      and jsonb_array_length(question_blueprint->'fixed_question_ids') >= 1
+    )
+  ) not valid;
+
 create or replace function public.assessment_mixed_random_version()
 returns text
 language sql
 stable
 security definer
 set search_path=public,pg_temp
-as $$ select '12.6'::text $$;
+as $$ select '12.6.1'::text $$;
 revoke all on function public.assessment_mixed_random_version() from public,anon;
 grant execute on function public.assessment_mixed_random_version() to authenticated;
 
 comment on function public.assessment_mixed_random_version() is
-  'Capability marker for V12.6 mixed_fixed_random assessments.';
+  'Capability marker for V12.6.1 mixed_fixed_random assessments.';
 
 create or replace function public.populate_attempt_questions(p_attempt_id uuid)
 returns integer
@@ -121,6 +134,9 @@ begin
       v_fixed:=coalesce(v_exam.question_blueprint->'fixed_question_ids','[]'::jsonb);
       if jsonb_typeof(v_fixed)<>'array' then
         raise exception 'Danh sách câu cố định không hợp lệ';
+      end if;
+      if jsonb_array_length(v_fixed)<1 then
+        raise exception 'Chế độ Cố định và rút ngẫu nhiên cần ít nhất một câu cố định';
       end if;
 
       if exists(
@@ -287,6 +303,6 @@ grant execute on function public.populate_attempt_questions(uuid) to authenticat
 
 commit;
 
-select 'ASSESSMENT_V12_6_MIXED_FIXED_RANDOM_OK' as trang_thai,
+select 'ASSESSMENT_V12_6_1_MIXED_FIXED_RANDOM_OK' as trang_thai,
        count(*) filter(where question_mode='mixed_fixed_random') as bai_hon_hop
 from public.exams;
