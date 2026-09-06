@@ -76,7 +76,9 @@ Danh sách này có thể thay đổi. Khi cần biết chính xác Function hi�
 - Supabase database là nguồn dữ liệu chính thức.
 - Không sửa schema ngầm từ frontend.
 - Mọi thay đổi schema/RPC/RLS phải có SQL rõ ràng.
-- SQL migration/reference được lưu trong repo, chủ yếu tại `docs/` hoặc `supabase/` tùy giai đoạn.
+- SQL migration/upgrade được lưu tại `supabase/migrations/`.
+- Snapshot schema/RLS/policies dạng CSV được lưu tại `supabase/schema/`.
+- SQL policy độc lập được lưu tại `supabase/policies/`.
 - Trước khi viết SQL mới, phải kiểm tra migration mới nhất và schema hiện tại để tránh tạo constraint/RPC trùng hoặc làm mất RLS.
 - Không giả định migration cũ chưa/chắc đã chạy; nếu cần xác minh phải hỏi hoặc đọc trạng thái mà người dùng cung cấp.
 - Nếu một migration mới supersede migration cũ, phải nói rõ migration nào không cần chạy nữa.
@@ -292,7 +294,9 @@ Khi ChatGPT được yêu cầu sửa code thực tế:
 Đây là quy tắc cần đọc lại mỗi lần quay lại dự án:
 
 - **Frontend source** → GitHub.
-- **SQL/migration reference** → GitHub.
+- **SQL/migration reference** → GitHub `supabase/migrations/`.
+- **Schema snapshot** → GitHub `supabase/schema/`.
+- **SQL policy độc lập** → GitHub `supabase/policies/`.
 - **Edge Function source hiện hành** → GitHub `supabase/functions/`.
 - **Frontend runtime** → GitHub Pages.
 - **Database/Auth/Storage/RPC runtime** → Supabase.
