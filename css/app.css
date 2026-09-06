@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.4.23 — global base, controls and form primitives only. */
+/* AI-CLO PTITHCM V12.4.24 — global base, controls and form primitives only. */
 :root{--red:#a61d2d;--red2:#7f1422;--ink:#18212f;--muted:#667085;--line:#e5e9ef;--bg:#f4f6f9;--white:#fff;--green:#087a55;--amber:#a15c05}
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,"Segoe UI",Arial,sans-serif;color:var(--ink);background:var(--bg)}
@@ -6,8 +6,6 @@ button,input,select,textarea{font:inherit}
 button{cursor:pointer}
 button:disabled{opacity:.5;cursor:not-allowed}
 .hidden{display:none!important}
-.logo{font-size:24px;font-weight:900;letter-spacing:-1px}
-.logo span{color:#ef9aa5}
 .field{display:grid;gap:7px;font-size:13px;font-weight:700;color:#495366}
 input,select,textarea{border:1px solid #ccd3dc;border-radius:8px;padding:11px 12px;background:white;color:var(--ink);min-width:0}
 textarea{min-height:90px;resize:vertical}
