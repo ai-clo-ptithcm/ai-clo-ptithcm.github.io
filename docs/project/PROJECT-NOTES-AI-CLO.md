@@ -2,7 +2,7 @@
 
 > File này là **nguồn ghi nhớ kỹ thuật ưu tiên** để tiếp tục phát triển dự án trong các phiên sau. Khi bắt đầu chỉnh sửa AI-CLO, hãy đọc file này trước các changelog phiên bản nếu cần hiểu các quyết định đã chốt.
 
-Cập nhật gần nhất: **06/09/2026 — V12.4.18**
+Cập nhật gần nhất: **06/09/2026 — V12.4.19**
 
 ## 1. Nguyên tắc phát triển
 
@@ -73,6 +73,8 @@ Ownership kỹ thuật:
 - `css/courses/structure.css` sở hữu **CSS nghiệp vụ Chương · Chủ đề · CLO**: danh sách chương/chủ đề, action edit/delete, safe-delete/dependency và compatibility `structure-v95`; không đặt các rule này trở lại `css/app.css` hoặc `css/ui/application.css`.
 - `css/courses/catalog.css` sở hữu **danh sách Môn học dạng card** ở không gian hệ thống (`course-grid`, `course-card`, `course-toolbar`).
 - `css/questions/analysis.css` sở hữu **thống kê/phân tích câu hỏi**; `css/question-exam.css` sở hữu metadata/list/detail của Ngân hàng câu hỏi như `question-clo`; `css/courses/class-list.css` sở hữu action/trạng thái của Danh sách lớp như `last-login-cell`, `message-student`.
+- `css/system/notifications.css` sở hữu **notification UI**: badge chưa đọc, task cards trên dashboard, Trung tâm thông báo và trang chi tiết; `css/system/activity.css` chỉ sở hữu **Nhật ký hoạt động** (`activity-filter`). Không tạo lại stylesheet trộn `activity-notifications.css`.
+- `css/questions/bank.css` là owner canonical cho **tab ngân hàng, scope chooser, fallback toolbar, bảng desktop và card mobile**. Các lớp V10.5/V10.5.3 phải được hợp nhất trong file này thay vì thêm tầng override/`!important`; `css/questions/bank-layout.css` chỉ sở hữu enhancement toolbar/filter drawer/chips. Các rule Question Bank còn sót trong late compatibility layer nên được prune dần, không mở rộng thêm.
 - `css/legacy/auth-v8.css` và `css/legacy/question-v95.css` là **archive only, không load runtime**. V9.5 question tool grid/mobile table cũ không được đưa trở lại `application.css` khi UI hiện hành đã dùng V9.6/V10.5.
 - Không đặt lại CSS Drawer vào `css/app.css` hoặc CSS nghiệp vụ; `css/app.css` chỉ giữ các primitive/global base còn cần và confirm dialog cho tới khi có owner UI riêng phù hợp.
 - CSS/module nghiệp vụ chỉ sở hữu **nội dung bên trong editor** và khác biệt theo ngữ cảnh.
