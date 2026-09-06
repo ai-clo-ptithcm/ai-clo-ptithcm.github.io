@@ -7,7 +7,7 @@ Sao lưu bản đang chạy, sau đó thay toàn bộ mã nguồn bằng thư m�
 ## Cơ sở dữ liệu
 
 - Đang dùng V9.6: không cần chạy thêm SQL.
-- Đang dùng V9.5 trở xuống: chạy `supabase/v9.6-question-bank.sql` trước khi dùng Ngân hàng câu hỏi V10.
+- Đang dùng V9.5 trở xuống: chạy `supabase/migrations/v9.6-question-bank.sql` trước khi dùng Ngân hàng câu hỏi V10.
 
 ## Kiểm tra nhanh
 
