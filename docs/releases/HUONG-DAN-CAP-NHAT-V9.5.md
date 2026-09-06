@@ -10,7 +10,7 @@ Giữ nguyên bản v9.4.2 và sao lưu cơ sở dữ liệu trước khi cập 
 
 ## 3. Cập nhật Supabase
 
-Mở Supabase SQL Editor và chạy toàn bộ tệp `supabase/v9.5-addon.sql`.
+Mở Supabase SQL Editor và chạy toàn bộ tệp `supabase/migrations/v9.5-addon.sql`.
 
 Tệp này tạo hàm bảo mật để giảng viên hoặc Admin gửi thông báo riêng cho sinh viên thuộc đúng lớp đang phụ trách. Không cần sửa dữ liệu cũ.
 
