@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.4.21 — shared Assessment runtime styles.
+/* AI-CLO PTITHCM V12.4.22 — shared Assessment runtime styles.
    Keep only selectors used by the current Assessment runtime. Confirmed V9/V9.1-only selectors live in css/legacy/assessment-v9.css and are not loaded by app.html.
    AI review/feedback components are owned by css/ai.css. */
 
@@ -63,7 +63,15 @@
 .exam-title-link:hover{color:var(--red);text-decoration:underline}
 .drawer-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 
-/* Historical class names still used by the current assessment workspace/matrix. */
+/* Historical class names still used by the current assessment list/workspace/matrix. */
+.v109-tabs{display:flex;gap:6px;padding:5px;margin-bottom:18px;border:1px solid var(--line);border-radius:12px;background:#eef1f5;width:max-content;max-width:100%}
+.v109-tabs button{border:0;border-radius:8px;background:transparent;padding:10px 16px;font-weight:800;color:#596273}
+.v109-tabs button.active{background:#fff;color:var(--red);box-shadow:0 2px 8px #1112}
+.v109-workspace-head{display:flex;align-items:flex-start;gap:16px;margin-bottom:18px;padding:20px;border:1px solid var(--line);border-radius:16px;background:#fff}
+.v109-workspace-head>div{min-width:0}
+.v109-workspace-head small{color:var(--red);font-weight:900;letter-spacing:.08em}
+.v109-workspace-head h3{font-size:24px;margin:4px 0}
+.v109-workspace-head p{margin:0;color:var(--muted);line-height:1.5}
 .v109-assessment-workspace{padding:0;overflow:hidden}
 .v109-assessment-workspace .assessment-form{width:100%;padding:22px}
 .v109-assessment-workspace .form-actions{position:sticky;bottom:0;z-index:3;margin:8px -22px -22px;padding:14px 22px;background:#fff;border-top:1px solid var(--line)}
@@ -88,6 +96,8 @@
   .student-exam-meta{grid-template-columns:1fr}
   .drawer-actions button{flex:1}
   .assessment-table{min-width:980px}
+  .v109-tabs{width:100%}.v109-tabs button{flex:1;padding:9px 7px;font-size:12px}
+  .v109-workspace-head{padding:14px;flex-direction:column}.v109-workspace-head h3{font-size:21px}.v109-workspace-head>button{width:100%;text-align:left}
   .v109-assessment-workspace{margin-left:-2px;margin-right:-2px}
   .v109-assessment-workspace .assessment-form{display:grid;grid-template-columns:1fr!important;padding:15px}
   .v109-assessment-workspace .assessment-form>.wide{grid-column:1!important}
