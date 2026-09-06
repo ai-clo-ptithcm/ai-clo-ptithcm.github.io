@@ -12,7 +12,7 @@
 ## Cài đặt
 
 1. Mở Supabase Dashboard → SQL Editor.
-2. Chạy toàn bộ file `supabase/v9.4-question-history.sql` một lần.
+2. Chạy toàn bộ file `supabase/migrations/v9.4-question-history.sql` một lần.
 3. Đưa toàn bộ mã nguồn v9.4.2 lên GitHub Pages.
 4. Không cần cập nhật Edge Function.
 
