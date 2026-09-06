@@ -2,7 +2,7 @@
 
 > File này là **nguồn ghi nhớ kỹ thuật ưu tiên** để tiếp tục phát triển dự án trong các phiên sau. Khi bắt đầu chỉnh sửa AI-CLO, hãy đọc file này trước các changelog phiên bản nếu cần hiểu các quyết định đã chốt.
 
-Cập nhật gần nhất: **06/09/2026 — V12.5.0**
+Cập nhật gần nhất: **07/09/2026 — V12.6.4**
 
 Bản đồ kiến trúc hiện hành nằm tại `docs/project/ARCHITECTURE-AI-CLO.md`. Khi cần tìm đúng owner/file trước khi sửa, đọc file kiến trúc này ngay sau PROJECT-NOTES.
 
@@ -305,8 +305,9 @@ Không xóa state chỉ vì `visibilitychange`, `pagehide`, hoặc render lại 
 - `docs/project/PROJECT-NOTES-AI-CLO.md` — quyết định kỹ thuật/UI/nghiệp vụ ưu tiên.
 - `docs/project/ARCHITECTURE-AI-CLO.md` — bản đồ kiến trúc hiện hành và owner theo domain.
 - `docs/project/TECHNICAL-AGREEMENTS.md` — quy tắc kỹ thuật bắt buộc.
-- `docs/project/PROJECT-STATUS-2026-09-06.md` — snapshot trạng thái hiện tại.
-- `docs/project/PROJECT-PROGRESS-2026-09-06.md` — tiến trình chi tiết trong ngày.
+- `docs/project/PROJECT-STATUS-2026-09-07.md` — snapshot trạng thái hiện tại.
+- `docs/project/PROJECT-PROGRESS-2026-09-07.md` — tiến trình chi tiết trong ngày.
+- `docs/releases/V12.6-SHARED-BANK-ASSESSMENT.md` — release note cho mốc V12.6 ngân hàng dùng chung + Assessment.
 
 ### File runtime quan trọng
 
@@ -323,12 +324,20 @@ Không xóa state chỉ vì `visibilitychange`, `pagehide`, hoặc render lại 
 - `js/exams/detail-enhancements.js` — chi tiết bài kiểm tra, sort/scroll/layout hiện hành; nên dần phụ thuộc lớp chung thay vì tự giữ lifecycle riêng.
 - `js/questions/workspace.js` — cơ chế workspace câu hỏi cũ nhưng ổn định; khi refactor tiếp cần tích hợp registry chung, không phá lưu nháp câu hỏi.
 - `js/exams/final-workflow.js` — engine cuối kỳ/biểu mẫu đã kiểm nghiệm; không xóa vội.
+- `js/core/question-bank-ownership.js` — compatibility bridge V12.6.2 cho các module legacy còn lọc nội dung bằng `subject_id`; tự route đọc Chương/CLO/Câu hỏi sang `question_bank_id` của học phần hiện tại.
 
-### Backend liên quan V12.5.0
+### Backend liên quan V12.5–V12.6
 
 - RPC đã có từ V9.2: `admin_delete_exam(uuid)`, `admin_delete_attempt(uuid)` — chỉ Admin.
 - V12.5.0 **không đổi bảng/schema Assessment và không đổi `assessment_schema_version = 12.3.1`**.
 - Cần chạy `supabase/migrations/v12.5-admin-assessment-delete.sql` để harden việc xóa lượt giữa và đánh số lại lịch sử an toàn.
+- V12.6.1 thêm mode online `mixed_fixed_random` = **Cố định và rút ngẫu nhiên**. Giảng viên phải chọn ≥1 câu cố định trước; câu cố định tiêu thụ quota của đúng ô ma trận; phần còn lại rút ngẫu nhiên và không hiển thị danh sách câu random cụ thể trong builder.
+- `student_fixed` và `attempt_random` là random thuần: Builder chỉ hiển thị cấu trúc/ma trận, không hiển thị câu cụ thể sau khi rút.
+- `supabase/migrations/assessment-v12.6-mixed-fixed-random.sql` là migration backend cho V12.6.1.
+- V12.6.2 chốt ownership dùng chung: **Câu hỏi / Chương / CLO thuộc Ngân hàng câu hỏi; Bài kiểm tra / lượt làm / kết quả thuộc Học phần**.
+- V12.6.3 xử lý tương thích khóa ngoại legacy của `questions`: `questions.subject_id` phải khớp `subject_id` nguồn của Chương/CLO, trong khi ownership thật là `question_bank_id`. Migration: `supabase/migrations/v12.6.3-question-bank-legacy-subject.sql`.
+- V12.6.4 sửa backend Assessment để `replace_exam_design()` và `save_final_exam_package()` xác thực nguồn câu bằng `question_bank_id` của học phần thay vì `q.subject_id = exam.subject_id`. Migration: `supabase/migrations/assessment-v12.6.4-question-bank-scope.sql`.
+- `populate_attempt_questions()` không cần đổi ở V12.6.4 vì chỉ làm việc với `exam_question_pool` đã được đóng băng và xác thực trước đó.
 
 ## 10. Việc cần tiếp tục kiểm tra
 
@@ -336,6 +345,10 @@ Không xóa state chỉ vì `visibilitychange`, `pagehide`, hoặc render lại 
 
 Ưu tiên tiếp theo:
 
+- chạy và xác nhận các migration V12.6.3 + V12.6.4 trên Supabase;
+- smoke lớp mới dùng chung Ngân hàng Giải tích 1: đọc Chương/Mục/CLO, thêm câu thủ công, câu Gemini, import câu, tạo bài kiểm tra, tạo đề cuối kỳ;
+- kiểm tra 4 mode online: `common_fixed`, `student_fixed`, `attempt_random`, `mixed_fixed_random`;
+- kiểm tra `mixed_fixed_random`: bắt buộc ≥1 câu cố định → rút phần còn lại → lưu → sinh viên bắt đầu lượt làm;
 - smoke desktop/mobile shell;
 - login/Auth;
 - Question Bank desktop/mobile, filter, card/table, quick edit;
@@ -361,3 +374,48 @@ Trước khi sửa lớn ở các phiên sau:
 4. Quét code mới nhất trên GitHub `main` trước khi quyết định thay đổi.
 5. Không giả định UI/state cũ còn đúng nếu repo đã có phiên bản mới.
 6. Ưu tiên thay đổi theo framework chung, không tạo “bản vá riêng” cho một trang nếu vấn đề có tính toàn hệ thống.
+7. **Quy ước thao tác GitHub với người dùng:** khi đang trao đổi/góp ý/thiết kế thì không sửa repo. Chỉ khi người dùng xác nhận rõ kiểu “OK, bắt đầu / bắt đầu viết / làm nhé” mới được triển khai. Trước khi viết runtime/backend lên `main`, tạo branch backup từ HEAD hiện tại; sau đó mới commit lên `main` và rà diff.
+
+## 12. Ghi nhớ chung V12.6 — Ngân hàng dùng chung + Assessment
+
+Đây là mốc kiến trúc bắt buộc phải giữ khi phát triển tiếp.
+
+### Ownership dữ liệu
+
+- **Ngân hàng câu hỏi (`question_bank_id`)** sở hữu: Chương, Mục, CLO, câu hỏi.
+- **Học phần/lớp (`subject_id`)** sở hữu: bài kiểm tra, cấu hình phát hành, lượt làm, kết quả CLO.
+- Nhiều học phần/lớp có thể trỏ cùng một `question_bank_id`; ví dụ nhiều lớp Giải tích 1 dùng chung Chương/Mục/CLO và toàn bộ câu hỏi.
+- Không được quay lại giả định “câu hỏi thuộc lớp hiện tại” chỉ vì legacy schema còn trường `questions.subject_id`.
+- `questions.subject_id` hiện là trường tương thích FK legacy; khi ghi câu mới trong ngân hàng dùng chung, giá trị này phải khớp học phần nguồn của Chương/CLO, còn ownership thực dùng `question_bank_id`.
+
+### 4 cách rút câu online
+
+1. `common_fixed` — **Đề chung cố định**: hiển thị và chốt toàn bộ câu cụ thể.
+2. `student_fixed` — **Đề riêng theo sinh viên**: không hiện câu cụ thể trong Builder; mỗi sinh viên rút một bộ riêng và giữ bộ đó.
+3. `attempt_random` — **Rút lại mỗi lần làm**: không hiện câu cụ thể trong Builder; mỗi lượt làm rút lại theo ma trận.
+4. `mixed_fixed_random` — **Cố định và rút ngẫu nhiên**: chọn câu cố định trước; câu cố định trừ quota của đúng ô ma trận; sau đó “Rút phần còn lại”. Builder chỉ hiện câu cố định + thống kê số câu random, không liệt kê câu random cụ thể.
+
+### Quy tắc của `mixed_fixed_random`
+
+- Phải có ít nhất 1 câu cố định.
+- Thứ tự thao tác: **lập ma trận → chọn câu cố định → rút phần còn lại → lưu**.
+- Nếu đổi ma trận/phạm vi hoặc thêm-bớt câu cố định sau khi đã rút, trạng thái “đã rút phần còn lại” phải bị vô hiệu và giảng viên phải rút lại.
+- Backend phải đưa câu cố định vào trước, tính quota còn thiếu từng cell rồi mới rút random.
+- Không dùng thiết kế “fixed slot Câu 1/Câu 2/...”; prototype đó đã bỏ.
+
+### Migration phải nhớ
+
+- `supabase/migrations/assessment-v12.6-mixed-fixed-random.sql` — V12.6.1, thêm mode hỗn hợp và populate attempt tương ứng.
+- `supabase/migrations/v12.6.3-question-bank-legacy-subject.sql` — chuẩn hóa `questions.subject_id` legacy để không vi phạm FK ghép Chương/CLO khi học phần dùng ngân hàng chung.
+- `supabase/migrations/assessment-v12.6.4-question-bank-scope.sql` — backend Assessment xác thực pool online và bộ câu cuối kỳ bằng `question_bank_id` thay vì `subject_id`.
+
+### Tài liệu hiện hành
+
+Khi tiếp tục từ mốc này, đọc theo thứ tự:
+
+1. `docs/project/PROJECT-NOTES-AI-CLO.md`
+2. `docs/project/PROJECT-STATUS-2026-09-07.md`
+3. `docs/project/PROJECT-PROGRESS-2026-09-07.md`
+4. `docs/releases/V12.6-SHARED-BANK-ASSESSMENT.md`
+5. `docs/project/ARCHITECTURE-AI-CLO.md`
+6. `docs/project/TECHNICAL-AGREEMENTS.md`
