@@ -120,7 +120,7 @@ Các file chính liên quan:
 - Nếu Supabase có `counts_toward_grade`, bài có giá trị `false` bị loại khỏi tổng hợp học phần.
 - Nếu chưa có cột này, frontend fallback về hành vi cũ và không làm hỏng trang.
 
-SQL cần chạy một lần nếu chưa chạy trước đó: `supabase/assessment-v12.0-migration.sql`.
+SQL cần chạy một lần nếu chưa chạy trước đó: `supabase/migrations/assessment-v12.0-migration.sql`.
 
 ## 9. Header các trang công khai
 
