@@ -1,23 +1,16 @@
-/* AI-CLO PTITHCM V12.4.18 — application layout + shared sizing. */
+/* AI-CLO PTITHCM V12.4.23 — application layout + shared sizing only. */
 /* Header/sidebar/footer chrome and responsive behavior are owned by css/ui/shell.css. */
 html,body{width:100%;max-width:100%;overflow-x:hidden}
-.app,.app>main,.content,.app header{width:100%;max-width:100%;min-width:0}
-.app>main{display:flex;min-height:100vh;flex-direction:column}
-.app .content{width:100%;flex:1}
-.table-wrap{max-width:100%}
-button:disabled{opacity:.5;cursor:not-allowed}
-.class-stats{grid-template-columns:repeat(3,1fr)}
+.app{width:100%;max-width:100%;min-width:0;min-height:100vh;display:grid;grid-template-columns:245px 1fr}
+.app>main{width:100%;max-width:100%;min-width:0;display:flex;min-height:100vh;flex-direction:column}
+.app .content{width:100%;max-width:100%;min-width:0;flex:1;padding:26px;margin:auto}
+.app>main>header{width:100%;max-width:100%;min-width:0}
 @media(max-width:900px){
-  .app{overflow-x:hidden}
+  .app{grid-template-columns:1fr;overflow-x:hidden}
   .app>main{overflow-x:hidden}
-  .content{overflow-x:hidden}
-  .panel{max-width:100%;min-width:0}
+  .app .content{overflow-x:hidden;padding:16px}
 }
-@media(max-width:560px){
-  .content{padding:14px 12px}
-  .stats,.class-stats{grid-template-columns:1fr 1fr}
-  .stat{padding:16px;min-width:0}
-}
+@media(max-width:560px){.app .content{padding:14px 12px}}
 /* Desktop app geometry belongs to the UI layout layer. */
 @media(min-width:901px){.app{display:block;min-height:100vh}.app>aside{position:fixed;left:0;top:0;bottom:0;width:245px;z-index:20}.app>main{margin-left:245px;width:calc(100% - 245px);min-height:100vh}.app>main>header{left:245px}}
 
