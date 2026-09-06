@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.6 — Online Assessment Builder module. */
+/* AI-CLO PTITHCM V12.6.1 — Online Assessment Builder module. */
 (() => {
   "use strict";
   window.AICLO_ASSESSMENT_MODULES = window.AICLO_ASSESSMENT_MODULES || {};
@@ -51,6 +51,7 @@
         frozenPool: new Map(),
         draftOverrides: new Map(),
         selectionDirty: false,
+        mixedDrawReady: false,
       };
     }
 
@@ -121,9 +122,15 @@
     function fixedCountForKey(ctx, key) {
       return fixedCountsByCell(ctx).get(key) || 0;
     }
+    function invalidateMixedDraw(ctx) {
+      ctx.mixedDrawReady = false;
+      if (isMixedMode(ctx.settings.question_mode)) ctx.selected = [];
+    }
     function validateFixedQuestions(ctx) {
       if (!isMixedMode(ctx.settings.question_mode)) return;
       const fixed = fixedQuestions(ctx);
+      if (!fixed.length)
+        throw new Error("Cần chọn ít nhất một câu cố định trước khi rút phần còn lại.");
       if (fixed.length !== ctx.fixedQuestionIds.size)
         throw new Error("Có câu cố định không còn tồn tại trong ngân hàng/pool.");
       const counts = new Map();
@@ -234,6 +241,8 @@
           ctx.selected = (chosen || [])
             .map((x) => frozen.get(x.question_id) || findById(ctx.sets.questions, x.question_id))
             .filter(Boolean);
+          if (isMixedMode(ctx.settings.question_mode) && ctx.fixedQuestionIds.size > 0 && ctx.selected.length === matrixTotal(ctx))
+            ctx.mixedDrawReady = true;
         }
         renderBuilder(ctx);
       } catch (e) {
@@ -245,8 +254,11 @@
       const c = getAssessmentRoot();
       if (!c) return;
       const total = matrixTotal(ctx),
-        commonFixed = ctx.settings.question_mode === "common_fixed";
-      c.innerHTML = `<div class="assessment-builder-v122 assessment-builder-v126"><div class="subpage-head"><div><button id="v122BuilderBack" class="secondary compact">← Quay lại</button><small>${ctx.examId ? "CHỈNH SỬA" : "TẠO"} BÀI KIỂM TRA</small><h3>${escapeHtml(ctx.settings.title || "Bài kiểm tra mới")}</h3><p>Ngân hàng luyện tập – kiểm tra · ${ctx.locked ? "Cấu trúc đã khóa vì có lượt làm" : commonFixed ? "Đề dùng đúng bộ câu đã chốt" : isMixedMode(ctx.settings.question_mode) ? "Một số câu cố định, phần còn lại rút ngẫu nhiên" : "Chỉ lưu cấu trúc; câu cụ thể được rút khi sinh viên làm bài"}</p></div><span class="badge">${total} câu</span></div>${builderInfo(ctx)}${builderStructure(ctx)}${builderQuestions(ctx)}<div class="form-actions assessment-builder-footer"><button id="v122BuilderCancel" class="secondary">Hủy</button>${commonFixed ? `<button id="v122Draw" class="secondary" ${ctx.locked ? "disabled" : ""}>Rút câu hỏi</button>` : ""}<button id="v122Save" class="primary">${ctx.examId ? "Lưu thay đổi" : "Tạo bài kiểm tra"}</button></div></div>`;
+        commonFixed = ctx.settings.question_mode === "common_fixed",
+        mixed = isMixedMode(ctx.settings.question_mode),
+        fixedCount = mixed ? fixedQuestions(ctx).length : 0,
+        mixedDrawDisabled = ctx.locked || fixedCount < 1 || total < 1;
+      c.innerHTML = `<div class="assessment-builder-v122 assessment-builder-v126"><div class="subpage-head"><div><button id="v122BuilderBack" class="secondary compact">← Quay lại</button><small>${ctx.examId ? "CHỈNH SỬA" : "TẠO"} BÀI KIỂM TRA</small><h3>${escapeHtml(ctx.settings.title || "Bài kiểm tra mới")}</h3><p>Ngân hàng luyện tập – kiểm tra · ${ctx.locked ? "Cấu trúc đã khóa vì có lượt làm" : commonFixed ? "Đề dùng đúng bộ câu đã chốt" : mixed ? "Chọn câu cố định trước, sau đó rút phần còn lại" : "Chỉ lưu cấu trúc; câu cụ thể được rút khi sinh viên làm bài"}</p></div><span class="badge">${total} câu</span></div>${builderInfo(ctx)}${builderStructure(ctx)}${builderQuestions(ctx)}<div class="form-actions assessment-builder-footer"><button id="v122BuilderCancel" class="secondary">Hủy</button>${commonFixed ? `<button id="v122Draw" class="secondary" ${ctx.locked ? "disabled" : ""}>Rút câu hỏi</button>` : ""}${mixed ? `<button id="v126DrawRandom" class="secondary" ${mixedDrawDisabled ? "disabled" : ""}>${ctx.mixedDrawReady ? "Rút lại phần còn lại" : "Rút phần còn lại"}</button>` : ""}<button id="v122Save" class="primary">${ctx.examId ? "Lưu thay đổi" : "Tạo bài kiểm tra"}</button></div></div>`;
       bindBuilder(ctx);
       renderMathIn(c);
     }
@@ -346,8 +358,13 @@
       if (isMixedMode(ctx.settings.question_mode)) {
         const fixed = fixedQuestions(ctx),
           total = matrixTotal(ctx),
-          randomCount = Math.max(0, total - fixed.length);
-        return `<section class="panel ub-required-panel"><div class="panel-head"><div><h3>3. Câu cố định</h3><p class="hint">Các câu này luôn xuất hiện. Phần còn lại được rút ngẫu nhiên đúng ma trận ở mỗi lượt làm.</p></div>${ctx.locked ? "" : `<div class="ub-required-actions"><button type="button" class="secondary" id="v126AddFixed">+ Chọn câu cố định</button><button type="button" class="ai-btn" id="v126AiFixed">✦ AI tạo câu cố định</button></div>`}</div><div class="ub-required-summary"><b>${fixed.length} câu cố định</b><span>${randomCount} câu ngẫu nhiên</span><span>Tổng ${total} câu</span>${ctx.selectionDirty ? '<span class="badge">Chưa lưu thay đổi</span>' : ""}</div>${fixed.length ? `<div class="ub-required-list">${fixed.map((q) => fixedQuestionCard(ctx, q)).join("")}</div>` : '<div class="empty ub-required-empty"><b>Chưa có câu cố định</b><span>Toàn bộ câu sẽ được rút ngẫu nhiên theo ma trận. Chỉ thêm câu cố định khi cần một số nội dung chắc chắn xuất hiện.</span></div>'}</section>`;
+          randomCount = Math.max(0, total - fixed.length),
+          step = fixed.length < 1
+            ? "Bước 1: chọn ít nhất 1 câu cố định."
+            : ctx.mixedDrawReady
+              ? `Đủ ma trận ✓ · ${fixed.length} cố định + ${randomCount} ngẫu nhiên = ${total} câu.`
+              : `Bước 2: nhấn “Rút phần còn lại” để kiểm tra ${randomCount} câu ngẫu nhiên.`;
+        return `<section class="panel ub-required-panel"><div class="panel-head"><div><h3>3. Câu cố định trước · ngẫu nhiên sau</h3><p class="hint">Chọn câu cố định trước. Mỗi câu được trừ ngay vào đúng ô ma trận; phần còn thiếu mới được rút ngẫu nhiên.</p></div>${ctx.locked ? "" : `<div class="ub-required-actions"><button type="button" class="secondary" id="v126AddFixed">+ Chọn câu cố định</button><button type="button" class="ai-btn" id="v126AiFixed">✦ AI tạo câu cố định</button></div>`}</div><div class="ub-required-summary"><b>${fixed.length} câu cố định</b><span>${randomCount} câu ngẫu nhiên</span><span>Tổng ${total} câu</span><span class="${ctx.mixedDrawReady ? "badge green" : "badge"}">${step}</span>${ctx.selectionDirty ? '<span class="badge">Chưa lưu thay đổi</span>' : ""}</div>${fixed.length ? `<div class="ub-required-list">${fixed.map((q) => fixedQuestionCard(ctx, q)).join("")}</div>` : '<div class="empty ub-required-empty"><b>Hãy chọn câu cố định trước</b><span>Chế độ này cần ít nhất một câu cố định. Nếu không cần câu cố định, hãy dùng “Đề riêng theo sinh viên” hoặc “Rút lại mỗi lần làm”.</span></div>'}</section>`;
       }
       if (isPureRandomMode(ctx.settings.question_mode)) return randomSummary(ctx);
       return `<section class="panel"><div class="panel-head"><div><h3>3. Bộ câu cố định</h3><p class="hint">Đề chung cố định dùng đúng bộ câu hiển thị dưới đây. Đổi câu/Gemini chỉ sửa bản nháp; bấm Lưu mới thay snapshot trong DB.</p></div></div>${
@@ -607,11 +624,11 @@
           if (list) list.innerHTML = pool.length ? pool.map((q) => `<article><div><b>${escapeHtml(questionCode(ctx,q))}</b><span class="badge red">${escapeHtml(findById(ctx.sets.clos,q.clo_id)?.code || "—")}</span></div><div class="ub-picker-content">${escapeHtml(q.content || "")}</div><button type="button" class="primary compact" data-v126-fixed-use="${q.id}">Chọn làm câu cố định</button></article>`).join("") : '<div class="empty"><b>Không có câu phù hợp</b><span>Hãy đổi Chương, Mục, CLO hoặc ô này đã đủ số câu cố định.</span></div>';
           qsa("[data-v126-fixed-use]", list || document).forEach((button) => button.onclick = () => {
             ctx.fixedQuestionIds.add(button.dataset.v126FixedUse);
-            ctx.selected = [];
+            invalidateMixedDraw(ctx);
             ctx.selectionDirty = true;
             if (typeof closeModal === "function") closeModal();
             renderBuilder(ctx);
-            notify("Đã thêm câu cố định. Phần còn lại vẫn rút ngẫu nhiên theo ma trận.");
+            notify("Đã thêm câu cố định. Hãy nhấn “Rút phần còn lại” sau khi chọn xong.");
           });
         };
         bindFixedScope(ctx, "v126Pick", refresh);
@@ -716,11 +733,11 @@
         if (scopeCapacity(ctx, scope) < 1) throw new Error("Ô ma trận này không còn chỗ cho câu cố định.");
         const nq = await insertGeneratedQuestion(ctx, scope, g);
         ctx.fixedQuestionIds.add(nq.id);
-        ctx.selected = [];
+        invalidateMixedDraw(ctx);
         ctx.selectionDirty = true;
         closeModal?.();
         renderBuilder(ctx);
-        notify(`Đã tạo ${questionCode(ctx, nq)} và đặt làm câu cố định.`);
+        notify(`Đã tạo ${questionCode(ctx, nq)} và đặt làm câu cố định. Hãy rút phần còn lại.`);
       } catch (e) {
         showError(e);
         if (button) {
@@ -741,6 +758,7 @@
           if (k === "question_mode") {
             if (!isMixedMode(ctx.settings.question_mode)) ctx.fixedQuestionIds.clear();
             ctx.selected = [];
+            ctx.mixedDrawReady = false;
             ctx.selectionDirty = true;
             renderBuilder(ctx);
           }
@@ -769,6 +787,7 @@
             topics.forEach((t) => ctx.selectedTopics.delete(t.id));
           }
           ctx.selected = [];
+          ctx.mixedDrawReady = false;
           ctx.selectionDirty = true;
           cleanMatrix(ctx);
           renderBuilder(ctx);
@@ -791,6 +810,7 @@
           if (any) ctx.selectedChapters.add(ch);
           else ctx.selectedChapters.delete(ch);
           ctx.selected = [];
+          ctx.mixedDrawReady = false;
           ctx.selectionDirty = true;
           cleanMatrix(ctx);
           renderBuilder(ctx);
@@ -802,6 +822,7 @@
           ctx.matrix = {};
           ctx.fixedQuestionIds.clear();
           ctx.selected = [];
+          ctx.mixedDrawReady = false;
           ctx.selectionDirty = true;
           renderBuilder(ctx);
         },
@@ -810,7 +831,9 @@
         el.onchange = () => {
           ctx.matrix[el.dataset.key] = Math.max(0, +el.value || 0);
           ctx.selected = [];
+          ctx.mixedDrawReady = false;
           ctx.selectionDirty = true;
+          cleanMatrix(ctx);
           renderBuilder(ctx);
         },
       );
@@ -829,7 +852,7 @@
       qsa("[data-v126-remove-fixed]", c).forEach((el) =>
         el.onclick = () => {
           ctx.fixedQuestionIds.delete(el.dataset.v126RemoveFixed);
-          ctx.selected = [];
+          invalidateMixedDraw(ctx);
           ctx.selectionDirty = true;
           renderBuilder(ctx);
         },
@@ -845,6 +868,22 @@
           renderBuilder(ctx);
           notify(`Đã rút ${ctx.selected.length} câu phù hợp ma trận`);
         } catch (e) {
+          showError(e);
+        }
+      };
+      const mixedDraw = qs("#v126DrawRandom", c);
+      if (mixedDraw) mixedDraw.onclick = () => {
+        try {
+          const total = validateBuilder(ctx);
+          ctx.selected = drawSelection(ctx);
+          if (ctx.selected.length !== total) throw new Error("Không rút đủ phần câu ngẫu nhiên theo ma trận.");
+          ctx.mixedDrawReady = true;
+          ctx.selectionDirty = true;
+          renderBuilder(ctx);
+          const fixed = fixedQuestions(ctx).length;
+          notify(`Đã kiểm tra đủ ma trận: ${fixed} câu cố định + ${total - fixed} câu ngẫu nhiên.`);
+        } catch (e) {
+          ctx.mixedDrawReady = false;
           showError(e);
         }
       };
@@ -876,7 +915,9 @@
           mixed = isMixedMode(ctx.settings.question_mode);
         if (!ctx.locked && commonFixed && ctx.selected.length !== total)
           throw new Error("Cần nhấn “Rút câu hỏi” sau lần chỉnh ma trận cuối cùng");
-        if (!ctx.locked && !commonFixed) {
+        if (!ctx.locked && mixed && (!ctx.mixedDrawReady || ctx.selected.length !== total))
+          throw new Error("Cần chọn câu cố định trước, sau đó nhấn “Rút phần còn lại” trước khi lưu.");
+        if (!ctx.locked && !commonFixed && !mixed) {
           ctx.selected = drawSelection(ctx);
           if (ctx.selected.length !== total) throw new Error("Không rút đủ bộ câu kiểm tra theo ma trận.");
         }
@@ -903,7 +944,7 @@
         const fixedIds = mixed ? [...ctx.fixedQuestionIds] : [],
           blueprint = {
             version: 2,
-            source: "v12.6-mixed-random",
+            source: "v12.6.1-mixed-random",
             matrix: { ...ctx.matrix },
             fixed_question_ids: fixedIds,
           };
