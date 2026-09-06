@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.4.7 — shared Assessment runtime styles.
+/* AI-CLO PTITHCM V12.4.21 — shared Assessment runtime styles.
    Keep only selectors used by the current Assessment runtime. Confirmed V9/V9.1-only selectors live in css/legacy/assessment-v9.css and are not loaded by app.html.
    AI review/feedback components are owned by css/ai.css. */
 
@@ -63,6 +63,20 @@
 .exam-title-link:hover{color:var(--red);text-decoration:underline}
 .drawer-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 
+/* Historical class names still used by the current assessment workspace/matrix. */
+.v109-assessment-workspace{padding:0;overflow:hidden}
+.v109-assessment-workspace .assessment-form{width:100%;padding:22px}
+.v109-assessment-workspace .form-actions{position:sticky;bottom:0;z-index:3;margin:8px -22px -22px;padding:14px 22px;background:#fff;border-top:1px solid var(--line)}
+.online-matrix-box{padding:18px;border:1px solid var(--line);border-radius:13px;background:#fafbfc}
+.online-matrix-box .clo-count-title{margin-bottom:14px}
+.online-exam-matrix{min-width:560px}
+.online-exam-matrix th:not(:first-child),.online-exam-matrix td:not(:first-child){text-align:center}
+.online-exam-matrix td:first-child{min-width:210px}
+.online-exam-matrix input{width:76px;min-width:62px;text-align:center;padding:9px}
+.online-exam-matrix .online-matrix-total{background:#f2f4f7}
+.online-exam-matrix .online-row-total,.online-exam-matrix-total b{font-weight:900}
+.online-matrix-box .bank-check{margin-top:14px}
+
 @media(max-width:650px){
   .clo-results{grid-template-columns:1fr}
   .preview-nav button{flex:1}
@@ -74,4 +88,11 @@
   .student-exam-meta{grid-template-columns:1fr}
   .drawer-actions button{flex:1}
   .assessment-table{min-width:980px}
+  .v109-assessment-workspace{margin-left:-2px;margin-right:-2px}
+  .v109-assessment-workspace .assessment-form{display:grid;grid-template-columns:1fr!important;padding:15px}
+  .v109-assessment-workspace .assessment-form>.wide{grid-column:1!important}
+  .v109-assessment-workspace .clo-count-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .v109-assessment-workspace .form-actions{margin:8px -15px -15px;padding:12px 15px;display:grid;grid-template-columns:1fr 1fr}
+  .v109-assessment-workspace input,.v109-assessment-workspace select,.v109-assessment-workspace textarea{width:100%;font-size:16px}
 }
+@media(max-width:620px){.online-matrix-box{padding:12px}.online-exam-matrix{min-width:500px;font-size:12px}.online-exam-matrix td:first-child{min-width:160px}.online-exam-matrix input{width:58px;min-width:52px;padding:8px 5px}.online-matrix-box .table-wrap{margin-left:-4px;margin-right:-4px}}
