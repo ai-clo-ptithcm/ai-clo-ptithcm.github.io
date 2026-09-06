@@ -5,7 +5,7 @@ Bản này dùng nguyên v9.1 đầy đủ làm nền. Không chạy lại migra
 ## 1. Chạy SQL bổ sung
 
 1. Mở Supabase Dashboard → **SQL Editor** → **New query**.
-2. Mở file `supabase/v9.2-addon.sql`, dán toàn bộ và nhấn **Run** một lần.
+2. Mở file `supabase/migrations/v9.2-addon.sql`, dán toàn bộ và nhấn **Run** một lần.
 3. Nếu phần cuối báo lỗi liên quan `pg_cron`, bật extension **pg_cron** trong Database → Extensions rồi chỉ chạy lại khối cuối từ `create extension if not exists pg_cron;`. Các bảng và RPC phía trên có thể chạy lại an toàn.
 
 SQL này chỉ bổ sung bảng thông báo, nhật ký, `last_login_at`, chính sách RLS và RPC quản trị. Nhật ký cũ hơn 6 tháng được dọn mỗi ngày.
