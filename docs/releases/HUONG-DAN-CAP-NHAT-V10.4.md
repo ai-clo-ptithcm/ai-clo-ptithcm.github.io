@@ -1,7 +1,7 @@
 # Cập nhật AI-CLO PTITHCM V10.4
 
-1. Nếu V10.2 chưa chạy: chạy `supabase/v10.2-upgrade.sql`.
-2. Chạy thêm `supabase/v10.4-upgrade.sql` để bật lịch sử hồ sơ đề thi.
+1. Nếu V10.2 chưa chạy: chạy `supabase/migrations/v10.2-upgrade.sql`.
+2. Chạy thêm `supabase/migrations/v10.4-upgrade.sql` để bật lịch sử hồ sơ đề thi.
 3. Upload frontend V10.4 lên GitHub Pages.
 4. Không cần deploy thêm Edge Function. 4 function Gemini của V10.2/V10.3 vẫn giữ nguyên và self-contained.
 
