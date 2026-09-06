@@ -18,7 +18,7 @@ V11.6 hoàn thiện ma trận cấu hình câu hỏi khi tạo **Bài kiểm tra
 - Bộ câu mẫu `exam_questions` được rút riêng theo từng ô Mục × CLO.
 - `exam_question_pool` chỉ chứa các nhóm Mục × CLO thực sự được dùng trong ma trận, nhưng giữ toàn bộ câu khả dụng của các nhóm đó để phục vụ rút ngẫu nhiên.
 - `clo_counts`, `topic_ids`, `exam_chapters` và `exam_clos` được tính lại từ chính ma trận.
-- Cơ chế backend hiện có trong `supabase/v10.10-online-assessment-matrix.sql` dùng bộ câu mẫu làm blueprint, nên ba chế độ **Đề chung cố định**, **Đề riêng cố định theo sinh viên** và **Rút lại mỗi lần làm** đều giữ được cấu trúc Mục × CLO.
+- Cơ chế backend hiện có trong `supabase/migrations/v10.10-online-assessment-matrix.sql` dùng bộ câu mẫu làm blueprint, nên ba chế độ **Đề chung cố định**, **Đề riêng cố định theo sinh viên** và **Rút lại mỗi lần làm** đều giữ được cấu trúc Mục × CLO.
 
 ## Tệp mới / thay đổi
 
