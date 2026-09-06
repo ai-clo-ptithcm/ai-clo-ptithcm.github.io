@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.3 — Assessment shared pure utilities. */
+/* AI-CLO PTITHCM V12.6 — Assessment shared pure utilities. */
 (() => {
   "use strict";
 
@@ -53,6 +53,7 @@
       common_fixed: "Đề chung cố định",
       student_fixed: "Đề riêng theo sinh viên",
       attempt_random: "Rút lại mỗi lần làm",
+      mixed_fixed_random: "Cố định và rút ngẫu nhiên",
     })[v] || "Đề chung cố định";
 
   const structureLabel = (v) =>
