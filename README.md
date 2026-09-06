@@ -27,7 +27,10 @@
 
 - `docs/releases/` — lịch sử phiên bản, hướng dẫn cập nhật, upgrade và technical notes theo phiên bản.
 - `docs/project/` — checkpoint tiến trình, trạng thái dự án, ghi chú và thỏa thuận kỹ thuật.
-- `supabase/` — migration, schema/policy và mã nguồn Edge Function.
+- `supabase/migrations/` — SQL migration/upgrade.
+- `supabase/schema/` — snapshot CSV schema/RLS/policies.
+- `supabase/policies/` — SQL policy độc lập.
+- `supabase/functions/` — mã nguồn Edge Function.
 - `supabase/docs/` — hướng dẫn triển khai Supabase/Gemini.
 
 ## Tài liệu checkpoint
@@ -69,7 +72,7 @@ V11.5 hoàn thiện không gian quản trị và quy trình đánh giá theo hư
 
 ## Supabase V11.5
 
-- Đã chạy `supabase/v11.5-exam-ai-analysis.sql` và nhận `MIGRATION_V11_5_OK`.
+- Đã chạy `supabase/migrations/v11.5-exam-ai-analysis.sql` và nhận `MIGRATION_V11_5_OK`.
 - Đã deploy lại Edge Function `analyze-assessment` để hỗ trợ `scope: exam` và `exam_id`.
 - Migration giữ nguyên RLS, bổ sung khóa ngoại và chỉ mục cho nhận xét AI theo bài kiểm tra.
 
@@ -125,7 +128,7 @@ V10.5 tách trang **Ngân hàng câu hỏi** thành hai tab con rõ ràng: **Luy
 
 Bản này đồng thời thay favicon đỏ AI·CLO, sửa lỗi quay lại màn hình ngân hàng làm từ khóa thành `all`, giữ trạng thái bộ lọc/tab/vị trí cuộn, và cân lại độ rộng các cột Mã câu — Nội dung — Chương/Chủ đề.
 
-Nếu đã triển khai V10.4, chạy `supabase/v10.5-upgrade.sql` rồi cập nhật frontend. **Không cần deploy Edge Function mới.**
+Nếu đã triển khai V10.4, chạy `supabase/migrations/v10.5-upgrade.sql` rồi cập nhật frontend. **Không cần deploy Edge Function mới.**
 
 Xem `docs/releases/HUONG-DAN-CAP-NHAT-V10.5.md`.
 
@@ -137,7 +140,7 @@ Xem `docs/releases/HUONG-DAN-CAP-NHAT-V10.5.md`.
 
 V10.4 tập trung hoàn thiện **hồ sơ đề thi cuối kỳ**: BM06/BM07/BM08 xuất DOCX thật, BM07 tự bố trí 4 phương án theo 1 dòng / 2 dòng / 4 dòng để tránh wrap; hồ sơ đã chốt có **Mở / Sửa / Xuất**, quay lại đúng luồng chỉnh sửa đề, lưu lịch sử tạo/sửa/xuất và cho **người tạo hoặc Admin** xóa hồ sơ. Favicon mới dùng chữ `AI·CLO / PTITHCM`.
 
-Nếu đã triển khai V10.3, chỉ cần chạy thêm `supabase/v10.4-upgrade.sql` rồi cập nhật frontend. **Không cần deploy Edge Function mới.** Các Edge Function Gemini vẫn self-contained.
+Nếu đã triển khai V10.3, chỉ cần chạy thêm `supabase/migrations/v10.4-upgrade.sql` rồi cập nhật frontend. **Không cần deploy Edge Function mới.** Các Edge Function Gemini vẫn self-contained.
 
 Xem `docs/releases/HUONG-DAN-CAP-NHAT-V10.4.md`.
 
@@ -157,7 +160,7 @@ V10.1 không có migration cơ sở dữ liệu mới. Cần redeploy Edge Funct
 
 V10 sửa triệt để lỗi nhấn **Chi tiết** nhưng không hiển thị và thống nhất toàn bộ quy trình Ngân hàng câu hỏi trong trang: xem chi tiết, thêm, sửa, tạo bằng Gemini, xem phiên AI và duyệt bản nháp. Nút Sửa/Xóa được dựng trước dữ liệu phụ nên vẫn hoạt động nếu lịch sử hoặc đề nghị chỉnh sửa chưa tải được.
 
-V10 không có migration cơ sở dữ liệu mới. Nếu nâng trực tiếp từ V9.5 trở xuống, vẫn phải chạy `supabase/v9.6-question-bank.sql` trước.
+V10 không có migration cơ sở dữ liệu mới. Nếu nâng trực tiếp từ V9.5 trở xuống, vẫn phải chạy `supabase/migrations/v9.6-question-bank.sql` trước.
 
 ---
 
@@ -165,7 +168,7 @@ V10 không có migration cơ sở dữ liệu mới. Nếu nâng trực tiếp t
 
 V9.6 bổ sung ngân hàng câu hỏi hai nhóm (luyện tập và đề thi bảo mật), quy trình duyệt/đề nghị chỉnh sửa, phát hiện câu tương tự, kết quả CLO sinh viên theo chương với nhận xét Gemini theo yêu cầu, đồng thời hoàn thiện giao diện Home, Hero và trải nghiệm di động.
 
-Sau khi cập nhật mã nguồn, chạy `supabase/v9.6-question-bank.sql` trong Supabase SQL Editor. Migration này phải chạy sau các migration đến V9.5.
+Sau khi cập nhật mã nguồn, chạy `supabase/migrations/v9.6-question-bank.sql` trong Supabase SQL Editor. Migration này phải chạy sau các migration đến V9.5.
 
 Xem trình tự chi tiết trong `docs/releases/HUONG-DAN-CAP-NHAT-V9.6.md`.
 
@@ -175,7 +178,7 @@ Xem trình tự chi tiết trong `docs/releases/HUONG-DAN-CAP-NHAT-V9.6.md`.
 
 V9.5 tách giao diện thành Tổng quan hệ thống và không gian riêng của từng môn học; đồng thời sửa responsive trên điện thoại/laptop, bổ sung chế độ chỉnh sửa cấu trúc, làm gọn Ngân hàng câu hỏi và Danh sách lớp.
 
-Sau khi đưa mã nguồn lên GitHub Pages, chạy thêm `supabase/v9.5-addon.sql` trong Supabase SQL Editor để bật chức năng giảng viên gửi thông báo riêng cho sinh viên. Các migration V9.1, V9.2 và V9.4 vẫn phải được cài đặt trước.
+Sau khi đưa mã nguồn lên GitHub Pages, chạy thêm `supabase/migrations/v9.5-addon.sql` trong Supabase SQL Editor để bật chức năng giảng viên gửi thông báo riêng cho sinh viên. Các migration V9.1, V9.2 và V9.4 vẫn phải được cài đặt trước.
 
 ---
 
@@ -203,7 +206,7 @@ V9.1 mở rộng V9 theo hướng hoàn thiện quy trình bài kiểm tra, gi�
 
 Nếu hệ thống hiện tại đã chạy V9, **không chạy lại migration V9**.
 
-1. Chạy `supabase/assessment-v9.1-migration.sql` trong Supabase SQL Editor.
+1. Chạy `supabase/migrations/assessment-v9.1-migration.sql` trong Supabase SQL Editor.
 2. Redeploy `supabase/functions/analyze-assessment/index.ts` bằng code V9.1.
 3. Đưa toàn bộ mã nguồn V9.1 lên GitHub Pages.
 4. Kiểm thử bằng một tài khoản giảng viên và ít nhất hai tài khoản sinh viên nếu muốn đối chiếu ba chế độ rút câu.
@@ -226,7 +229,7 @@ css/public.css
 js/app.js
 js/assessment.js
 js/assessment-v91.js
-supabase/assessment-v9.1-migration.sql
+supabase/migrations/assessment-v9.1-migration.sql
 supabase/functions/analyze-assessment/index.ts
 docs/releases/UPGRADE-V9.1.md
 docs/releases/VERSION-v9.1.txt
