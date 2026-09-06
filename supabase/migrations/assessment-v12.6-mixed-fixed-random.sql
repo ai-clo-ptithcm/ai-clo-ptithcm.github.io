@@ -145,11 +145,10 @@ begin
 
       for r in
         select p.*
-        from public.exam_question_pool p
-        join jsonb_array_elements_text(v_fixed) f(value)
-          on p.question_id=f.value::uuid
-        where p.exam_id=v_exam.id
-        order by f.ordinality nulls last, p.question_id
+        from jsonb_array_elements_text(v_fixed) with ordinality as f(value,ord)
+        join public.exam_question_pool p
+          on p.question_id=f.value::uuid and p.exam_id=v_exam.id
+        order by f.ord
       loop
         v_order:=v_order+1;
         insert into public.attempt_questions(
