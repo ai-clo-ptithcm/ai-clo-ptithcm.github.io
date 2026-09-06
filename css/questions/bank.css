@@ -67,7 +67,7 @@
  .v105-question-table thead{display:none}
  .v105-question-table tr{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px 10px;width:100%;min-width:0;max-width:100%;margin:0 0 10px;padding:12px;border:1px solid var(--line);border-radius:13px;background:#fff;box-sizing:border-box}
  .v105-question-table td{display:block;width:auto;max-width:none;min-width:0;padding:0;border:0}
- .v105-question-table tr>td:nth-child(1),.v105-question-table tr>td:nth-child(2),.v105-question-table tr>td:nth-child(3),.v105-question-table tr>td:nth-child(4),.v105-question-table tr>td:nth-child(5),.v105-question-table tr>td:nth-child(6){max-width:none;min-width:0;box-sizing:border-box}
+ .v105-question-table tr>td:nth-child(1),.v105-question-table tr>td:nth-child(2),.v105-question-table tr>td:nth-child(3),.v105-question-table tr>td:nth-child(4),.v105-question-table tr>td:nth-child(5),.v105-question-table tr>td:nth-child(6){width:100%;max-width:none;min-width:0;box-sizing:border-box}
  .v105-question-table td.select-col{grid-column:1;grid-row:1;align-self:start;width:auto;max-width:none;padding-top:4px}
  .v105-question-table td.q-code-cell{grid-column:2;grid-row:1;display:flex;align-items:center;gap:7px;flex-wrap:wrap;word-break:normal;justify-self:stretch;align-self:stretch}
  .v105-question-table td.q-content-cell{grid-column:1/-1;grid-row:2;padding-top:2px;justify-self:stretch;align-self:stretch}
