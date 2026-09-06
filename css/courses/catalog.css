@@ -1,0 +1,11 @@
+/* AI-CLO PTITHCM V12.4.18 — system course catalog/card styles. */
+.course-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.course-card{min-height:205px;border:1px solid var(--line);border-radius:14px;background:#fff;padding:20px;display:flex;flex-direction:column;justify-content:space-between;gap:22px}
+.course-card h3{font-size:20px;margin:10px 0 7px;line-height:1.25}
+.course-card p{margin:0;color:var(--muted)}
+.course-card .course-role{font-size:10px;color:var(--red);font-weight:800;letter-spacing:1px}
+.course-card button{display:flex;justify-content:space-between;width:100%}
+.course-toolbar{margin-bottom:18px}
+@media(max-width:1180px){.course-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:900px){.course-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){.course-grid{grid-template-columns:1fr}.course-card{min-height:175px}}
