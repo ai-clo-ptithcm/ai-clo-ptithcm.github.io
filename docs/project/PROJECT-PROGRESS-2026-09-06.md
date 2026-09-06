@@ -257,13 +257,16 @@ Sau khi 5 hạng mục ổn định đã hoàn thành, ưu tiên chuyển sang k
 - `../releases/VERSION-v12.0.md`
 - `../releases/HUONG-DAN-CAP-NHAT-V12.md`
 - `PROJECT-NOTES-AI-CLO.md`
-- `../../supabase/assessment-v12.3.1-review-ai.sql`
+- `../../supabase/migrations/assessment-v12.3.1-review-ai.sql`
 
 ## 10. Tổ chức tài liệu từ 06/09/2026
 
 - `docs/releases/`: VERSION, hướng dẫn cập nhật, upgrade và technical notes theo phiên bản.
 - `docs/project/`: project notes, progress/status checkpoint và thỏa thuận kỹ thuật.
-- `supabase/`: SQL migration/schema/policy và Edge Functions.
+- `supabase/migrations/`: SQL migration/upgrade.
+- `supabase/schema/`: snapshot CSV schema/RLS/policies.
+- `supabase/policies/`: SQL policy độc lập.
+- `supabase/functions/`: Edge Functions.
 - `supabase/docs/`: hướng dẫn triển khai Supabase/Gemini.
 
 ---
