@@ -1,0 +1,56 @@
+/* AI-CLO PTITHCM V12.4.20 — admin/system question-bank management owner. */
+/* Runtime markup is produced by js/system/question-banks.js. */
+
+.v112-bank-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px}
+.v112-bank-card{display:flex;flex-direction:column;justify-content:space-between;gap:12px;padding:14px;border:1px solid var(--line);border-radius:15px;background:#fff}
+.v112-bank-card small{color:var(--red);font-weight:900;letter-spacing:.06em}
+.v112-bank-card h4{margin:3px 0;font-size:18px}
+.v112-bank-card p{margin:0 0 6px;color:var(--muted);line-height:1.35}
+.v112-bank-card .badge{margin:0 5px 5px 0}
+.v112-bank-actions{display:flex;gap:8px;flex-wrap:wrap}
+.v112-bank-actions button{flex:1;padding-top:10px;padding-bottom:10px}
+
+.v113-bank-page{display:grid;gap:12px}
+.v113-bank-toolbar{display:grid;grid-template-columns:minmax(260px,1fr) 220px max-content;gap:10px}
+.v113-question-toolbar{display:flex;align-items:center;gap:14px}
+.v113-bank-toolbar input,.v113-question-toolbar input{width:min(620px,100%)}
+.v113-bank-toolbar input,.v113-bank-toolbar select,.v113-bank-toolbar button{height:48px;margin:0}
+.v113-question-toolbar .hint{margin-left:auto}
+.v113-linked{padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.v113-linked .badge{margin:3px}
+.v113-bank-page .v109-workspace-head>button:last-child{margin-left:auto}
+.v113-question-table .question-summary{text-align:left;max-width:520px}
+.v113-question-detail .question-audit{margin:12px 0}
+.v113-admin-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+
+.v114-compact-head{min-height:0;margin-bottom:0;padding:12px 16px;align-items:center}
+.v114-compact-head h3{margin:2px 0;font-size:21px}
+.v114-compact-head p{line-height:1.35}
+.v114-group{float:right;margin:0!important}
+.v114-bank-form{width:min(850px,100%);padding:18px}
+
+@media(max-width:860px){
+ .v113-bank-toolbar{grid-template-columns:minmax(0,1fr) 190px}
+ .v113-bank-toolbar button{grid-column:1/-1}
+ .v114-compact-head{align-items:flex-start}
+}
+@media(max-width:760px){
+ .v113-question-toolbar{align-items:stretch;flex-direction:column}
+ .v113-question-toolbar .hint{margin-left:0}
+ .v113-bank-page .v109-workspace-head>button:last-child{margin-left:0}
+ .v113-question-table table,.v113-question-table tbody,.v113-question-table tr,.v113-question-table td{display:block;width:100%}
+ .v113-question-table thead{display:none}
+ .v113-question-table tr{padding:12px;border-bottom:1px solid var(--line)}
+ .v113-question-table td{padding:5px 0;border:0}
+ .v113-admin-actions{display:grid;grid-template-columns:1fr}
+}
+@media(max-width:620px){
+ .v112-bank-grid{grid-template-columns:1fr}
+ .v112-bank-actions{display:grid;grid-template-columns:1fr}
+}
+@media(max-width:560px){
+ .v113-bank-toolbar{grid-template-columns:1fr}
+ .v113-bank-toolbar button{grid-column:auto}
+ .v114-compact-head{padding:11px 13px}
+ .v112-bank-card{padding:12px}
+}
