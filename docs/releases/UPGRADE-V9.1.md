@@ -4,11 +4,11 @@ V9.1 được thiết kế để nâng trực tiếp từ V9 mà không xóa d�
 
 ## 1. Chạy migration V9.1
 
-Bạn đã chạy `docs/assessment-v9-migration.sql` ở V9 thì **không chạy lại file V9**.
+Bạn đã chạy `supabase/assessment-v9-migration.sql` ở V9 thì **không chạy lại file V9**.
 
 Mở **Supabase → SQL Editor**, chạy toàn bộ:
 
-`docs/assessment-v9.1-migration.sql`
+`supabase/assessment-v9.1-migration.sql`
 
 Migration sẽ:
 
@@ -36,7 +36,7 @@ Không cần đổi `GEMINI_API_KEY`. V9.1 chỉ đổi nguồn thống kê: Gem
 Thay toàn bộ mã nguồn bằng thư mục V9.1. File mới quan trọng:
 
 - `js/assessment-v91.js`
-- `docs/assessment-v9.1-migration.sql`
+- `supabase/assessment-v9.1-migration.sql`
 - phần drawer/confirm trong `index.html`, `css/app.css`, `css/question-exam.css`
 
 V9.1 vẫn giữ `js/assessment.js` của V9 làm nền tương thích; `assessment-v91.js` được nạp sau và thay thế module Bài kiểm tra bằng giao diện/logic V9.1.
