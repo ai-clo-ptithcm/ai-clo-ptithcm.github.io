@@ -2,7 +2,7 @@
 
 > File này là **nguồn ghi nhớ kỹ thuật ưu tiên** để tiếp tục phát triển dự án trong các phiên sau. Khi bắt đầu chỉnh sửa AI-CLO, hãy đọc file này trước các changelog phiên bản nếu cần hiểu các quyết định đã chốt.
 
-Cập nhật gần nhất: **06/09/2026 — V12.4.17**
+Cập nhật gần nhất: **06/09/2026 — V12.4.18**
 
 ## 1. Nguyên tắc phát triển
 
@@ -67,9 +67,13 @@ Các cửa sổ Sửa nhanh ưu tiên cùng bố cục:
 Ownership kỹ thuật:
 
 - `css/ui/app-window.css` chỉ sở hữu **window chrome**: vị trí, kích thước, header, drag, resize, responsive.
-- `css/ui/application.css` sở hữu **layout/kích thước app dùng chung**: sizing, desktop shell geometry, content constraints và các quy tắc layout nền.
+- `css/ui/application.css` sở hữu **layout/kích thước app dùng chung**: sizing, desktop shell geometry, content constraints và các quy tắc layout nền; không chứa CSS nghiệp vụ Học phần/Câu hỏi/Auth.
 - `css/ui/shell.css` sở hữu **shell chrome**: sidebar/header controls và **Drawer xem chi tiết** (`drawer-backdrop`, `side-drawer`, `drawer-head`, `drawer-body`, responsive drawer).
+- `css/login-app.css` sở hữu **giao diện Auth/Login đang chạy**, gồm login card và UI “Quên mật khẩu / liên hệ Quản trị viên”. `css/login-fit.css` chỉ sở hữu **viewport/height fit** của màn đăng nhập; không đưa các rule này trở lại `css/app.css`.
 - `css/courses/structure.css` sở hữu **CSS nghiệp vụ Chương · Chủ đề · CLO**: danh sách chương/chủ đề, action edit/delete, safe-delete/dependency và compatibility `structure-v95`; không đặt các rule này trở lại `css/app.css` hoặc `css/ui/application.css`.
+- `css/courses/catalog.css` sở hữu **danh sách Môn học dạng card** ở không gian hệ thống (`course-grid`, `course-card`, `course-toolbar`).
+- `css/questions/analysis.css` sở hữu **thống kê/phân tích câu hỏi**; `css/question-exam.css` sở hữu metadata/list/detail của Ngân hàng câu hỏi như `question-clo`; `css/courses/class-list.css` sở hữu action/trạng thái của Danh sách lớp như `last-login-cell`, `message-student`.
+- `css/legacy/auth-v8.css` và `css/legacy/question-v95.css` là **archive only, không load runtime**. V9.5 question tool grid/mobile table cũ không được đưa trở lại `application.css` khi UI hiện hành đã dùng V9.6/V10.5.
 - Không đặt lại CSS Drawer vào `css/app.css` hoặc CSS nghiệp vụ; `css/app.css` chỉ giữ các primitive/global base còn cần và confirm dialog cho tới khi có owner UI riêng phù hợp.
 - CSS/module nghiệp vụ chỉ sở hữu **nội dung bên trong editor** và khác biệt theo ngữ cảnh.
 - Không để class nghiệp vụ của Ngân hàng, Kiểm tra trùng và Assessment dùng lẫn nhau để tránh cascade/logic ảnh hưởng chéo.
