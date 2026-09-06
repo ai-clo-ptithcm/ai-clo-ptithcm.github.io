@@ -1,5 +1,47 @@
-/* AI-CLO PTITHCM V12.4.0 — full-width student attempt workspace. */
+/* AI-CLO PTITHCM V12.5.0 — student assessment list, detail and attempt workspaces. */
+
+.student-exam-list-page,
+.student-exam-detail-v125,
 .student-attempt-page{width:100%;max-width:100%;min-width:0;display:grid;gap:16px}
+
+/* Student assessment list. */
+.student-exam-list-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.student-exam-list-heading small{display:block;color:var(--red);font-size:11px;font-weight:900;letter-spacing:.08em}
+.student-exam-list-heading h3{margin:4px 0;font-size:clamp(21px,2.2vw,28px)}
+.student-exam-list-heading p{margin:0;color:var(--muted);line-height:1.5}
+.student-exam-list{display:grid;gap:9px}
+.student-exam-list-row{display:grid;grid-template-columns:minmax(240px,1fr) minmax(320px,.9fr) auto;align-items:center;gap:16px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:0 4px 16px rgba(15,23,42,.035);cursor:pointer;transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease}
+.student-exam-list-row:hover,.student-exam-list-row:focus-visible{border-color:#d7a2aa;box-shadow:0 8px 24px rgba(15,23,42,.07);outline:0}
+.student-exam-list-row:active{transform:translateY(1px)}
+.student-exam-row-main,.student-exam-row-title>div{min-width:0}
+.student-exam-row-title{display:flex;align-items:flex-start;gap:10px;min-width:0}
+.student-exam-row-title .badge{flex:0 0 auto;margin-top:2px}
+.student-exam-row-title h4{margin:0 0 4px;font-size:15px;line-height:1.35;overflow-wrap:anywhere}
+.student-exam-row-title p{margin:0;color:var(--muted);font-size:12px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.student-exam-row-meta{display:grid;grid-template-columns:repeat(4,minmax(62px,1fr));gap:6px;min-width:0}
+.student-exam-row-meta span{display:grid;gap:2px;padding:7px 8px;border-radius:8px;background:#f7f8fa;text-align:center}
+.student-exam-row-meta b{font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums}
+.student-exam-row-meta small{font-size:10px;color:var(--muted)}
+.student-exam-row-end{display:grid;justify-items:end;gap:6px;min-width:108px}
+.student-exam-row-end>small{max-width:150px;color:var(--muted);font-size:10px;text-align:right}
+
+/* Full-width student exam detail. */
+.student-exam-detail-v125 .student-exam-detail-head{margin-bottom:0}
+.student-exam-detail-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.student-exam-detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.student-exam-detail-grid>div{display:grid;gap:4px;padding:12px;border:1px solid var(--line);border-radius:9px;background:#fafbfc;min-width:0}
+.student-exam-detail-grid small{font-size:11px;color:var(--muted)}
+.student-exam-detail-grid b{font-size:14px;overflow-wrap:anywhere}
+.student-exam-detail-note{margin:12px 0 0}
+
+.student-attempt-history{display:grid;gap:8px}
+.student-attempt-history-row{display:grid;grid-template-columns:62px minmax(145px,1fr) minmax(145px,1fr) 80px 100px auto;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.student-attempt-history-row>div{min-width:0;display:grid;gap:3px}
+.student-attempt-history-row small{font-size:10px;color:var(--muted)}
+.student-attempt-history-row b{font-size:12px;overflow-wrap:anywhere}
+.student-attempt-history-actions{justify-items:end}
+
+/* Full-width live attempt workspace. */
 .student-attempt-page-head{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:14px;padding:2px 0}
 .student-attempt-page-head>button{white-space:nowrap}
 .student-attempt-title{min-width:0;display:grid;gap:3px}
@@ -15,5 +57,46 @@
 .student-attempt-page .question-jump{row-gap:8px}
 .student-attempt-page .preview-nav{border-top:1px solid var(--line);padding-top:14px}
 .student-attempt-page .preview-nav #v122LiveSubmit{margin-left:auto}
-@media(max-width:760px){.student-attempt-page-head{grid-template-columns:1fr;align-items:stretch}.student-attempt-page-head>button{width:100%}.student-attempt-card{padding:14px}.student-attempt-page .live-top{align-items:center;top:0}.student-attempt-page .exam-timer{font-size:18px;padding:7px 10px}.student-attempt-page .live-context span:last-child{width:100%;margin-left:0}.student-attempt-page .preview-nav{display:grid;grid-template-columns:1fr 1fr}.student-attempt-page .preview-nav #v122LiveSubmit{grid-column:1/-1;margin-left:0;width:100%}}
-@media(max-width:430px){.student-attempt-page .live-top{align-items:flex-start;flex-direction:column}.student-attempt-page .exam-timer{width:100%;box-sizing:border-box;text-align:center}.student-attempt-page .preview-nav{grid-template-columns:1fr}.student-attempt-page .preview-nav #v122LiveSubmit{grid-column:auto}}
+
+@media(max-width:1100px){
+  .student-exam-list-row{grid-template-columns:minmax(220px,1fr) minmax(260px,.9fr)}
+  .student-exam-row-end{grid-column:1/-1;display:flex;align-items:center;justify-content:flex-end}
+  .student-exam-row-end>small{max-width:none}
+  .student-attempt-history-row{grid-template-columns:52px repeat(2,minmax(130px,1fr)) 72px 90px}
+  .student-attempt-history-actions{grid-column:1/-1;justify-items:end}
+}
+
+@media(max-width:760px){
+  .student-exam-list-heading{display:grid}
+  .student-exam-list-row{grid-template-columns:1fr;gap:11px;padding:13px}
+  .student-exam-row-meta{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .student-exam-row-end{grid-column:auto;display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+  .student-exam-row-end>small{text-align:left}
+  .student-exam-detail-v125 .panel-head{align-items:stretch}
+  .student-exam-detail-actions,.student-exam-detail-actions button{width:100%}
+  .student-exam-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .student-attempt-history-row{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+  .student-attempt-history-row>div{padding:2px 0}
+  .student-attempt-history-actions{grid-column:1/-1;justify-items:stretch}
+  .student-attempt-history-actions button{width:100%}
+  .student-attempt-page-head{grid-template-columns:1fr;align-items:stretch}
+  .student-attempt-page-head>button{width:100%}
+  .student-attempt-card{padding:14px}
+  .student-attempt-page .live-top{align-items:center;top:0}
+  .student-attempt-page .exam-timer{font-size:18px;padding:7px 10px}
+  .student-attempt-page .live-context span:last-child{width:100%;margin-left:0}
+  .student-attempt-page .preview-nav{display:grid;grid-template-columns:1fr 1fr}
+  .student-attempt-page .preview-nav #v122LiveSubmit{grid-column:1/-1;margin-left:0;width:100%}
+}
+
+@media(max-width:430px){
+  .student-exam-row-title{display:grid}
+  .student-exam-row-title .badge{width:max-content}
+  .student-exam-detail-grid{grid-template-columns:1fr}
+  .student-attempt-history-row{grid-template-columns:1fr}
+  .student-attempt-history-actions{grid-column:auto}
+  .student-attempt-page .live-top{align-items:flex-start;flex-direction:column}
+  .student-attempt-page .exam-timer{width:100%;box-sizing:border-box;text-align:center}
+  .student-attempt-page .preview-nav{grid-template-columns:1fr}
+  .student-attempt-page .preview-nav #v122LiveSubmit{grid-column:auto}
+}
