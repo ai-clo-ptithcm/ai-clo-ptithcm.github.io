@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.4.22 — shared Assessment runtime styles.
+/* AI-CLO PTITHCM V12.5.0 — shared Assessment runtime styles.
    Keep only selectors used by the current Assessment runtime. Confirmed V9/V9.1-only selectors live in css/legacy/assessment-v9.css and are not loaded by app.html.
    AI review/feedback components are owned by css/ai.css. */
 
@@ -36,16 +36,6 @@
 .assessment-options label{display:flex;align-items:flex-start;gap:8px;font-size:13px}
 .assessment-options input{width:auto;margin-top:2px}
 .detail-actions{padding:0}
-.student-exam-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:15px}
-.student-exam-card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:18px;display:grid;gap:12px}
-.student-exam-card h3,.student-exam-card p{margin:0}
-.student-exam-card p{color:var(--muted);min-height:2.8em}
-.student-exam-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.student-exam-head>span:last-child{font-size:11px;color:var(--muted)}
-.student-exam-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
-.student-exam-meta span{background:#f7f8fa;border-radius:8px;padding:9px;font-size:11px;color:var(--muted);display:grid;gap:3px}
-.student-exam-meta b{color:var(--ink);font-size:13px}
-.student-exam-actions{display:flex;gap:8px;flex-wrap:wrap}
 .live-exam{padding:20px;display:grid;gap:16px}
 .live-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .live-top>div:first-child{display:flex;align-items:center;gap:8px}
@@ -91,9 +81,7 @@
 }
 @media(max-width:760px){
   .assessment-options{grid-template-columns:1fr}
-  .student-exam-grid{grid-template-columns:1fr}
   .live-top{align-items:flex-start}
-  .student-exam-meta{grid-template-columns:1fr}
   .drawer-actions button{flex:1}
   .assessment-table{min-width:980px}
   .v109-tabs{width:100%}.v109-tabs button{flex:1;padding:9px 7px;font-size:12px}
