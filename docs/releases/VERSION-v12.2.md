@@ -39,7 +39,7 @@ Các file cũ vẫn được giữ trong repo để đối chiếu lịch sử n
 
 Sau khi frontend V12.2 được deploy, chạy trong **Supabase SQL Editor**:
 
-`supabase/assessment-v12.2-migration.sql`
+`supabase/migrations/assessment-v12.2-migration.sql`
 
 Migration an toàn khi chạy lại và tạo/chuẩn hóa contract V12.2, gồm:
 
