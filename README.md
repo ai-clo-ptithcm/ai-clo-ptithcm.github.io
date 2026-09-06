@@ -1,3 +1,42 @@
+# AI-CLO PTITHCM — V12.4.3
+
+**V12.4.3 là checkpoint frontend hiện tại của dự án.** Giai đoạn này tập trung hoàn tất trải nghiệm làm bài sinh viên và đưa toàn bộ workspace Assessment vào cơ chế persistence dùng chung, không thay đổi backend/schema.
+
+## Trạng thái hiện tại
+
+- Assessment chỉ còn một owner runtime: `js/assessment.js`.
+- Sinh viên làm bài trên **full-width subpage** trong `#content`, không còn làm bài trong side drawer.
+- Lượt làm giữ autosave Supabase, pending answer local khi mất mạng, deadline chống kéo dài do reload và **khôi phục đúng câu đang làm**.
+- `assessment.js` V12.4.3 đã đăng ký chính thức Detail / Builder / Attempt / Attempt Result / Results / Export Center với `AICLO_SUBPAGE_STATE`.
+- Persistence chung tiếp tục chỉ dùng:
+  - `js/ui/subpage-state.js`
+  - `js/ui/form-persistence.js`
+- Xuất đề/Tạo mã đề, Excel kết quả, review quyền xem bài/đáp án và AI on-demand tiếp tục giữ nguyên từ V12.3.x.
+- Backend schema checkpoint: `assessment_schema_version = 12.3.1`.
+- **Không có migration Supabase mới và không cần redeploy Edge Function cho V12.4.0 → V12.4.3.**
+
+## 5 hạng mục ổn định hoàn tất ngày 06/09/2026
+
+1. Sửa cache-busting cho hai file persistence dùng chung.
+2. Chuyển Student Attempt sang full-width subpage.
+3. Lưu/khôi phục `currentQuestionIndex` để mở lại đúng câu đang làm.
+4. Đăng ký các workspace Assessment với shared persistence; theo dõi đúng `exam_id` / `attempt_id` và xóa state khi người dùng chủ động quay lại.
+5. Đồng bộ README và checkpoint tài liệu với trạng thái V12.4.3.
+
+## Tài liệu checkpoint
+
+- [`PROJECT-PROGRESS-2026-09-06.md`](PROJECT-PROGRESS-2026-09-06.md) — checkpoint hiện tại sau V12.4.3.
+- [`PROJECT-PROGRESS-2026-09-05.md`](PROJECT-PROGRESS-2026-09-05.md) — checkpoint trước chuỗi V12.4.x.
+- [`PROJECT-STATUS-2026-09-05.md`](PROJECT-STATUS-2026-09-05.md) — trạng thái V12 đầu ngày 05/09.
+- [`VERSION-v12.0.md`](VERSION-v12.0.md)
+- [`HUONG-DAN-CAP-NHAT-V12.md`](HUONG-DAN-CAP-NHAT-V12.md)
+
+## Ưu tiên tiếp theo
+
+Không nên refactor lớn ngay. Ưu tiên **live-smoke với Supabase/RLS** các luồng tạo/chỉnh bài, rút/đổi/Gemini, sinh viên làm → reload → tiếp tục đúng câu, nộp/review/AI, persistence từng workspace, Excel đáp án+CLO với `/cham-thi-clo`, và compile TeX có công thức phức tạp.
+
+---
+
 # AI-CLO PTITHCM — V11.5
 
 V11.5 hoàn thiện không gian quản trị và quy trình đánh giá theo hướng mở trang con ngay trong ứng dụng.
