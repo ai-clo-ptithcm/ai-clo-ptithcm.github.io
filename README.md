@@ -1,244 +1,163 @@
-# AI-CLO PTITHCM — V12.4.3
+# AI-CLO PTITHCM — V12.4.24
 
-**V12.4.3 là checkpoint frontend hiện tại của dự án.** Giai đoạn này tập trung hoàn tất trải nghiệm làm bài sinh viên và đưa toàn bộ workspace Assessment vào cơ chế persistence dùng chung, không thay đổi backend/schema.
+**HỆ THỐNG ỨNG DỤNG TRÍ TUỆ NHÂN TẠO HỖ TRỢ ĐÁNH GIÁ SINH VIÊN THEO CHUẨN ĐẦU RA HỌC PHẦN**
 
-## Trạng thái hiện tại
+AI-CLO PTITHCM là hệ thống web hỗ trợ quản lý học phần, ngân hàng câu hỏi, xây dựng bài đánh giá theo CLO, làm bài trực tuyến, phân tích kết quả và các tác vụ AI theo yêu cầu người dùng.
 
-- Assessment chỉ còn một owner runtime: `js/assessment.js`.
-- Sinh viên làm bài trên **full-width subpage** trong `#content`, không còn làm bài trong side drawer.
-- Lượt làm giữ autosave Supabase, pending answer local khi mất mạng, deadline chống kéo dài do reload và **khôi phục đúng câu đang làm**.
-- `assessment.js` V12.4.3 đã đăng ký chính thức Detail / Builder / Attempt / Attempt Result / Results / Export Center với `AICLO_SUBPAGE_STATE`.
-- Persistence chung tiếp tục chỉ dùng:
-  - `js/ui/subpage-state.js`
-  - `js/ui/form-persistence.js`
-- Xuất đề/Tạo mã đề, Excel kết quả, review quyền xem bài/đáp án và AI on-demand tiếp tục giữ nguyên từ V12.3.x.
-- Backend schema checkpoint: `assessment_schema_version = 12.3.1`.
-- **Không có migration Supabase mới và không cần redeploy Edge Function cho V12.4.0 → V12.4.3.**
+## Checkpoint hiện tại
 
-## 5 hạng mục ổn định hoàn tất ngày 06/09/2026
+- Frontend checkpoint: **V12.4.24**
+- Nhánh chuẩn: `main`
+- Commit checkpoint: `874d1f13c2d1c0e363ceb421a01a83915497a41e`
+- GitHub Pages run #688: **success**
+- Backend Assessment checkpoint: `assessment_schema_version = 12.3.1`
+- Đợt V12.4.x gần nhất tập trung ổn định Assessment, persistence và tái cấu trúc CSS theo owner/domain.
+- **Không có migration Supabase hoặc redeploy Edge Function mới cho đợt CSS/documentation V12.4.4 → V12.4.24.**
 
-1. Sửa cache-busting cho hai file persistence dùng chung.
-2. Chuyển Student Attempt sang full-width subpage.
-3. Lưu/khôi phục `currentQuestionIndex` để mở lại đúng câu đang làm.
-4. Đăng ký các workspace Assessment với shared persistence; theo dõi đúng `exam_id` / `attempt_id` và xóa state khi người dùng chủ động quay lại.
-5. Đồng bộ README và checkpoint tài liệu với trạng thái V12.4.3.
+## Kiến trúc chính
 
-## Cấu trúc tài liệu
+Frontend được phục vụ qua GitHub Pages, backend dùng Supabase:
 
-- `docs/releases/` — lịch sử phiên bản, hướng dẫn cập nhật, upgrade và technical notes theo phiên bản.
-- `docs/project/` — checkpoint tiến trình, trạng thái dự án, ghi chú và thỏa thuận kỹ thuật.
-- `supabase/migrations/` — SQL migration/upgrade.
-- `supabase/schema/` — snapshot CSV schema/RLS/policies.
-- `supabase/policies/` — SQL policy độc lập.
+```text
+Public pages / app.html
+        │
+        ├─ CSS theo owner/domain
+        ├─ JS core/UI/domain modules
+        ├─ Assessment single-owner runtime
+        └─ Shared persistence
+                 │
+                 ▼
+              Supabase
+        ├─ PostgreSQL + RLS
+        ├─ Auth / Storage / RPC
+        └─ Edge Functions self-contained
+                 │
+                 └─ Gemini/AI theo thao tác chủ động
+```
+
+Tài liệu kiến trúc đầy đủ:
+
+- [`docs/project/ARCHITECTURE-AI-CLO.md`](docs/project/ARCHITECTURE-AI-CLO.md)
+
+## Assessment
+
+Assessment giữ một owner runtime:
+
+```text
+js/
+├─ assessment.js
+└─ assessment/
+   ├─ common.js
+   ├─ online-lifecycle.js
+   ├─ online-builder.js
+   ├─ final-exam.js
+   ├─ student-attempt.js
+   └─ results.js
+```
+
+Nguyên tắc:
+
+- `assessment.js` là owner/router/lifecycle public duy nhất.
+- Child modules đăng ký factory qua `window.AICLO_ASSESSMENT_MODULES`.
+- Student Attempt chạy full-width trong `#content`.
+- Supabase autosave là nguồn chính thức; local draft chỉ dùng recovery.
+- Shared subpage persistence quản lý Detail / Builder / Attempt / Result / Export.
+
+## Persistence
+
+Hai lớp dùng chung:
+
+```text
+js/ui/subpage-state.js
+js/ui/form-persistence.js
+```
+
+- `subpage-state.js`: workspace/subpage, entity, context, scroll, restore.
+- `form-persistence.js`: form draft, input/select/textarea, matrix state.
+- Student Attempt có local recovery riêng cho pending answer, deadline và `currentQuestionIndex`, nhưng không tạo navigation persistence song song.
+
+## CSS V12.4.24
+
+Đợt refactor lớn ngày 06/09/2026 đã chuyển CSS sang mô hình **owner-based**:
+
+- `css/app.css` — base controls/form primitives.
+- `css/app-brand.css` — sole owner logo/brand.
+- `css/ui/application.css` — app geometry/layout.
+- `css/ui/primitives.css` — panel/table/stats/toolbar/badge/toast…
+- `css/ui/shell.css` — sidebar/header/footer/Drawer chrome.
+- `css/ui/dialogs.css` — dialog/modal/confirm.
+- `css/ui/app-window.css` — AI-CLO app-window.
+- `css/ui/layout-system.css` — generic KPI/action/filter layout classes only.
+- CSS nghiệp vụ nằm trong `css/courses/`, `css/questions/`, `css/exams/`, `css/system/`, `css/students/`, `css/results/`.
+
+`css/ui/final-layer.css` đã được loại khỏi runtime và xóa. `css/public.css` không được load trong `app.html`.
+
+Quy mô hiện tại khoảng 61 source CSS (~226 KB chưa nén); `app.html` link trực tiếp khoảng 47 stylesheet (~164 KB source). Dung lượng không lớn; nếu sau này cần giảm request thì ưu tiên bundle ở build/deploy, **không nhập thủ công source CSS lại thành file lớn**.
+
+## Question Bank
+
+Tách rõ hai nguồn:
+
+1. **Luyện tập – kiểm tra**.
+2. **Đề thi – bảo mật**.
+
+Bài kiểm tra online không được lấy câu chỉ thuộc ngân hàng bảo mật. Thi cuối kỳ dùng workflow bảo mật theo quy tắc đã chốt.
+
+## Supabase
+
+```text
+supabase/
+├─ migrations/
+├─ schema/
+├─ policies/
+├─ functions/
+└─ docs/
+```
+
+Edge Function phải:
+
+- self-contained;
+- không phụ thuộc `_shared` giữa các Function;
+- có thể copy/deploy độc lập từ Supabase Dashboard.
+
+Thay code Function trên GitHub không đồng nghĩa Supabase đã redeploy Function đó.
+
+## Công cụ Chấm thi CLO
+
+`/cham-thi-clo/` là công cụ public độc lập, không yêu cầu đăng nhập. Luồng này không được trộn với Assessment online của AI-CLO.
+
+## Tài liệu cần đọc trước khi sửa dự án
+
+Theo thứ tự:
+
+1. [`docs/project/PROJECT-NOTES-AI-CLO.md`](docs/project/PROJECT-NOTES-AI-CLO.md) — quyết định kỹ thuật/UI ưu tiên.
+2. [`docs/project/ARCHITECTURE-AI-CLO.md`](docs/project/ARCHITECTURE-AI-CLO.md) — bản đồ kiến trúc hiện hành.
+3. [`docs/project/TECHNICAL-AGREEMENTS.md`](docs/project/TECHNICAL-AGREEMENTS.md) — quy tắc kỹ thuật bắt buộc.
+4. [`docs/project/PROJECT-STATUS-2026-09-06.md`](docs/project/PROJECT-STATUS-2026-09-06.md) — trạng thái checkpoint.
+5. [`docs/project/PROJECT-PROGRESS-2026-09-06.md`](docs/project/PROJECT-PROGRESS-2026-09-06.md) — tiến trình ngày 06/09.
+6. Mã mới nhất trên `main`.
+
+## Tổ chức repository
+
+- `docs/releases/` — VERSION, hướng dẫn nâng cấp và technical notes lịch sử.
+- `docs/project/` — kiến trúc, project notes, progress/status và thỏa thuận kỹ thuật.
+- `supabase/migrations/` — migration/upgrade SQL.
+- `supabase/schema/` — snapshot schema/RLS/policies.
+- `supabase/policies/` — policy SQL độc lập.
 - `supabase/functions/` — mã nguồn Edge Function.
-- `supabase/docs/` — hướng dẫn triển khai Supabase/Gemini.
-
-## Tài liệu checkpoint
-
-- [`PROJECT-PROGRESS-2026-09-06.md`](docs/project/PROJECT-PROGRESS-2026-09-06.md) — checkpoint hiện tại sau V12.4.3.
-- [`PROJECT-PROGRESS-2026-09-05.md`](docs/project/PROJECT-PROGRESS-2026-09-05.md) — checkpoint trước chuỗi V12.4.x.
-- [`PROJECT-STATUS-2026-09-05.md`](docs/project/PROJECT-STATUS-2026-09-05.md) — trạng thái V12 đầu ngày 05/09.
-- [`VERSION-v12.0.md`](docs/releases/VERSION-v12.0.md)
-- [`HUONG-DAN-CAP-NHAT-V12.md`](docs/releases/HUONG-DAN-CAP-NHAT-V12.md)
+- `supabase/docs/` — hướng dẫn backend/deploy.
 
 ## Ưu tiên tiếp theo
 
-Không nên refactor lớn ngay. Ưu tiên **live-smoke với Supabase/RLS** các luồng tạo/chỉnh bài, rút/đổi/Gemini, sinh viên làm → reload → tiếp tục đúng câu, nộp/review/AI, persistence từng workspace, Excel đáp án+CLO với `/cham-thi-clo`, và compile TeX có công thức phức tạp.
-
----
-
-# AI-CLO PTITHCM — V11.5
-
-V11.5 hoàn thiện không gian quản trị và quy trình đánh giá theo hướng mở trang con ngay trong ứng dụng.
-
-## Điểm mới chính
-
-- **Quản trị ngân hàng câu hỏi độc lập:** Admin có tab Ngân hàng câu hỏi riêng, lọc theo nhóm Toán/Vật lý, tạo ngân hàng, mở quản trị và xuất Excel.
-- **Học phần gắn ngân hàng dùng chung:** học phần mới kế thừa Chương, Chủ đề và CLO từ ngân hàng được chọn; có học kỳ, năm học và thời gian bắt đầu/kết thúc.
-- **Nguồn câu hỏi rõ ràng:** phân biệt Giảng viên biên soạn, Gemini hỗ trợ và câu hỏi Học viện; ngân hàng Luyện tập được tách khỏi Đề thi bảo mật.
-- **Duyệt câu Gemini an toàn:** giữ nội dung khi chuyển màn hình, so sánh câu gần giống trong cùng chủ đề/chương, hỗ trợ kiểm tra giống về toán học và kết thúc đúng phiên thay vì quay lại câu đầu.
-- **Quản lý người dùng:** các ô thống kê nằm trên một hàng ở desktop; Danh sách thành viên tách Sinh viên/Giảng viên, có đăng nhập gần nhất và bộ lọc gọn.
-- **Điều hướng học phần:** nút Quay lại dùng lịch sử nội bộ; sidebar có Về hệ thống và khung học phần được thu gọn.
-- **Kết quả CLO:** hỗ trợ sắp xếp tên, GPA và từng CLO; điểm dưới 4 được làm nổi bật.
-
-## Đánh giá và bài kiểm tra
-
-- Danh sách bài kiểm tra chỉ giữ một nút **Chi tiết**; nhấn tên bài hoặc Chi tiết mở trang quản lý bài ngay trong app.
-- Trang chi tiết tập trung Cấu trúc câu hỏi, Làm thử, Sửa cài đặt, Phát hành/Đóng, Xóa bài và danh sách bài làm.
-- Danh sách bài làm hỗ trợ tìm kiếm, lọc trạng thái và sắp xếp theo tên, ngày làm, GPA hoặc từng CLO; GPA/CLO dưới 4 được cảnh báo rõ.
-- Giữ Xem bài, AI theo từng lượt và Xóa lượt làm; bộ lọc/sắp xếp được lưu trong phiên làm việc.
-- Nút **AI phân tích bài kiểm tra** chỉ tổng hợp các lượt thuộc đúng bài đang mở, có cache theo dữ liệu và nhận diện CLO yếu, câu khó, phương án thường được chọn.
-- Khi tạo bài kiểm tra, ma trận **Mục theo hàng × CLO theo cột** hiển thị tổng hàng/cột và kiểm tra số câu khả dụng trước khi tạo.
-
-## Supabase V11.5
-
-- Đã chạy `supabase/migrations/v11.5-exam-ai-analysis.sql` và nhận `MIGRATION_V11_5_OK`.
-- Đã deploy lại Edge Function `analyze-assessment` để hỗ trợ `scope: exam` và `exam_id`.
-- Migration giữ nguyên RLS, bổ sung khóa ngoại và chỉ mục cho nhận xét AI theo bài kiểm tra.
-
----
-
-# AI-CLO PTITHCM — V11
-
-**V11 là checkpoint frontend hiện tại của dự án.** Bản này tập trung tái cấu trúc JS/CSS theo chức năng, giảm tải ban đầu và cải thiện cảm nhận khi chuyển các mục trong sidebar mà không thay đổi nghiệp vụ cốt lõi.
-
-- Runtime checkpoint đã deploy thành công: `e71e973bea14c09d561eb86d2a9c542e693829d3`
-- GitHub Pages run #169: success
-- XLSX, JSZip và MathJax đã chuyển sang lazy-load.
-- Chuyển sidebar giữ nội dung đang hiển thị trong lúc view mới tải, giảm nháy `Đang tải dữ liệu…` toàn trang.
-- Không migration Supabase mới, không deploy Edge Function mới cho checkpoint này, không đổi Gemini model/quota/fallback.
-
-Tài liệu V11:
-
-- [`VERSION-v11.md`](docs/releases/VERSION-v11.md)
-- [`HUONG-DAN-CAP-NHAT-V11.md`](docs/releases/HUONG-DAN-CAP-NHAT-V11.md)
-- [`V11-TECHNICAL-NOTES.md`](docs/releases/V11-TECHNICAL-NOTES.md)
-
----
-
-# AI-CLO PTITHCM — V10.9
-
-V10.9 tổ chức rõ hai không gian **Tổng quan hệ thống** và **Tổng quan học phần** theo từng vai trò Admin, Giảng viên và Sinh viên. Menu học phần dùng thống nhất **Chương · Chủ đề · CLO**; mục **Đánh giá** của giảng viên tách thành hai tab **Bài kiểm tra trực tuyến** và **Đề thi cuối kỳ**.
-
-Hồ sơ được phân biệt theo ngữ cảnh: **Hồ sơ của tôi**, **Quản lý tài khoản** dành cho Admin và **Hồ sơ học tập** trong học phần hiện tại dành cho giảng viên. Trang công khai đồng thời xác nhận **Chấm thi CLO** là công cụ công khai cho mọi người, không yêu cầu đăng nhập.
-
-V10.9 không yêu cầu migration Supabase hoặc deploy Edge Function mới.
-
----
-
-# AI-CLO PTITHCM — V10.6
-
-**V10.6 là phiên bản chuẩn hiện tại của AI-CLO PTITHCM.**
-
-V10.6 tập trung hoàn thiện trải nghiệm sử dụng và tích hợp quy trình chấm thi CLO. Ngân hàng câu hỏi giữ trạng thái khi thêm/sửa, giữ bộ lọc và vị trí quay lại danh sách, tối ưu bảng hiển thị và hỗ trợ xóa nhiều câu hỏi. Quản lý người dùng được tách rõ với **Danh sách lớp**: Admin chỉ thêm/bớt tài khoản đã tồn tại khỏi học phần, còn thống kê lớp và trang Tổng quan đều được tính riêng theo học phần đang chọn.
-
-Phiên bản này đồng thời tích hợp công cụ **Chấm thi CLO** tại `cham-thi-clo/`, giữ riêng CSS/JS/libs/templates, đồng bộ favicon, màu sắc, nav và footer với AI-CLO PTITHCM. Liên kết **Chấm thi CLO** được bổ sung vào footer của hệ thống; các link điều hướng của trang chấm thi mở ở tab mới.
-
-V10.6 **không yêu cầu migration Supabase mới và không thay đổi model Gemini** cho các chỉnh sửa trên.
-
-Xem chi tiết tại [`VERSION-v10.6.md`](docs/releases/VERSION-v10.6.md).
-
----
-
-# AI-CLO PTITHCM — V10.5
-
-## Nâng cấp V10.5
-
-V10.5 tách trang **Ngân hàng câu hỏi** thành hai tab con rõ ràng: **Luyện tập - kiểm tra** và **🔒 Ngân hàng đề thi - bảo mật**. Một câu có thể lưu ở một ngân hàng hoặc **Cả hai**. Bài kiểm tra trực tuyến chỉ được lấy câu thuộc Luyện tập/Cả hai; Supabase cũng chặn câu chỉ thuộc ngân hàng đề thi ở tầng database.
-
-Bản này đồng thời thay favicon đỏ AI·CLO, sửa lỗi quay lại màn hình ngân hàng làm từ khóa thành `all`, giữ trạng thái bộ lọc/tab/vị trí cuộn, và cân lại độ rộng các cột Mã câu — Nội dung — Chương/Chủ đề.
-
-Nếu đã triển khai V10.4, chạy `supabase/migrations/v10.5-upgrade.sql` rồi cập nhật frontend. **Không cần deploy Edge Function mới.**
-
-Xem `docs/releases/HUONG-DAN-CAP-NHAT-V10.5.md`.
-
----
-
-# AI-CLO PTITHCM — V10.4
-
-## Nâng cấp V10.4
-
-V10.4 tập trung hoàn thiện **hồ sơ đề thi cuối kỳ**: BM06/BM07/BM08 xuất DOCX thật, BM07 tự bố trí 4 phương án theo 1 dòng / 2 dòng / 4 dòng để tránh wrap; hồ sơ đã chốt có **Mở / Sửa / Xuất**, quay lại đúng luồng chỉnh sửa đề, lưu lịch sử tạo/sửa/xuất và cho **người tạo hoặc Admin** xóa hồ sơ. Favicon mới dùng chữ `AI·CLO / PTITHCM`.
-
-Nếu đã triển khai V10.3, chỉ cần chạy thêm `supabase/migrations/v10.4-upgrade.sql` rồi cập nhật frontend. **Không cần deploy Edge Function mới.** Các Edge Function Gemini vẫn self-contained.
-
-Xem `docs/releases/HUONG-DAN-CAP-NHAT-V10.4.md`.
-
----
-
-# AI-CLO PTITHCM — V10.1
-
-## Nâng cấp V10.1
-
-V10.1 sửa thanh điều hướng trên điện thoại theo bố cục hai hàng, giữ cố định thứ tự Home → Thông báo → Học phần và không để tiêu đề đẩy tràn màn hình. Luồng tạo câu hỏi Gemini hiển thị nội dung lỗi Edge Function ngay trong trang, bỏ tham số lấy mẫu không tương thích của Gemini 3.6 và cho phép cấu hình model bằng secret `GEMINI_MODEL`.
-
-Phần sinh bài kiểm tra cũng được siết lại: giảng viên chọn rõ nguồn **Luyện tập · Kiểm tra** hoặc **Đề thi · Bảo mật**; hệ thống chỉ đưa câu có đủ bốn lựa chọn A–D và đáp án hợp lệ vào pool, dùng thuật toán trộn đều, đồng thời tự phân bổ mặc định đủ 10 câu theo số CLO thực tế.
-
-V10.1 không có migration cơ sở dữ liệu mới. Cần redeploy Edge Function `generate-questions` trong thư mục `supabase/functions/generate-questions`.
-
-## Nâng cấp V10
-
-V10 sửa triệt để lỗi nhấn **Chi tiết** nhưng không hiển thị và thống nhất toàn bộ quy trình Ngân hàng câu hỏi trong trang: xem chi tiết, thêm, sửa, tạo bằng Gemini, xem phiên AI và duyệt bản nháp. Nút Sửa/Xóa được dựng trước dữ liệu phụ nên vẫn hoạt động nếu lịch sử hoặc đề nghị chỉnh sửa chưa tải được.
-
-V10 không có migration cơ sở dữ liệu mới. Nếu nâng trực tiếp từ V9.5 trở xuống, vẫn phải chạy `supabase/migrations/v9.6-question-bank.sql` trước.
-
----
-
-## Nâng cấp V9.6
-
-V9.6 bổ sung ngân hàng câu hỏi hai nhóm (luyện tập và đề thi bảo mật), quy trình duyệt/đề nghị chỉnh sửa, phát hiện câu tương tự, kết quả CLO sinh viên theo chương với nhận xét Gemini theo yêu cầu, đồng thời hoàn thiện giao diện Home, Hero và trải nghiệm di động.
-
-Sau khi cập nhật mã nguồn, chạy `supabase/migrations/v9.6-question-bank.sql` trong Supabase SQL Editor. Migration này phải chạy sau các migration đến V9.5.
-
-Xem trình tự chi tiết trong `docs/releases/HUONG-DAN-CAP-NHAT-V9.6.md`.
-
----
-
-## Nâng cấp V9.5
-
-V9.5 tách giao diện thành Tổng quan hệ thống và không gian riêng của từng môn học; đồng thời sửa responsive trên điện thoại/laptop, bổ sung chế độ chỉnh sửa cấu trúc, làm gọn Ngân hàng câu hỏi và Danh sách lớp.
-
-Sau khi đưa mã nguồn lên GitHub Pages, chạy thêm `supabase/migrations/v9.5-addon.sql` trong Supabase SQL Editor để bật chức năng giảng viên gửi thông báo riêng cho sinh viên. Các migration V9.1, V9.2 và V9.4 vẫn phải được cài đặt trước.
-
----
-
-## Nền tảng chức năng V9.1
-
-V9.1 mở rộng V9 theo hướng hoàn thiện quy trình bài kiểm tra, giữ lịch sử câu hỏi/bài làm ổn định và hạn chế mở cửa sổ mới.
-
-## Điểm mới chính
-
-- Landing page luôn hiển thị kể cả khi người dùng đã đăng nhập; khi đó nút chính đổi thành **Vào hệ thống**.
-- Trang Bài kiểm tra dùng **drawer/panel bên phải** để xem cấu trúc đề, danh sách bài làm, chi tiết bài làm và hồ sơ sinh viên.
-- Danh sách bài làm có nút **Xem bài**; bấm tên sinh viên mở hồ sơ ngay trong panel.
-- Các thao tác quan trọng có hộp xác nhận: bắt đầu/nộp bài, phát hành/đóng/xóa, chỉnh cấu trúc, rút lại/đổi câu.
-- Ba chế độ rút câu:
-  - `common_fixed`: một bộ câu chung cố định;
-  - `student_fixed`: mỗi sinh viên có bộ câu riêng và giữ nguyên qua các lần làm;
-  - `attempt_random`: mỗi lượt làm rút lại, ưu tiên tránh câu đã gặp.
-- Có `exam_question_pool` để đóng băng nguồn câu khi tạo bài và `attempt_questions` để lưu snapshot từng lượt làm.
-- Trước khi có sinh viên làm, giảng viên có thể xem ma trận Chương/Chủ đề/CLO, đổi riêng câu hoặc rút lại bộ câu mẫu/chung.
-- Sau khi đã có lượt làm, cấu trúc đo lường và bộ câu bị khóa để bảo toàn kết quả.
-- Hồ sơ sinh viên có lịch sử bài kiểm tra, tiến bộ CLO và thống kê theo chương.
-- Gemini vẫn **on-demand**: không dùng để chấm điểm, tính CLO hay xuất báo cáo; chỉ gọi khi sinh viên/giảng viên chủ động nhấn nút AI.
-
-## Nâng từ V9 lên V9.1
-
-Nếu hệ thống hiện tại đã chạy V9, **không chạy lại migration V9**.
-
-1. Chạy `supabase/migrations/assessment-v9.1-migration.sql` trong Supabase SQL Editor.
-2. Redeploy `supabase/functions/analyze-assessment/index.ts` bằng code V9.1.
-3. Đưa toàn bộ mã nguồn V9.1 lên GitHub Pages.
-4. Kiểm thử bằng một tài khoản giảng viên và ít nhất hai tài khoản sinh viên nếu muốn đối chiếu ba chế độ rút câu.
-
-Xem chi tiết trong `docs/releases/UPGRADE-V9.1.md`.
-
-## Cấu hình Supabase/Gemini
-
-- `js/config.js` chỉ chứa thông tin public dành cho frontend; không đưa `service_role` key lên GitHub.
-- Edge Function `analyze-assessment` dùng `GEMINI_API_KEY` đã cấu hình trong Supabase Secrets.
-- V9.1 không yêu cầu đổi Gemini key nếu V9 đã chạy AI thành công.
-
-## File quan trọng
-
-```text
-index.html
-css/app.css
-css/question-exam.css
-css/public.css
-js/app.js
-js/assessment.js
-js/assessment-v91.js
-supabase/migrations/assessment-v9.1-migration.sql
-supabase/functions/analyze-assessment/index.ts
-docs/releases/UPGRADE-V9.1.md
-docs/releases/VERSION-v9.1.txt
-```
-
-`js/assessment.js` của V9 vẫn được giữ làm nền tương thích; `js/assessment-v91.js` được nạp sau để cung cấp luồng Bài kiểm tra V9.1.
-
-## V10.2 (2026-08-31)
-Xem `docs/releases/HUONG-DAN-CAP-NHAT-V10.2.md`. V10.2 bổ sung Gemini auto-fallback, `clos.short_description`, nhập hàng loạt câu hỏi và quy trình đề cuối kỳ BM06 → duyệt câu → BM07/BM08 + đáp án CLO.
-
-## V10.3
-Autosave/resume cho sinh viên làm bài, giảng viên làm thử và tạo đề cuối kỳ. Không cần SQL/Edge Function mới nếu đã triển khai V10.2.
+Đợt refactor CSS ownership lớn đã hoàn tất. Ưu tiên tiếp theo là **smoke test giao diện và nghiệp vụ thực tế**, đặc biệt:
+
+- desktop/mobile shell;
+- Question Bank;
+- Assessment Detail/Builder/Attempt;
+- reload/tab-discard/persistence;
+- teacher/student qua Supabase/RLS;
+- đổi học phần không lẫn state;
+- Excel đáp án+CLO với `/cham-thi-clo`;
+- compile TeX với công thức thực tế.
+
+Không nên tiếp tục chia/tách CSS chỉ để làm sạch thêm nếu chưa có lỗi hoặc điểm nghẽn cụ thể.
