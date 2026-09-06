@@ -1,0 +1,27 @@
+/* AI-CLO PTITHCM V12.4.21 — system/course dashboard UI owner. */
+.v109-dashboard{display:grid;gap:20px}
+.v109-hero{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:20px;padding:26px 28px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(135deg,#fff,#fff4f6)}
+.v109-hero.course{background:linear-gradient(135deg,#171d28,#283244);color:#fff}
+.v109-hero small{color:var(--red);font-weight:900;letter-spacing:.09em}
+.v109-hero.course small{color:#ef9aa5}
+.v109-hero h3{font-size:29px;margin:6px 0}
+.v109-hero p{margin:0;color:var(--muted);line-height:1.6}
+.v109-hero.course p{color:#c8ced8}
+.v109-hero>span{padding:10px 14px;border:1px solid #edcbd0;border-radius:999px;background:#fff;color:var(--red);font-weight:900}
+.v109-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.v109-stat{padding:19px;border:1px solid var(--line);border-radius:15px;background:#fff}
+.v109-stat small,.v109-stat span{display:block;color:var(--muted)}
+.v109-stat b{display:block;margin-top:8px;font-size:25px}
+.v109-stat span{font-size:11px;margin-top:4px}
+.v109-courses{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.v109-course{padding:18px;border:1px solid var(--line);border-radius:15px;display:flex;flex-direction:column;justify-content:space-between;gap:18px}
+.v109-course small{color:var(--muted)}
+.v109-course h4{font-size:19px;margin:5px 0}
+.v109-quick{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.v109-quick h3{margin:0}
+.v109-quick p{margin:5px 0 0;color:var(--muted)}
+.v109-quick>div:last-child{display:flex;gap:8px;flex-wrap:wrap}
+@media(min-width:901px){.v109-stats{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}}
+@media(max-width:900px){.v109-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.v109-hero{grid-template-columns:1fr}.v109-hero>span{justify-self:start}.v109-quick{align-items:flex-start;flex-direction:column}}
+@media(max-width:760px){.v109-hero{padding:19px}.v109-hero h3{font-size:23px}}
+@media(max-width:430px){.v109-stats{grid-template-columns:1fr}}
