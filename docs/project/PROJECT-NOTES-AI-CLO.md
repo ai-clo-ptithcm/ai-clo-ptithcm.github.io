@@ -4,6 +4,8 @@
 
 Cập nhật gần nhất: **06/09/2026 — V12.4.24**
 
+Bản đồ kiến trúc hiện hành nằm tại `docs/project/ARCHITECTURE-AI-CLO.md`. Khi cần tìm đúng owner/file trước khi sửa, đọc file kiến trúc này ngay sau PROJECT-NOTES.
+
 ## 1. Nguyên tắc phát triển
 
 - Ưu tiên **framework dùng chung**, tránh sửa chắp vá từng trang.
@@ -279,6 +281,16 @@ Không xóa state chỉ vì `visibilitychange`, `pagehide`, hoặc render lại 
 
 ## 9. Các file/mốc cần nhớ
 
+### Tài liệu bắt buộc đọc
+
+- `docs/project/PROJECT-NOTES-AI-CLO.md` — quyết định kỹ thuật/UI/nghiệp vụ ưu tiên.
+- `docs/project/ARCHITECTURE-AI-CLO.md` — bản đồ kiến trúc hiện hành và owner theo domain.
+- `docs/project/TECHNICAL-AGREEMENTS.md` — quy tắc kỹ thuật bắt buộc.
+- `docs/project/PROJECT-STATUS-2026-09-06.md` — snapshot trạng thái hiện tại.
+- `docs/project/PROJECT-PROGRESS-2026-09-06.md` — tiến trình chi tiết trong ngày.
+
+### File runtime quan trọng
+
 - `js/exams/unified-builder.js` — framework chung 4 loại bài.
 - `css/exams/unified-builder.css` — giao diện builder chung.
 - `js/exams/unified-list-adapter.js` — adapter danh sách/trang chi tiết cho framework mới.
@@ -291,18 +303,30 @@ Không xóa state chỉ vì `visibilitychange`, `pagehide`, hoặc render lại 
 
 ## 10. Việc cần tiếp tục kiểm tra
 
-- Rà toàn web các nhóm KPI/card để áp dụng rule 5–6 card/1 hàng trên desktop.
-- Rà action toolbar 4–6 nút để dùng một chuẩn responsive.
-- Kiểm tra thực tế Chrome tab-switch cho từng trang con: Chi tiết bài kiểm tra, builder, hồ sơ SV, ngân hàng câu hỏi, final workflow.
-- Giảm dần các lifecycle/persistence cục bộ đã trùng chức năng với `AICLO_SUBPAGE_STATE`, nhưng chỉ sau khi test ổn định.
-- Khi thêm bất kỳ trang con mới nào: **đăng ký restore với lớp chung ngay từ đầu**.
+Đợt CSS ownership/refactor lớn đã hoàn tất ở V12.4.24. Không tiếp tục chia/tách CSS chỉ vì muốn giảm số file nếu chưa có lỗi/điểm nghẽn rõ ràng.
+
+Ưu tiên tiếp theo:
+
+- smoke desktop/mobile shell;
+- login/Auth;
+- Question Bank desktop/mobile, filter, card/table, quick edit;
+- Assessment Detail/Builder/Attempt;
+- kiểm tra Chrome tab-switch/reload/discard cho từng trang con;
+- teacher/student qua Supabase/RLS;
+- đổi học phần không lẫn state/feedback;
+- Excel đáp án+CLO với `/cham-thi-clo`;
+- compile TeX với dữ liệu thật;
+- nếu profiling cho thấy số request CSS là bottleneck thì cân nhắc **build-time bundle**, không nhập thủ công source CSS lại thành file lớn.
+
+Khi thêm bất kỳ trang con mới nào: **đăng ký restore với lớp chung ngay từ đầu**.
 
 ## 11. Nguyên tắc làm việc với repo
 
 Trước khi sửa lớn ở các phiên sau:
 
-1. Đọc file này.
-2. Đọc `VERSION-v11.8.md` và các VERSION mới hơn nếu có.
-3. Quét code mới nhất trên GitHub trước khi quyết định thay đổi.
-4. Không giả định UI/state cũ còn đúng nếu repo đã có phiên bản mới.
-5. Ưu tiên thay đổi theo framework chung, không tạo “bản vá riêng” cho một trang nếu vấn đề có tính toàn hệ thống.
+1. Đọc `PROJECT-NOTES-AI-CLO.md` trước.
+2. Đọc `ARCHITECTURE-AI-CLO.md` để xác định đúng owner/file.
+3. Đọc `TECHNICAL-AGREEMENTS.md` và release note liên quan nếu cần.
+4. Quét code mới nhất trên GitHub `main` trước khi quyết định thay đổi.
+5. Không giả định UI/state cũ còn đúng nếu repo đã có phiên bản mới.
+6. Ưu tiên thay đổi theo framework chung, không tạo “bản vá riêng” cho một trang nếu vấn đề có tính toàn hệ thống.
