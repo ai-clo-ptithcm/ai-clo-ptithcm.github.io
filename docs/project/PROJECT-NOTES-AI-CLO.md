@@ -2,7 +2,7 @@
 
 > File này là **nguồn ghi nhớ kỹ thuật ưu tiên** để tiếp tục phát triển dự án trong các phiên sau. Khi bắt đầu chỉnh sửa AI-CLO, hãy đọc file này trước các changelog phiên bản nếu cần hiểu các quyết định đã chốt.
 
-Cập nhật gần nhất: **06/09/2026 — V12.4.9**
+Cập nhật gần nhất: **06/09/2026 — V12.4.17**
 
 ## 1. Nguyên tắc phát triển
 
@@ -69,6 +69,7 @@ Ownership kỹ thuật:
 - `css/ui/app-window.css` chỉ sở hữu **window chrome**: vị trí, kích thước, header, drag, resize, responsive.
 - `css/ui/application.css` sở hữu **layout/kích thước app dùng chung**: sizing, desktop shell geometry, content constraints và các quy tắc layout nền.
 - `css/ui/shell.css` sở hữu **shell chrome**: sidebar/header controls và **Drawer xem chi tiết** (`drawer-backdrop`, `side-drawer`, `drawer-head`, `drawer-body`, responsive drawer).
+- `css/courses/structure.css` sở hữu **CSS nghiệp vụ Chương · Chủ đề · CLO**: danh sách chương/chủ đề, action edit/delete, safe-delete/dependency và compatibility `structure-v95`; không đặt các rule này trở lại `css/app.css` hoặc `css/ui/application.css`.
 - Không đặt lại CSS Drawer vào `css/app.css` hoặc CSS nghiệp vụ; `css/app.css` chỉ giữ các primitive/global base còn cần và confirm dialog cho tới khi có owner UI riêng phù hợp.
 - CSS/module nghiệp vụ chỉ sở hữu **nội dung bên trong editor** và khác biệt theo ngữ cảnh.
 - Không để class nghiệp vụ của Ngân hàng, Kiểm tra trùng và Assessment dùng lẫn nhau để tránh cascade/logic ảnh hưởng chéo.
