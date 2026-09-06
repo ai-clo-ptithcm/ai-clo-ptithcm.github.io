@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.4.21 — assessment detail layout and chrome owner. */
+/* AI-CLO PTITHCM V12.4.24 — assessment detail layout and chrome owner. */
 .assessment-detail-page{display:grid;gap:16px;width:100%;max-width:100%;min-width:0;overflow-x:hidden}
 .assessment-detail-page>*{max-width:100%;min-width:0}
 .assessment-detail-page .panel{max-width:100%;min-width:0}
@@ -8,14 +8,15 @@
 .assessment-detail-stats>div{min-width:0}.assessment-detail-stats b{overflow-wrap:anywhere}
 .assessment-detail-meta{display:grid!important;grid-template-columns:minmax(0,1fr)!important;align-items:stretch!important;gap:14px!important;width:100%;max-width:100%;min-width:0}
 .assessment-detail-meta>div:first-child{display:grid;gap:5px;min-width:0}.assessment-detail-meta span,.exam-ai-section p{color:var(--muted)}
-.assessment-detail-actions{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px!important;width:100%;max-width:100%;min-width:0;justify-content:stretch!important}
+.assessment-detail-actions{display:grid!important;grid-template-columns:none!important;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px!important;width:100%;max-width:100%;min-width:0;justify-content:stretch!important;align-items:stretch!important}
 .assessment-detail-actions button{width:100%;min-width:0!important;min-height:48px;margin:0!important;padding:10px 12px!important;white-space:normal;line-height:1.2;font-weight:800}
 .assessment-detail-actions #examAiAnalyze.ai-btn{display:inline-flex;align-items:center;justify-content:center}
 .exam-ai-section{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}.exam-ai-section h3,.exam-ai-section p{margin:0}.exam-ai-section p{margin-top:5px}.exam-ai-section #examAiResult{flex:1 0 100%}
 .exam-ai-section.exam-ai-result-only{display:grid!important;gap:12px!important;align-items:stretch!important;max-width:100%;min-width:0}
 .exam-ai-section.exam-ai-result-only[hidden]{display:none!important}
 .exam-ai-section.exam-ai-result-only>div:first-child{display:block}.exam-ai-section.exam-ai-result-only h3{margin:0}.exam-ai-section.exam-ai-result-only>button{display:none!important}.exam-ai-section.exam-ai-result-only #examAiResult{width:100%;max-width:100%;min-width:0}
-.attempt-page-toolbar{grid-template-columns:minmax(260px,1fr) 180px 240px auto!important;align-items:center;max-width:100%;min-width:0;margin-bottom:14px}
+.attempt-page-toolbar{display:grid!important;grid-template-columns:minmax(260px,1.45fr) minmax(150px,.72fr) minmax(170px,.8fr) minmax(150px,.65fr)!important;gap:10px!important;align-items:center!important;max-width:100%;min-width:0;margin-bottom:14px}
+.attempt-page-toolbar>*{min-width:0!important;width:100%!important;margin:0!important;grid-column:auto!important}
 .score-low{color:#b42318!important}.score-low-cell{background:#fff0f1!important;color:#b42318;font-weight:900}
 .assessment-detail-page .table-wrap{display:block;width:100%;max-width:100%;min-width:0;overflow-x:auto!important;overflow-y:visible;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
 .exam-attempt-table{width:100%;min-width:960px;max-width:none}.exam-attempt-table th{white-space:nowrap}
@@ -31,9 +32,10 @@
 .final-assessment-list-back{white-space:nowrap;flex:0 0 auto}
 .question-workspace .workspace-head:has(.final-assessment-list-back){flex-wrap:wrap;align-items:center}
 .question-workspace .workspace-head:has(.final-assessment-list-back)>div{min-width:min(420px,100%);flex:1}
-@media(max-width:1380px){.assessment-detail-stats{grid-template-columns:repeat(3,minmax(0,1fr))!important}.assessment-detail-actions{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:1180px){.attempt-page-toolbar{grid-template-columns:1fr 1fr!important}.attempt-page-toolbar input{grid-column:1/-1}.exam-attempt-table .attempt-student-col{min-width:200px}.exam-attempt-table .attempt-actions-col,.exam-attempt-table .attempt-actions-cell{min-width:275px}}
-@media(max-width:760px){.assessment-detail-head{grid-template-columns:1fr;align-items:stretch;gap:12px}.assessment-detail-head>button{width:100%}.assessment-detail-head>span{justify-self:start}.assessment-detail-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.assessment-detail-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.attempt-page-toolbar{grid-template-columns:1fr!important}.attempt-page-toolbar input{grid-column:auto}.assessment-detail-actions button{min-height:44px}.exam-attempt-table{min-width:900px}.exam-attempt-table .attempt-student-col{min-width:190px}.exam-attempt-table .attempt-actions-col,.exam-attempt-table .attempt-actions-cell{min-width:260px}.exam-attempt-table .attempt-actions-cell{grid-template-columns:64px 64px minmax(122px,1fr)!important}.final-assessment-list-back{width:100%}.question-workspace .workspace-head:has(.final-assessment-list-back)>div{min-width:0;width:100%}}
+@media(max-width:1180px){.exam-attempt-table .attempt-student-col{min-width:200px}.exam-attempt-table .attempt-actions-col,.exam-attempt-table .attempt-actions-cell{min-width:275px}}
+@media(max-width:1000px){.assessment-detail-stats{grid-template-columns:repeat(3,minmax(0,1fr))!important}.assessment-detail-actions{grid-template-columns:repeat(3,minmax(0,1fr))!important;grid-auto-flow:row!important}.attempt-page-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:760px){.assessment-detail-head{grid-template-columns:1fr;align-items:stretch;gap:12px}.assessment-detail-head>button{width:100%}.assessment-detail-head>span{justify-self:start}.assessment-detail-actions button{min-height:44px}.exam-attempt-table{min-width:900px}.exam-attempt-table .attempt-student-col{min-width:190px}.exam-attempt-table .attempt-actions-col,.exam-attempt-table .attempt-actions-cell{min-width:260px}.exam-attempt-table .attempt-actions-cell{grid-template-columns:64px 64px minmax(122px,1fr)!important}.final-assessment-list-back{width:100%}.question-workspace .workspace-head:has(.final-assessment-list-back)>div{min-width:0;width:100%}}
+@media(max-width:700px){.assessment-detail-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.assessment-detail-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}.attempt-page-toolbar{grid-template-columns:1fr!important}}
 @media(max-width:430px){.assessment-detail-stats{grid-template-columns:1fr!important}}
 
 /* V12.3.4 — attempt CLO table and Excel export */
