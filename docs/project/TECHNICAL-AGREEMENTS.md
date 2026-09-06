@@ -1,112 +1,82 @@
 # AI-CLO PTITHCM — THỐNG NHẤT KỸ THUẬT CHUNG
 
-> Đây là tài liệu kỹ thuật sống của dự án. Mục đích là để ChatGPT hoặc người phát triển quay lại dự án sau này có thể đọc một file duy nhất để hiểu các nguyên tắc kỹ thuật đã thống nhất. Khi có quy ước kiến trúc/kỹ thuật mới, ưu tiên **cập nhật file này** thay vì tạo thêm nhiều tài liệu rời rạc.
+> Tài liệu này ghi các **quy tắc bắt buộc** khi tiếp tục phát triển AI-CLO PTITHCM. Bản đồ kiến trúc xem tại `ARCHITECTURE-AI-CLO.md`; các quyết định UI/nghiệp vụ ưu tiên xem tại `PROJECT-NOTES-AI-CLO.md`.
 
-## 1. Nguồn mã và nơi hệ thống chạy
+Cập nhật: **06/09/2026 — checkpoint V12.4.24**
+
+## 1. Nguồn mã và môi trường chạy
 
 ### Frontend
 
 - Repository chính: `ai-clo-ptithcm/ai-clo-ptithcm.github.io`.
-- Frontend được phục vụ qua GitHub Pages.
-- Nhánh chuẩn để đọc mã hiện hành là `main`.
-- Trước khi chỉnh bất kỳ chức năng nào, phải đọc mã hiện tại trên `main`, không suy đoán từ phiên bản cũ hoặc trí nhớ.
+- Frontend chạy trên GitHub Pages.
+- Nhánh chuẩn để đọc code hiện hành: `main`.
+- Trước khi sửa phải đọc code mới nhất trên `main`, không suy đoán từ ZIP/chat/version cũ.
 
 ### Supabase
 
-Supabase là backend đang chạy thực tế của hệ thống:
+Supabase là backend đang chạy thực tế:
 
-- PostgreSQL database.
+- PostgreSQL.
 - Auth.
 - Storage.
 - RPC / SQL functions.
 - Row Level Security.
 - Edge Functions.
 
-### Quy tắc rất quan trọng về Edge Functions
+GitHub lưu source backend để đọc/chỉnh; Supabase là nơi backend chạy thực tế.
 
-**GitHub đang lưu bản mã nguồn Edge Function hiện hành đang được dùng/deploy trên Supabase.**
+## 2. Edge Function — quy tắc bắt buộc
 
-Vì vậy:
-
-1. Khi cần xem một Edge Function hiện tại, phải mở trực tiếp:
-
-   `supabase/functions/<function-name>/index.ts`
-
-   trên nhánh `main` của GitHub.
-
-2. Không được dựa vào file Function người dùng từng gửi ở chat cũ, ZIP cũ, `_shared` cũ hoặc trí nhớ.
-
-3. GitHub là **nguồn mã hiện hành để đọc/chỉnh/đối chiếu Function**.
-
-4. Supabase là **nơi Function chạy thực tế**.
-
-5. Khi sửa Function trên GitHub, người dùng vẫn phải deploy/redeploy Function đó lên Supabase Dashboard nếu thay đổi cần chạy thật.
-
-6. Khi trả lời người dùng về Function hiện tại, phải đọc bản trong GitHub trước nếu câu hỏi phụ thuộc code thực tế.
-
-Các thư mục Function hiện đang có trong repo tại thời điểm lập tài liệu:
-
-```text
-supabase/functions/
-├─ admin-users/
-├─ ai_clo_chat/
-├─ analyze-assessment/
-├─ analyze-question-similarity/
-├─ analyze-student-clo/
-├─ generate-one-question/
-├─ generate-questions/
-└─ scan-question-duplicates/
-```
-
-Danh sách này có thể thay đổi. Khi cần biết chính xác Function hiện tại, phải liệt kê lại thư mục `supabase/functions/` trên `main`.
-
-## 2. Nguyên tắc Edge Function
-
-- Mỗi Edge Function phải **self-contained**.
-- Không phụ thuộc thư mục `_shared` giữa các Function.
-- Không giả định người dùng deploy toàn bộ project bằng CLI.
-- Người dùng thường copy/deploy từng Function trực tiếp trên Supabase Dashboard.
-- Nếu một Function cần logic Gemini/model fallback thì logic cần nằm trong chính Function đó hoặc được tổ chức theo cách vẫn deploy độc lập được.
-- Không thêm dependency liên-Function khiến một Function không thể copy/deploy riêng.
-- Khi sửa Function phải nói rõ cho người dùng Function nào cần redeploy.
-- Nếu chỉ sửa frontend và không cần backend, phải nói rõ: **không cần thao tác Supabase**.
+- Mỗi Function phải **self-contained**.
+- Không phụ thuộc `_shared` giữa các Function.
+- Không giả định người dùng deploy toàn project bằng CLI.
+- Function phải có thể copy/deploy độc lập trên Supabase Dashboard.
+- Khi cần xem Function hiện tại, đọc `supabase/functions/<function-name>/index.ts` trên `main`.
+- Không dựa vào Function từng gửi ở chat cũ hoặc ZIP cũ.
+- Sửa source Function trên GitHub **không đồng nghĩa Function trên Supabase đã redeploy**.
+- Khi sửa Function phải nói rõ Function nào cần redeploy.
+- Frontend-only phải nói rõ **không cần thao tác Supabase**.
+- Logic Gemini/model fallback nếu Function cần phải nằm trong chính Function hoặc theo cấu trúc vẫn deploy độc lập được.
 
 ## 3. Database / SQL / migration
 
-- Supabase database là nguồn dữ liệu chính thức.
+- Supabase database là nguồn dữ liệu nghiệp vụ chính thức.
 - Không sửa schema ngầm từ frontend.
-- Mọi thay đổi schema/RPC/RLS phải có SQL rõ ràng.
-- SQL migration/upgrade được lưu tại `supabase/migrations/`.
-- Snapshot schema/RLS/policies dạng CSV được lưu tại `supabase/schema/`.
-- SQL policy độc lập được lưu tại `supabase/policies/`.
-- Trước khi viết SQL mới, phải kiểm tra migration mới nhất và schema hiện tại để tránh tạo constraint/RPC trùng hoặc làm mất RLS.
-- Không giả định migration cũ chưa/chắc đã chạy; nếu cần xác minh phải hỏi hoặc đọc trạng thái mà người dùng cung cấp.
-- Nếu một migration mới supersede migration cũ, phải nói rõ migration nào không cần chạy nữa.
-- Với Assessment, backend schema checkpoint gần nhất được dùng là `assessment_schema_version = 12.3.1` cho đến khi có migration mới chính thức.
+- Schema/RPC/RLS thay đổi phải có SQL rõ ràng.
+- Migration/upgrade: `supabase/migrations/`.
+- Snapshot schema/RLS/policies: `supabase/schema/`.
+- Policy SQL độc lập: `supabase/policies/`.
+- Trước khi viết SQL mới phải kiểm migration mới nhất và schema hiện tại.
+- Không tạo constraint/RPC trùng hoặc làm yếu RLS.
+- Nếu migration mới thay thế migration cũ, phải ghi rõ migration nào không cần chạy nữa.
+- Assessment backend checkpoint hiện tại: `assessment_schema_version = 12.3.1` cho đến khi có migration chính thức mới.
 
 ## 4. RLS và bảo mật
 
 - Không bypass RLS bằng frontend.
-- Quyền Admin/Giảng viên/Sinh viên phải được xác thực ở backend đối với dữ liệu nhạy cảm.
-- Các RPC nhạy cảm có thể dùng `security definer`, nhưng phải kiểm tra quyền người gọi bên trong function.
-- Ngân hàng đề thi bảo mật không được dùng cho bài luyện tập trực tuyến.
-- Các thao tác xem kết quả, xem đáp án, AI feedback phải tuân theo permission của bài kiểm tra và vai trò người dùng.
 - Không đưa service-role key vào frontend.
-- Frontend chỉ dùng publishable/anon key phù hợp.
+- Admin/Giảng viên/Sinh viên phải được kiểm quyền ở backend với dữ liệu nhạy cảm.
+- RPC `security definer` phải kiểm quyền người gọi bên trong function.
+- Ngân hàng đề thi bảo mật không được dùng sai mục đích cho bài luyện tập/online.
+- Review bài, đáp án đúng, AI feedback và dữ liệu kết quả phải tuân permission của bài và vai trò.
+- Query/feedback phải scope đúng `subject_id`, `exam_id`, `attempt_id`, student liên quan.
 
 ## 5. Kiến trúc frontend chung
 
-- Ưu tiên chia JS theo domain/chức năng, không gom mọi thứ vào một file lớn.
-- Một domain chỉ nên có một owner runtime rõ ràng.
-- Child module nhận dependency qua context/API thay vì phụ thuộc biến global ngầm.
-- Hạn chế gán global; nếu cần global compatibility thì owner chịu trách nhiệm công khai API.
-- Không monkey patch nếu có thể sửa kiến trúc gốc.
-- Không tạo nhiều lớp vá JS chồng lên nhau.
-- Khi refactor, giữ backward compatibility nếu các phần khác đang dùng API cũ.
+- Ưu tiên chia JS theo domain/chức năng.
+- Một domain quan trọng chỉ nên có **một owner runtime rõ ràng**.
+- Child module nhận dependency qua context/API thay vì global ngầm khi có thể.
+- Hạn chế gán global; nếu cần compatibility API thì owner chịu trách nhiệm công khai.
+- Không monkey patch nếu có thể sửa đúng owner.
+- Không tạo nhiều lớp vá JS/CSS chồng lên nhau.
+- Khi refactor phải bảo toàn behavior trước khi tối ưu thêm.
 
-## 6. Kiến trúc Assessment đã chốt
+Bản đồ thư mục và owner xem `ARCHITECTURE-AI-CLO.md`.
 
-Assessment frontend giữ đúng cấu trúc owner/module:
+## 6. Assessment — single-owner runtime
+
+Cấu trúc chuẩn:
 
 ```text
 js/
@@ -120,20 +90,20 @@ js/
    └─ results.js
 ```
 
-Nguyên tắc:
+Quy tắc:
 
-- `assessment.js` là owner/router/lifecycle public runtime duy nhất.
-- Child modules không tự gán `window.exams`, `window.results`.
+- `assessment.js` là owner/router/lifecycle public duy nhất.
+- Child modules không tự gán owner public song song.
 - Child modules đăng ký factory qua `window.AICLO_ASSESSMENT_MODULES`.
-- Dependency truyền qua `ctx`.
-- Không MutationObserver trong Assessment modules.
-- Không monkey patch trong Assessment.
-- Utility xuất đề Online đặt ngoài owner modules, hiện tại là `js/exams/online-export.js`.
-- Thứ tự load Assessment phải giữ owner cuối cùng sau các child module.
+- Dependency truyền qua context/API.
+- Không monkey patch Assessment.
+- Không thêm `MutationObserver` vào Assessment child modules.
+- Utility xuất đề online ở `js/exams/online-export.js`.
+- Load order phải giữ child modules trước owner khi kiến trúc hiện tại yêu cầu.
 
-## 7. Persistence / giữ màn hình toàn web
+## 7. Persistence / giữ màn hình
 
-Chỉ giữ **hai file persistence dùng chung**:
+Hai lớp dùng chung:
 
 ```text
 js/ui/subpage-state.js
@@ -145,11 +115,11 @@ js/ui/form-persistence.js
 Phụ trách:
 
 - workspace/subpage hiện tại;
-- context system/course/view;
-- entity đang mở;
+- system/course/view context;
+- entity/mode;
 - scroll position;
-- restore sau lifecycle trình duyệt;
-- tránh restore đè lên workspace đang sống.
+- restore sau reload/discard/pageshow;
+- registry chung của module.
 
 ### `form-persistence.js`
 
@@ -158,160 +128,181 @@ Phụ trách:
 - form draft;
 - input/textarea/select;
 - checkbox/radio;
-- matrix/form state;
-- khôi phục dữ liệu đang nhập.
+- matrix/form state.
 
-### Quy ước bắt buộc
+### Quy tắc
 
-- Không tạo thêm persistence file riêng cho từng module nếu có thể đăng ký vào hai file trên.
-- Workspace mới phải dùng API/register của `subpage-state.js`.
-- Form/draft mới phải dùng `form-persistence.js` hoặc API của nó.
+- Không tạo navigation persistence mới cho từng module nếu có thể đăng ký vào `AICLO_SUBPAGE_STATE`.
 - UI persistence không thay thế dữ liệu chính thức ở Supabase.
-- `sessionStorage/localStorage` chỉ là UI state/local recovery.
-- Dữ liệu chính thức luôn lấy Supabase làm nguồn chuẩn.
+- Chỉ xóa subpage state khi người dùng chủ động rời workflow hoặc workflow save/complete đã rời trang con.
+- Không xóa chỉ vì `visibilitychange`, `pagehide` hoặc browser tab switch.
 
-## 8. Sinh viên làm bài
+## 8. Student Attempt
 
-- Đáp án phải autosave lên Supabase.
+- Đáp án autosave lên Supabase.
 - Có local recovery khi mạng lỗi.
-- Khi mở lại: ưu tiên server, rồi phủ phần local pending chưa sync.
-- Deadline không được reset bởi reload/tab switch.
-- Deadline thực phải không lớn hơn deadline server.
-- Sau submit thành công phải xóa local draft của attempt.
-- Không tự động mất đáp án chỉ vì đổi tab Chrome.
-- Mục tiêu lâu dài: restore đúng câu SV đang xem sau reload/discard.
+- Khi mở lại: ưu tiên server, sau đó phủ pending local chưa sync.
+- Deadline không được kéo dài bởi reload/tab switch.
+- Deadline thực không lớn hơn deadline server.
+- Local draft giữ `currentQuestionIndex` để khôi phục đúng câu.
+- Sau submit thành công phải xóa local attempt draft.
+- Student Attempt là full-width subpage trong `#content`.
 
-## 9. Tạo/chỉnh sửa dữ liệu
+Local attempt recovery không được biến thành navigation persistence thứ ba.
 
-- Không để người dùng mất dữ liệu đang nhập khi chuyển tab/view nếu chưa chủ động Hủy/Quay lại.
-- Khi người dùng chủ động Hủy/Quay lại thì draft tương ứng được phép xóa.
-- Sau khi save thành công, local draft phải được dọn để tránh restore dữ liệu cũ.
-- Với dữ liệu nghiệp vụ quan trọng, lưu chính thức phải atomic hoặc có transaction/RPC phù hợp.
+## 9. CSS ownership V12.4.24
 
-## 10. AI / Gemini
+### Core/UI
 
-- AI chỉ được gọi khi người dùng chủ động yêu cầu, trừ nơi đã được chốt rõ khác đi.
-- Không gọi Gemini tự động mỗi lần render trang.
-- Ưu tiên giảm request không cần thiết.
-- Edge Function phải có model fallback hợp lý khi Function đó sử dụng Gemini.
-- Khi model/quota thay đổi, kiểm tra code Function hiện tại trong GitHub trước.
-- Không suy đoán model mặc định từ trí nhớ.
-- AI feedback phải kiểm tra permission/backend guard trước khi trả dữ liệu.
+- `css/app.css`: token màu, typography/control base, field/input/button và form primitives.
+- `css/app-brand.css`: **sole owner** logo/brand của login + sidebar.
+- `css/ui/application.css`: app geometry/layout, content sizing, desktop shell geometry, boot guard.
+- `css/ui/primitives.css`: stats, panel, toolbar, table, badge, row-actions, empty, toast, progress bar.
+- `css/ui/shell.css`: sidebar/header/footer shell chrome + Drawer.
+- `css/ui/dialogs.css`: native dialog/modal/confirm chrome.
+- `css/ui/app-window.css`: AI-CLO app-window chrome/drag/resize/mobile.
+- `css/ui/layout-system.css`: chỉ generic `.aiclo-kpi-grid`, `.aiclo-action-grid`, `.aiclo-filter-bar`.
+- `css/ui/mobile-overrides.css`: mobile guards/fallback dùng chung còn cần thiết.
 
-## 11. Ngân hàng câu hỏi
+### Domain
 
-- Tách rõ:
-  - Luyện tập – kiểm tra.
-  - Đề thi – bảo mật.
-- Bài kiểm tra online không được lấy câu chỉ thuộc ngân hàng đề thi bảo mật.
-- Một câu có thể được phân loại theo quy tắc đã hỗ trợ của hệ thống, nhưng luồng sử dụng phải tôn trọng security group.
-- Mã câu (`display_code`) cần được giữ ổn định và hiển thị rõ trong các luồng quản lý/đề thi khi phù hợp.
+- `css/courses/`: course catalog, class/member, Chương · Chủ đề · CLO.
+- `css/questions/`: Question Bank, workspace, duplicate scan, matrix, quick edit, tools.
+- `css/exams/`: Assessment/final/detail/attempt/export/builder.
+- `css/system/`: Dashboard, Notifications, Activity, Profile, system Question Banks.
+- `css/students/`: student profile.
+- `css/results/`: result-specific UI.
 
-## 12. CLO / đánh giá
+### Quy tắc CSS
 
-- CLO là dữ liệu theo học phần/ngân hàng cấu trúc, không hard-code chỉ CLO1/2/3 nếu phần giao diện có thể hỗ trợ dynamic CLO.
-- Các bảng kết quả/Excel nên dùng cột CLO động theo dữ liệu thực tế.
+- Không tạo lại `css/ui/final-layer.css`.
+- Không đưa app layout trở lại `app.css`.
+- Không đưa logo/brand ra khỏi `app-brand.css`.
+- Không đưa selector module vào `layout-system.css`.
+- Domain CSS phải tự cung cấp first-paint layout để JS tagging không gây flicker.
+- `questions/bank.css` là owner canonical của Question Bank table/card/tab/scope; không thêm lại tầng V10.5/V10.5.3 override.
+- `app.html` không load `css/public.css`.
+- `css/legacy/` là archive only, không load runtime.
+- Không gom source CSS thủ công chỉ để giảm số file. Nếu cần giảm request, ưu tiên build-time bundle.
+
+## 10. UI interaction contract
+
+- **Chi tiết/xem nhanh** → Drawer/panel khi phù hợp.
+- **Sửa nhanh** → AI-CLO app-window.
+- **Sửa đầy đủ/chỉnh cấu trúc lớn** → full-width subpage/workspace.
+- Boolean bật/tắt → toggle switch khi phù hợp.
+- Mobile không được có horizontal overflow ở shell/form chính.
+- Bảng rất rộng có thể dùng scroll ngang có chủ đích hoặc card mode theo nghiệp vụ.
+- Khi sửa desktop phải kiểm lại mobile.
+
+## 11. Question Bank
+
+Tách rõ:
+
+- **Luyện tập – kiểm tra**.
+- **Đề thi – bảo mật**.
+
+Quy tắc:
+
+- Online assessment không dùng câu chỉ thuộc bank bảo mật.
+- Thi cuối kỳ dùng nguồn bảo mật theo workflow đã chốt.
+- `display_code` phải ổn định và hiển thị đúng nơi nghiệp vụ cần.
+- Không để CSS/class nghiệp vụ của Question Bank, duplicate scan và Assessment dùng lẫn nhau.
+
+## 12. Assessment product rules
+
+Framework chung:
+
+1. Mục 1 — Thông tin.
+2. Mục 2 — Cấu trúc/Ma trận.
+3. Mục 3 — Danh sách câu đã rút.
+4. Mục 4 — Xuất với loại bài phù hợp.
+
+Quy tắc quan trọng:
+
+- Chọn phạm vi nội dung ở Mục 2, không đưa chọn Chương trở lại Mục 1.
+- Tổng phân bổ ma trận phải bằng `total_questions` trước khi rút.
+- Không tạo draft có `total_questions = 0`.
+- Đổi câu phải giữ đúng cell cấu trúc/ngữ cảnh ban đầu.
+- `max_attempts` được phép chỉnh sau khi có lượt làm.
+- Giảm `max_attempts` không xóa/sửa lượt lịch sử; chỉ chặn lượt mới khi đã đạt giới hạn mới.
+- Thi cuối kỳ không phát hành cho sinh viên làm online.
+
+## 13. CLO / kết quả
+
+- CLO không hard-code chỉ CLO1/2/3 nếu UI có thể hỗ trợ dynamic CLO.
+- Bảng/Excel nên dùng cột CLO theo dữ liệu thực tế khi phù hợp.
 - Ngưỡng đạt hiện dùng mốc 4/10 ở các nơi đã chốt.
-- Không trộn dữ liệu AI feedback giữa các học phần.
-- Mọi query/feedback phải scope đúng `subject_id`/exam/student liên quan.
+- Không trộn AI feedback/kết quả giữa học phần.
+- Scope query đúng subject/exam/student.
 
-## 13. Excel / Office export
+## 14. AI / Gemini
 
-- Với file Excel nghiệp vụ cần trình bày đẹp, ưu tiên ExcelJS.
-- Lazy-load thư viện Office để không làm chậm app lúc mở.
-- File báo cáo chính thức nên:
-  - Times New Roman 12 khi phù hợp yêu cầu hiện tại;
-  - border rõ;
-  - alignment hợp lý;
-  - header bold;
-  - column width hợp lý;
-  - print setup phù hợp.
-- Không dùng thư viện Office nặng ngay ở initial load nếu có thể lazy-load.
-- Với Excel đáp án+CLO phục vụ `/cham-thi-clo`, phải giữ đúng cấu trúc canonical đã thống nhất.
+- AI chỉ gọi khi người dùng chủ động yêu cầu, trừ nơi đã chốt khác.
+- Không gọi Gemini tự động mỗi lần render trang.
+- Giảm request không cần thiết.
+- Khi model/quota/fallback thay đổi phải đọc Function hiện tại trên GitHub trước.
+- AI feedback phải kiểm permission/backend guard.
+- Edge Function AI tiếp tục self-contained.
 
-## 14. Math / LaTeX
+## 15. Excel / Office export
 
-- Nội dung toán trên web dùng `window.renderMath`/MathJax chung.
-- Không tạo loader MathJax riêng ở từng module.
+- Với Excel nghiệp vụ cần trình bày đẹp, ưu tiên ExcelJS.
+- Office libs phải lazy-load nếu không cần lúc initial page load.
+- File chính thức cần border/alignment/header/width/print setup hợp lý.
+- Excel đáp án+CLO phục vụ `/cham-thi-clo` phải giữ cấu trúc canonical đã thống nhất.
+- `/cham-thi-clo` là công cụ public riêng, không trộn nghiệp vụ với Assessment online.
+
+## 16. Math / LaTeX
+
+- Nội dung toán trên web dùng MathJax/renderMath chung.
+- Không tạo MathJax loader riêng ở từng module.
 - MathJax nên lazy-load.
-- Export TeX phải giữ source LaTeX càng nguyên vẹn càng tốt.
-- Khi thay đổi exporter phải static-check JS và nên compile thử TeX với dữ liệu thật trước khi tuyên bố hoàn toàn ổn định.
+- Export TeX giữ source LaTeX càng nguyên vẹn càng tốt.
+- Thay exporter phải static-check và nên compile thử với dữ liệu thật trước khi tuyên bố ổn định.
 
-## 15. Hiệu năng
+## 17. Hiệu năng
 
 - Tránh reload toàn trang khi chỉ đổi view nội bộ.
 - Ưu tiên cache/query cache nơi an toàn.
-- Lazy-load thư viện nặng như MathJax, ExcelJS, JSZip.
+- Lazy-load MathJax, ExcelJS, JSZip và thư viện nặng.
 - Hạn chế MutationObserver rộng toàn document.
-- Nếu dùng observer phải debounce/coalesce.
+- Observer nếu cần phải debounce/coalesce.
+- Không polling dày nếu event-driven xử lý được.
 - Không ghi storage liên tục khi state không thay đổi.
-- Không tạo polling dày nếu event-driven xử lý được.
-- Khi tab vẫn còn workspace sống, không restore/render đè chỉ vì `visibilitychange`.
+- Không restore/render đè workspace đang sống chỉ vì tab browser thay đổi visibility.
+- Hiện CSS source không lớn; nếu tối ưu request thì bundle ở build/deploy, không phá source ownership.
 
-## 16. Mobile / responsive
+## 18. Git / quy trình thay đổi
 
-- Không chấp nhận horizontal overflow ở nav, bảng hoặc form chính.
-- Các bảng/ma trận lớn cần có responsive layout/card mode thay vì chỉ thêm thanh cuộn ngang nếu có thể.
-- Nút quan trọng không được bị đẩy ra khỏi viewport.
-- Form login không được gây zoom/scroll bất thường trên mobile.
-- Khi chỉnh desktop phải kiểm lại mobile.
+Trước thay đổi có ý nghĩa:
 
-## 17. UI interaction
+1. Đọc `PROJECT-NOTES-AI-CLO.md`.
+2. Đọc `ARCHITECTURE-AI-CLO.md` và file owner liên quan.
+3. Đọc code mới nhất trên `main`.
+4. Tạo backup branch.
+5. Làm trên work branch.
+6. So diff.
+7. Smoke/static-check phù hợp.
+8. Fast-forward `main` khi sạch.
+9. Kiểm GitHub Pages.
+10. Ghi rõ tác động Supabase.
 
-- Ưu tiên mở subpage trong app cho workflow lớn.
-- Drawer dùng cho chi tiết nhanh/admin phụ trợ, không lạm dụng cho màn hình làm việc dài.
-- Modal chỉ dùng cho xác nhận hoặc thao tác ngắn.
-- Không mở cửa sổ/tab mới cho workflow nội bộ nếu không thật sự cần.
-- Các thao tác nguy hiểm cần confirm: xóa, nộp bài, phát hành/đóng, thay đổi cấu trúc quan trọng.
+Không force push trừ trường hợp thật sự cần và đã hiểu hậu quả.
 
-## 18. Quy trình sửa code
+## 19. Tài liệu — nguồn ưu tiên
 
-Khi ChatGPT được yêu cầu sửa code thực tế:
+Thứ tự đọc:
 
-1. Đọc code hiện tại trên GitHub `main`.
-2. Tạo backup branch trước thay đổi rủi ro.
-3. Tạo branch riêng cho batch thay đổi.
-4. Sửa theo batch nhỏ, dễ kiểm soát.
-5. Static check các file JS liên quan (`node --check`, lint phù hợp nếu có).
-6. So sánh diff với `main`.
-7. Chỉ merge khi diff đúng phạm vi dự kiến.
-8. Không force push.
-9. Sau merge, theo dõi GitHub Pages build/deploy đến khi success/failure rõ ràng.
-10. Nếu có SQL/Edge Function thay đổi, nói rõ người dùng phải làm gì trên Supabase.
+1. `PROJECT-NOTES-AI-CLO.md` — quyết định kỹ thuật/UI/nghiệp vụ ưu tiên.
+2. `ARCHITECTURE-AI-CLO.md` — bản đồ kiến trúc hiện hành.
+3. `TECHNICAL-AGREEMENTS.md` — quy tắc bắt buộc.
+4. `PROJECT-STATUS-2026-09-06.md` — trạng thái hiện tại.
+5. `PROJECT-PROGRESS-2026-09-06.md` — tiến trình chi tiết.
+6. Code `main`.
 
-## 19. Backup / versioning
-
-- Trước đợt thay đổi lớn nên tạo branch dạng:
-
-  `backup/<version>-before-<feature>`
-
-- Feature branch nên có tên rõ mục đích.
-- Không dùng version frontend để giả định backend schema version.
-- Cache-busting version của JS/CSS và `assessment_schema_version` là hai khái niệm độc lập.
-
-## 20. Không được nhầm giữa GitHub và Supabase
-
-Đây là quy tắc cần đọc lại mỗi lần quay lại dự án:
-
-- **Frontend source** → GitHub.
-- **SQL/migration reference** → GitHub `supabase/migrations/`.
-- **Schema snapshot** → GitHub `supabase/schema/`.
-- **SQL policy độc lập** → GitHub `supabase/policies/`.
-- **Edge Function source hiện hành** → GitHub `supabase/functions/`.
-- **Frontend runtime** → GitHub Pages.
-- **Database/Auth/Storage/RPC runtime** → Supabase.
-- **Edge Function runtime** → Supabase.
-
-Khi cần biết Function hiện tại đang dùng code gì, **vào GitHub xem `supabase/functions/<name>/index.ts` trước**. Không yêu cầu người dùng gửi lại Function nếu repo đã có bản hiện hành.
-
-## 21. Cách dùng tài liệu này về sau
-
-- Khi bắt đầu một phiên làm việc kỹ thuật mới, đọc file này trước khi đề xuất kiến trúc.
-- Nếu có quy ước mới được người dùng chốt, cập nhật file này.
-- Nếu quy ước cũ bị thay thế, sửa nội dung cũ thay vì chỉ append mâu thuẫn ở cuối.
-- `PROJECT-PROGRESS-YYYY-MM-DD.md` dùng để ghi checkpoint tiến độ theo thời điểm.
-- `TECHNICAL-AGREEMENTS.md` dùng để ghi **các quy ước kỹ thuật bền vững** của toàn dự án.
+Nếu code và tài liệu xung đột, xác minh code `main`, xác định tài liệu lỗi thời rồi cập nhật lại tài liệu.
 
 ---
 
-Cập nhật lần đầu: 05/09/2026.
+Checkpoint quy tắc này tương ứng **V12.4.24**, sau khi hoàn tất đợt CSS ownership/refactor lớn. Giai đoạn kế tiếp ưu tiên smoke test UI/nghiệp vụ thực tế hơn là tiếp tục tách CSS chỉ để làm sạch mã.
