@@ -1,0 +1,19 @@
+/* AI-CLO PTITHCM V12.4.0 — full-width student attempt workspace. */
+.student-attempt-page{width:100%;max-width:100%;min-width:0;display:grid;gap:16px}
+.student-attempt-page-head{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:14px;padding:2px 0}
+.student-attempt-page-head>button{white-space:nowrap}
+.student-attempt-title{min-width:0;display:grid;gap:3px}
+.student-attempt-title small{font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.student-attempt-title h3{margin:0;min-width:0;font-size:clamp(18px,2vw,24px);line-height:1.25;overflow-wrap:anywhere}
+.student-attempt-card{width:100%;max-width:100%;min-width:0;background:#fff;border:1px solid var(--line);border-radius:14px;padding:clamp(16px,2.2vw,26px);box-sizing:border-box;box-shadow:0 8px 28px rgba(15,23,42,.05)}
+.student-attempt-page .live-exam{padding:0;width:100%;max-width:100%;min-width:0}
+.student-attempt-page .live-top{position:sticky;top:0;z-index:3;background:#fff;padding:2px 0 12px;border-bottom:1px solid var(--line)}
+.student-attempt-page .preview-question,.student-attempt-page .live-options,.student-attempt-page .question-jump,.student-attempt-page .preview-nav{min-width:0;max-width:100%}
+.student-attempt-page .preview-question{overflow-wrap:anywhere}
+.student-attempt-page .live-options label{min-width:0;grid-template-columns:auto 30px minmax(0,1fr)}
+.student-attempt-page .live-options label span{min-width:0;overflow-wrap:anywhere}
+.student-attempt-page .question-jump{row-gap:8px}
+.student-attempt-page .preview-nav{border-top:1px solid var(--line);padding-top:14px}
+.student-attempt-page .preview-nav #v122LiveSubmit{margin-left:auto}
+@media(max-width:760px){.student-attempt-page-head{grid-template-columns:1fr;align-items:stretch}.student-attempt-page-head>button{width:100%}.student-attempt-card{padding:14px}.student-attempt-page .live-top{align-items:center;top:0}.student-attempt-page .exam-timer{font-size:18px;padding:7px 10px}.student-attempt-page .live-context span:last-child{width:100%;margin-left:0}.student-attempt-page .preview-nav{display:grid;grid-template-columns:1fr 1fr}.student-attempt-page .preview-nav #v122LiveSubmit{grid-column:1/-1;margin-left:0;width:100%}}
+@media(max-width:430px){.student-attempt-page .live-top{align-items:flex-start;flex-direction:column}.student-attempt-page .exam-timer{width:100%;box-sizing:border-box;text-align:center}.student-attempt-page .preview-nav{grid-template-columns:1fr}.student-attempt-page .preview-nav #v122LiveSubmit{grid-column:auto}}
