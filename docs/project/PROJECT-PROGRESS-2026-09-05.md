@@ -218,7 +218,7 @@ Hai thao tác backend gần nhất phát sinh từ V12.3.1:
 1. Chạy:
 
 ```text
-docs/assessment-v12.3.1-review-ai.sql
+supabase/assessment-v12.3.1-review-ai.sql
 ```
 
 2. Redeploy:
