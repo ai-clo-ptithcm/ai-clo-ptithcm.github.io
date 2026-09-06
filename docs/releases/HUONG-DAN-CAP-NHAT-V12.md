@@ -26,7 +26,7 @@ Cập nhật toàn bộ source trên nhánh `main`, đặc biệt các file:
 
 Nếu chưa chạy migration V12, mở **Supabase SQL Editor** và chạy:
 
-`docs/assessment-v12.0-migration.sql`
+`supabase/assessment-v12.0-migration.sql`
 
 Migration thêm:
 
