@@ -1,0 +1,38 @@
+/* AI-CLO PTITHCM V12.4.23 — reusable app UI primitives. */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:15px;margin-bottom:22px}
+.stat,.panel{background:white;border:1px solid var(--line);border-radius:12px}
+.stat{padding:20px}
+.stat small{color:var(--muted)}
+.stat b{font-size:30px;display:block;margin-top:10px}
+.stat i{font-style:normal;color:var(--red);float:right}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.panel{padding:20px;margin-bottom:18px}
+.panel-head,.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.panel-head h3{margin:0}
+.panel-head button,.toolbar>button:first-of-type{margin-left:auto}
+.toolbar input{flex:1}
+.table-wrap{overflow:auto;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+.badge{display:inline-block;padding:4px 8px;border-radius:99px;background:#f1f3f6;color:#344054;font-size:11px;font-weight:700}
+.badge.red{background:#fdecef;color:var(--red)}
+.badge.green{background:#e4f6ef;color:var(--green)}
+.row-actions{display:flex;gap:5px}
+.row-actions button{border:0;background:#f1f3f6;border-radius:6px;padding:6px 8px}
+.empty{text-align:center;padding:55px 20px;color:var(--muted);display:grid;gap:8px}
+.empty b{color:var(--ink)}
+.toast{position:fixed;right:25px;bottom:25px;background:#18212f;color:white;padding:12px 18px;border-radius:8px;z-index:99;opacity:0;transform:translateY(15px);transition:.2s;pointer-events:none}
+.toast.show{opacity:1;transform:none}
+.toast.error{background:#a61d2d}
+.bar{height:8px;background:#edf0f4;border-radius:9px;overflow:hidden}
+.bar span{display:block;height:100%;background:var(--red)}
+@media(max-width:900px){
+ .stats{grid-template-columns:1fr 1fr}
+ .grid2{grid-template-columns:1fr}
+ .panel{max-width:100%;min-width:0}
+}
+@media(max-width:560px){
+ .stats{grid-template-columns:1fr 1fr}
+ .stat{padding:16px;min-width:0}
+}
