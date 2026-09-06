@@ -54,7 +54,7 @@
     }
   }
   function migrationNotice(c) {
-    c.innerHTML = `<div class="panel migration-panel"><h3>Cần hoàn tất Assessment V12.3.1 trên Supabase</h3><p>Phiên bản này tách quyền xem lại bài và quyền hiện đáp án đúng.</p><ol><li>Mở <b>Supabase → SQL Editor</b>.</li><li>Chạy <code>docs/assessment-v12.3.1-review-ai.sql</code>.</li><li>Tải lại trang.</li></ol></div>`;
+    c.innerHTML = `<div class="panel migration-panel"><h3>Cần hoàn tất Assessment V12.3.1 trên Supabase</h3><p>Phiên bản này tách quyền xem lại bài và quyền hiện đáp án đúng.</p><ol><li>Mở <b>Supabase → SQL Editor</b>.</li><li>Chạy <code>supabase/assessment-v12.3.1-review-ai.sql</code>.</li><li>Tải lại trang.</li></ol></div>`;
   }
   async function ask(title, message, label = "Xác nhận") {
     if (typeof confirmAction === "function")
