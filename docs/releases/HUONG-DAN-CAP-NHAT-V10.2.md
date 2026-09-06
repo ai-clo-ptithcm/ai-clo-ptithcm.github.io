@@ -1,7 +1,7 @@
 # AI-CLO PTITHCM — cập nhật V10.2
 
 ## 1. Supabase SQL
-Chạy toàn bộ file `supabase/v10.2-upgrade.sql` trong SQL Editor.
+Chạy toàn bộ file `supabase/migrations/v10.2-upgrade.sql` trong SQL Editor.
 
 Thay đổi chính:
 - thêm `clos.short_description` cho nội dung CLO ngắn trong BM08;
