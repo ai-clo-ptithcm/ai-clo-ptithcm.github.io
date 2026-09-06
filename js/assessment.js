@@ -173,7 +173,7 @@
     showError,
     getAssessmentRoot,
     exams,
-    openExamBuilder: (...args) => openExamBuilder(...args),
+    openExamBuilder: (...args) => openExamBuilderTracked(...args),
     studentResultHtml: (...args) => studentResultHtml(...args),
     statusMeta,
     modeLabel,
@@ -216,7 +216,7 @@
   /* SECTION 3/7 moved to js/assessment/online-builder.js */
   const onlineBuilderModule = window.AICLO_ASSESSMENT_MODULES?.createOnlineBuilderModule?.({
     db, state, subjectId, loadPracticeSets, poolSnapshot, snapshotQuestion, validOptions,
-    getAssessmentRoot, exams, openExamDetail, escapeHtml, localInput, toIsoOrNull,
+    getAssessmentRoot, exams, openExamDetail: (...args) => openExamDetailTracked(...args), escapeHtml, localInput, toIsoOrNull,
     findById, shuffle, notify, showError, qs, qsa, ask,
     openDrawer: typeof openDrawer === "function" ? openDrawer : null,
     replaceDrawer: typeof replaceDrawer === "function" ? replaceDrawer : null,
@@ -225,6 +225,35 @@
   });
   if (!onlineBuilderModule) throw new Error("Assessment Online Builder module was not loaded");
   const { openExamBuilder } = onlineBuilderModule;
+
+  async function openExamDetailTracked(examOrId) {
+    const id = typeof examOrId === "string" ? examOrId : examOrId?.id || "";
+    const result = await openExamDetail(examOrId);
+    const page = document.querySelector(".assessment-detail-v122");
+    if (page && id) {
+      page.dataset.assessmentExamId = String(id);
+      window.AICLO_SUBPAGE_STATE?.remember?.("assessment-detail", {
+        entityType: "exam",
+        entityId: String(id),
+      });
+    }
+    return result;
+  }
+  async function openExamBuilderTracked(exam) {
+    const result = await openExamBuilder(exam || null);
+    const page = document.querySelector(".assessment-builder-v122");
+    if (page) {
+      const id = exam?.id || "";
+      page.dataset.assessmentExamId = String(id);
+      page.dataset.assessmentMode = id ? "edit" : "create";
+      window.AICLO_SUBPAGE_STATE?.remember?.("assessment-builder", {
+        entityType: "exam",
+        entityId: id || null,
+        mode: id ? "edit" : "create",
+      });
+    }
+    return result;
+  }
 
   /* SECTION 4/7 moved to js/assessment/final-exam.js */
   const finalExamModule = window.AICLO_ASSESSMENT_MODULES?.createFinalExamModule?.({
@@ -326,11 +355,13 @@
       tick();
     });
   }
-  function sameEntity(selector, id, datasetKey = "assessmentExamId") {
+  function activeEntity(selector, id, kind, datasetKey = "assessmentExamId") {
     const page = document.querySelector(selector);
     if (!page) return false;
-    if (!id) return true;
-    return String(page.dataset?.[datasetKey] || "") === String(id);
+    const marked = String(page.dataset?.[datasetKey] || "");
+    if (marked) return marked === String(id || "");
+    const current = window.AICLO_SUBPAGE_STATE?.current?.();
+    return current?.kind === kind && String(current.entityId || "") === String(id || "");
   }
   function installAssessmentPersistence() {
     const persistence = window.AICLO_SUBPAGE_STATE;
@@ -339,19 +370,22 @@
 
     persistence.register("assessment-detail", {
       detect() {
-        const page = document.querySelector(".assessment-detail-v122[data-assessment-exam-id]");
-        const id = page?.dataset.assessmentExamId || "";
+        const page = document.querySelector(".assessment-detail-v122");
+        if (!page) return null;
+        const current = persistence.current?.();
+        const id = page.dataset.assessmentExamId ||
+          (current?.kind === "assessment-detail" ? current.entityId || "" : "");
         return id ? { entityType: "exam", entityId: id } : null;
       },
-      isActive: (x) => sameEntity(".assessment-detail-v122", x.entityId),
+      isActive: (x) => activeEntity(".assessment-detail-v122", x.entityId, "assessment-detail"),
       async restore(x) {
         const exam = await fetchExamById(x.entityId);
         if (!exam) {
           persistence.clear();
           return false;
         }
-        await openExamDetail(exam);
-        return sameEntity(".assessment-detail-v122", x.entityId);
+        await openExamDetailTracked(exam);
+        return activeEntity(".assessment-detail-v122", x.entityId, "assessment-detail");
       },
     });
 
@@ -359,17 +393,19 @@
       detect() {
         const page = document.querySelector(".assessment-builder-v122");
         if (!page) return null;
-        const id = page.dataset.assessmentExamId || "";
+        const current = persistence.current?.();
+        const fallbackId = current?.kind === "assessment-builder" ? current.entityId || "" : "";
+        const id = page.dataset.assessmentExamId || fallbackId;
         return {
           entityType: "exam",
           entityId: id || null,
-          mode: page.dataset.assessmentMode || (id ? "edit" : "create"),
+          mode: page.dataset.assessmentMode ||
+            (current?.kind === "assessment-builder" ? current.mode : null) ||
+            (id ? "edit" : "create"),
         };
       },
       isActive(x) {
-        const page = document.querySelector(".assessment-builder-v122");
-        if (!page) return false;
-        return String(page.dataset.assessmentExamId || "") === String(x.entityId || "");
+        return activeEntity(".assessment-builder-v122", x.entityId, "assessment-builder");
       },
       async restore(x) {
         const exam = x.entityId ? await fetchExamById(x.entityId) : null;
@@ -377,9 +413,8 @@
           persistence.clear();
           return false;
         }
-        await openExamBuilder(exam);
-        const page = document.querySelector(".assessment-builder-v122");
-        return !!page && String(page.dataset.assessmentExamId || "") === String(x.entityId || "");
+        await openExamBuilderTracked(exam);
+        return activeEntity(".assessment-builder-v122", x.entityId, "assessment-builder");
       },
     });
 
@@ -436,7 +471,7 @@
             persistence.clear();
             return false;
           }
-          await openExamDetail(exam);
+          await openExamDetailTracked(exam);
           const button = Array.from(document.querySelectorAll("[data-v122-view-attempt]")).find(
             (b) => String(b.dataset.v122ViewAttempt || "") === String(x.entityId),
           );
@@ -467,28 +502,34 @@
 
     persistence.register("assessment-export", {
       detect() {
-        const page = document.querySelector(".assessment-export-center[data-assessment-exam-id]");
-        const id = page?.dataset.assessmentExamId || "";
+        const page = document.querySelector(".assessment-export-center");
+        if (!page) return null;
+        const current = persistence.current?.();
+        const id = page.dataset.assessmentExamId ||
+          (current?.kind === "assessment-export" ? current.entityId || "" : "");
         return id ? { entityType: "exam", entityId: id } : null;
       },
-      isActive: (x) => sameEntity(".assessment-export-center", x.entityId),
+      isActive: (x) => activeEntity(".assessment-export-center", x.entityId, "assessment-export"),
       async restore(x) {
         const exam = await fetchExamById(x.entityId);
         if (!exam) {
           persistence.clear();
           return false;
         }
-        await openExamDetail(exam);
+        await openExamDetailTracked(exam);
         const button = qs("#v1235ExportCenter", getAssessmentRoot());
         if (!button) {
           persistence.clear();
           return false;
         }
+        persistence.remember("assessment-export", {
+          entityType: "exam",
+          entityId: x.entityId,
+        });
         button.click();
-        return !!(await waitForAssessment(() => {
-          const page = document.querySelector(".assessment-export-center[data-assessment-exam-id]");
-          return page && String(page.dataset.assessmentExamId || "") === String(x.entityId || "") ? page : null;
-        }));
+        const page = await waitForAssessment(() => document.querySelector(".assessment-export-center"));
+        if (page) page.dataset.assessmentExamId = String(x.entityId);
+        return !!page;
       },
     });
 
@@ -516,7 +557,10 @@
           });
 
         if (target?.closest?.("#v122Edit")) {
-          const id = document.querySelector(".assessment-detail-v122")?.dataset.assessmentExamId || "";
+          const page = document.querySelector(".assessment-detail-v122");
+          const current = persistence.current?.();
+          const id = page?.dataset.assessmentExamId ||
+            (current?.kind === "assessment-detail" ? current.entityId || "" : "");
           if (id)
             persistence.remember("assessment-builder", {
               entityType: "exam",
@@ -526,12 +570,20 @@
         }
 
         if (target?.closest?.("#v1235ExportCenter")) {
-          const id = document.querySelector(".assessment-detail-v122")?.dataset.assessmentExamId || "";
-          if (id)
+          const page = document.querySelector(".assessment-detail-v122");
+          const current = persistence.current?.();
+          const id = page?.dataset.assessmentExamId ||
+            (current?.kind === "assessment-detail" ? current.entityId || "" : "");
+          if (id) {
             persistence.remember("assessment-export", {
               entityType: "exam",
               entityId: id,
             });
+            setTimeout(() => {
+              const exportPage = document.querySelector(".assessment-export-center");
+              if (exportPage) exportPage.dataset.assessmentExamId = String(id);
+            }, 0);
+          }
         }
 
         const resume = target?.closest?.("[data-v122-resume]");
@@ -551,7 +603,10 @@
 
         const teacherResult = target?.closest?.("[data-v122-view-attempt]");
         if (teacherResult?.dataset.v122ViewAttempt) {
-          const examId = document.querySelector(".assessment-detail-v122")?.dataset.assessmentExamId || null;
+          const page = document.querySelector(".assessment-detail-v122");
+          const current = persistence.current?.();
+          const examId = page?.dataset.assessmentExamId ||
+            (current?.kind === "assessment-detail" ? current.entityId || null : null);
           persistence.remember("assessment-attempt-result", {
             entityType: "attempt",
             entityId: teacherResult.dataset.v122ViewAttempt,
@@ -581,7 +636,7 @@
     results,
     teacherClassList,
     openStudentAttemptResult,
-    openExamDetail,
+    openExamDetail: openExamDetailTracked,
     openFinalExamDetail,
     version: VERSION,
   });
