@@ -13,5 +13,5 @@ Thay đổi chính:
 - Sửa hiện tượng tải lại thông báo gây chớp khi chuyển nhanh giữa các tab Chrome.
 
 Supabase:
-- Nếu chưa nâng cấp v9.4, chạy supabase/v9.4-question-history.sql đúng một lần.
+- Nếu chưa nâng cấp v9.4, chạy supabase/migrations/v9.4-question-history.sql đúng một lần.
 - Bản sửa v9.4.2 không yêu cầu chạy thêm SQL.
