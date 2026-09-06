@@ -26,9 +26,6 @@
 .v105-question-table .row-actions button{width:100%;min-width:0!important;padding:6px 5px!important;white-space:normal;line-height:1.15}
 .bulk-question-bar{flex-wrap:wrap}
 #bulkDeleteQuestions{margin-left:auto}
-.v1053-user-toolbar{grid-template-columns:minmax(210px,1.3fr) minmax(145px,.75fr) minmax(190px,1fr) minmax(155px,.8fr) auto auto auto}
-.v1053-user-toolbar .compact-manage{white-space:nowrap}
-#userRows .compact-manage{padding:6px 10px!important;min-width:74px}
 @media(max-width:1200px){
  .v105-question-table th,.v105-question-table td{padding-left:6px!important;padding-right:6px!important}
  .v105-question-table th:nth-child(2),.v105-question-table td:nth-child(2){width:96px!important;max-width:96px!important}
@@ -36,17 +33,11 @@
  .v105-question-table th:nth-child(4),.v105-question-table td:nth-child(4){width:18%!important}
  .v105-question-table th:nth-child(5),.v105-question-table td:nth-child(5){width:72px!important;max-width:72px!important}
  .v105-question-table th:nth-child(6),.v105-question-table td:nth-child(6){width:96px!important;max-width:96px!important}
- .v1053-user-toolbar{grid-template-columns:repeat(3,minmax(160px,1fr))}
 }
 @media(max-width:900px){
  .v105-question-table{overflow-x:auto}
  .v105-question-table table{min-width:760px!important}
 }
-@media(max-width:700px){
- .v1053-user-toolbar{grid-template-columns:1fr 1fr}
- .v1053-user-toolbar #userSearch{grid-column:1/-1}
-}
-@media(max-width:480px){.v1053-user-toolbar{grid-template-columns:1fr}}
 
 /* Mobile: chuyển bảng câu hỏi thành danh sách thẻ, không cuộn ngang. */
 @media(max-width:760px){
