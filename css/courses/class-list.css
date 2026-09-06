@@ -1,4 +1,5 @@
-/* AI-CLO PTITHCM V12.4.21 — compact class list + member workspace styles. */
+/* AI-CLO PTITHCM V12.4.23 — compact class list + member workspace styles. */
+.class-stats{grid-template-columns:repeat(3,1fr)}
 .v1053-class-stats{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:14px!important;margin-bottom:18px}
 .v1053-class-stats .stat{min-height:106px!important;padding:18px 20px!important;border-radius:16px!important}
 .v1053-class-stats .stat small{font-size:13px!important;margin-bottom:12px!important}
@@ -30,4 +31,5 @@
  .v109-teacher-members table,.v109-teacher-members tbody,.v109-teacher-members tr,.v109-teacher-members td{display:block}
  .v109-teacher-members thead{display:none}.v109-teacher-members tr{padding:12px;border-bottom:1px solid var(--line)}.v109-teacher-members td{padding:5px 0;border:0}.v109-teacher-members td:nth-child(2){word-break:break-word}
 }
+@media(max-width:560px){.class-stats{grid-template-columns:1fr 1fr}}
 @media(max-width:480px){.v1053-class-stats{grid-template-columns:1fr!important}.v1053-class-stats .stat:last-child{grid-column:auto}.v1053-class-stats .stat{min-height:82px!important}.v1053-class-stats .stat b{font-size:24px!important}}
