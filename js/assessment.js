@@ -1,5 +1,5 @@
-/* AI-CLO PTITHCM V12.2.1 — Assessment single-owner engine.
-   Refactor only: formatted source, explicit runtime/root state, sectioned domains and clearer helper names; same V12.2 behavior. */
+/* AI-CLO PTITHCM V12.4.3 — Assessment single-owner engine.
+   Assessment workspaces register with the shared subpage persistence layer; child modules remain single-owner. */
 (() => {
   "use strict";
 
@@ -12,7 +12,7 @@
     if (root) runtime.root = root;
     return getAssessmentRoot();
   };
-  const VERSION = "12.3.1";
+  const VERSION = "12.4.3";
   const {
     qs,
     qsa,
@@ -73,6 +73,16 @@
       });
     if (error) throw error;
     return data || [];
+  }
+  async function fetchExamById(id) {
+    if (!id) return null;
+    const { data, error } = await db
+      .from("exams")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw error;
+    return data || null;
   }
   async function fetchAttemptCounts(examIds) {
     const out = new Map();
@@ -300,6 +310,267 @@
   async function teacherClassList(c) {
     return results(c);
   }
+
+  function waitForAssessment(fn, timeout = 3400) {
+    return new Promise((resolve) => {
+      const started = Date.now();
+      const tick = () => {
+        let value = null;
+        try {
+          value = fn();
+        } catch {}
+        if (value) return resolve(value);
+        if (Date.now() - started >= timeout) return resolve(null);
+        setTimeout(tick, 60);
+      };
+      tick();
+    });
+  }
+  function sameEntity(selector, id, datasetKey = "assessmentExamId") {
+    const page = document.querySelector(selector);
+    if (!page) return false;
+    if (!id) return true;
+    return String(page.dataset?.[datasetKey] || "") === String(id);
+  }
+  function installAssessmentPersistence() {
+    const persistence = window.AICLO_SUBPAGE_STATE;
+    if (!persistence?.register || installAssessmentPersistence.done) return;
+    installAssessmentPersistence.done = true;
+
+    persistence.register("assessment-detail", {
+      detect() {
+        const page = document.querySelector(".assessment-detail-v122[data-assessment-exam-id]");
+        const id = page?.dataset.assessmentExamId || "";
+        return id ? { entityType: "exam", entityId: id } : null;
+      },
+      isActive: (x) => sameEntity(".assessment-detail-v122", x.entityId),
+      async restore(x) {
+        const exam = await fetchExamById(x.entityId);
+        if (!exam) {
+          persistence.clear();
+          return false;
+        }
+        await openExamDetail(exam);
+        return sameEntity(".assessment-detail-v122", x.entityId);
+      },
+    });
+
+    persistence.register("assessment-builder", {
+      detect() {
+        const page = document.querySelector(".assessment-builder-v122");
+        if (!page) return null;
+        const id = page.dataset.assessmentExamId || "";
+        return {
+          entityType: "exam",
+          entityId: id || null,
+          mode: page.dataset.assessmentMode || (id ? "edit" : "create"),
+        };
+      },
+      isActive(x) {
+        const page = document.querySelector(".assessment-builder-v122");
+        if (!page) return false;
+        return String(page.dataset.assessmentExamId || "") === String(x.entityId || "");
+      },
+      async restore(x) {
+        const exam = x.entityId ? await fetchExamById(x.entityId) : null;
+        if (x.entityId && !exam) {
+          persistence.clear();
+          return false;
+        }
+        await openExamBuilder(exam);
+        const page = document.querySelector(".assessment-builder-v122");
+        return !!page && String(page.dataset.assessmentExamId || "") === String(x.entityId || "");
+      },
+    });
+
+    persistence.register("assessment-attempt", {
+      detect() {
+        const page = document.querySelector(".student-attempt-page[data-attempt-id]");
+        const id = page?.dataset.attemptId || "";
+        return id ? { entityType: "attempt", entityId: id } : null;
+      },
+      isActive(x) {
+        const page = document.querySelector(".student-attempt-page[data-attempt-id]");
+        return !!page && String(page.dataset.attemptId || "") === String(x.entityId || "");
+      },
+      async restore(x) {
+        const root = getAssessmentRoot();
+        await exams(root);
+        const resume = Array.from(root?.querySelectorAll?.("[data-v122-resume]") || []).find(
+          (button) => String(button.dataset.attempt || "") === String(x.entityId || ""),
+        );
+        if (!resume) {
+          persistence.clear();
+          return false;
+        }
+        resume.click();
+        return !!(await waitForAssessment(() => {
+          const page = document.querySelector(".student-attempt-page[data-attempt-id]");
+          return page && String(page.dataset.attemptId || "") === String(x.entityId || "") ? page : null;
+        }));
+      },
+    });
+
+    persistence.register("assessment-attempt-result", {
+      detect() {
+        const current = persistence.current?.();
+        if (!document.querySelector("#sideDrawer:not(.hidden) .result-v122")) return null;
+        return current?.kind === "assessment-attempt-result"
+          ? {
+              entityType: "attempt",
+              entityId: current.entityId || null,
+              mode: current.mode || "student",
+              examId: current.examId || null,
+            }
+          : null;
+      },
+      isActive: () => !!document.querySelector("#sideDrawer:not(.hidden) .result-v122"),
+      async restore(x) {
+        if (!x.entityId) {
+          persistence.clear();
+          return false;
+        }
+        if (x.mode === "teacher" && x.examId) {
+          const exam = await fetchExamById(x.examId);
+          if (!exam) {
+            persistence.clear();
+            return false;
+          }
+          await openExamDetail(exam);
+          const button = Array.from(document.querySelectorAll("[data-v122-view-attempt]")).find(
+            (b) => String(b.dataset.v122ViewAttempt || "") === String(x.entityId),
+          );
+          if (!button) {
+            persistence.clear();
+            return false;
+          }
+          button.click();
+        } else {
+          await openStudentAttemptResult(x.entityId);
+        }
+        return !!(await waitForAssessment(() => document.querySelector("#sideDrawer:not(.hidden) .result-v122")));
+      },
+    });
+
+    persistence.register("assessment-results", {
+      detect() {
+        return document.querySelector(".assessment-results-v122")
+          ? { mode: isTeacher() ? "teacher" : "student" }
+          : null;
+      },
+      isActive: () => !!document.querySelector(".assessment-results-v122"),
+      async restore() {
+        await results(getAssessmentRoot());
+        return !!document.querySelector(".assessment-results-v122");
+      },
+    });
+
+    persistence.register("assessment-export", {
+      detect() {
+        const page = document.querySelector(".assessment-export-center[data-assessment-exam-id]");
+        const id = page?.dataset.assessmentExamId || "";
+        return id ? { entityType: "exam", entityId: id } : null;
+      },
+      isActive: (x) => sameEntity(".assessment-export-center", x.entityId),
+      async restore(x) {
+        const exam = await fetchExamById(x.entityId);
+        if (!exam) {
+          persistence.clear();
+          return false;
+        }
+        await openExamDetail(exam);
+        const button = qs("#v1235ExportCenter", getAssessmentRoot());
+        if (!button) {
+          persistence.clear();
+          return false;
+        }
+        button.click();
+        return !!(await waitForAssessment(() => {
+          const page = document.querySelector(".assessment-export-center[data-assessment-exam-id]");
+          return page && String(page.dataset.assessmentExamId || "") === String(x.entityId || "") ? page : null;
+        }));
+      },
+    });
+
+    document.addEventListener(
+      "click",
+      (event) => {
+        const target = event.target;
+        const back = target?.closest?.(
+          "#v122BuilderBack,#v122BuilderCancel,#v122Back,#v1235ExportBack,#v124AttemptBack",
+        );
+        if (back) persistence.clear();
+
+        const detail = target?.closest?.("[data-v122-detail]");
+        if (detail?.dataset.v122Detail)
+          persistence.remember("assessment-detail", {
+            entityType: "exam",
+            entityId: detail.dataset.v122Detail,
+          });
+
+        if (target?.closest?.("#v122CreateExam"))
+          persistence.remember("assessment-builder", {
+            entityType: "exam",
+            entityId: null,
+            mode: "create",
+          });
+
+        if (target?.closest?.("#v122Edit")) {
+          const id = document.querySelector(".assessment-detail-v122")?.dataset.assessmentExamId || "";
+          if (id)
+            persistence.remember("assessment-builder", {
+              entityType: "exam",
+              entityId: id,
+              mode: "edit",
+            });
+        }
+
+        if (target?.closest?.("#v1235ExportCenter")) {
+          const id = document.querySelector(".assessment-detail-v122")?.dataset.assessmentExamId || "";
+          if (id)
+            persistence.remember("assessment-export", {
+              entityType: "exam",
+              entityId: id,
+            });
+        }
+
+        const resume = target?.closest?.("[data-v122-resume]");
+        if (resume?.dataset.attempt)
+          persistence.remember("assessment-attempt", {
+            entityType: "attempt",
+            entityId: resume.dataset.attempt,
+          });
+
+        const studentResult = target?.closest?.("[data-v122-result]");
+        if (studentResult?.dataset.v122Result)
+          persistence.remember("assessment-attempt-result", {
+            entityType: "attempt",
+            entityId: studentResult.dataset.v122Result,
+            mode: "student",
+          });
+
+        const teacherResult = target?.closest?.("[data-v122-view-attempt]");
+        if (teacherResult?.dataset.v122ViewAttempt) {
+          const examId = document.querySelector(".assessment-detail-v122")?.dataset.assessmentExamId || null;
+          persistence.remember("assessment-attempt-result", {
+            entityType: "attempt",
+            entityId: teacherResult.dataset.v122ViewAttempt,
+            mode: "teacher",
+            examId,
+          });
+        }
+
+        if (target?.closest?.("#drawerClose")) {
+          clearLiveTimer();
+          if (persistence.current?.()?.kind === "assessment-attempt-result")
+            persistence.clear();
+        }
+      },
+      true,
+    );
+  }
+
+  installAssessmentPersistence();
   document.addEventListener("click", (e) => {
     if (e.target?.closest?.("#drawerClose")) clearLiveTimer();
   });
