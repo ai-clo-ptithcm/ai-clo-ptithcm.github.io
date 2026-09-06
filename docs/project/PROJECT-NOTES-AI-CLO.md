@@ -2,7 +2,7 @@
 
 > File này là **nguồn ghi nhớ kỹ thuật ưu tiên** để tiếp tục phát triển dự án trong các phiên sau. Khi bắt đầu chỉnh sửa AI-CLO, hãy đọc file này trước các changelog phiên bản nếu cần hiểu các quyết định đã chốt.
 
-Cập nhật gần nhất: **06/09/2026 — V12.4.23**
+Cập nhật gần nhất: **06/09/2026 — V12.4.24**
 
 ## 1. Nguyên tắc phát triển
 
@@ -68,23 +68,26 @@ Ownership kỹ thuật:
 
 - `css/ui/app-window.css` chỉ sở hữu **window chrome**: vị trí, kích thước, header, drag, resize, responsive.
 - `css/ui/dialogs.css` sở hữu **native dialog/modal/confirmation chrome** (`dialog`, backdrop, `modal-head`, `confirm-dialog` và confirm actions). Không đặt các rule này trở lại `css/app.css`.
+- `css/app-brand.css` là **owner duy nhất của brand/logo trong app runtime**: `.logo` base, logo đăng nhập và logo sidebar. Không đặt typography/màu/kích thước logo trở lại `css/app.css` hoặc `css/login-app.css`.
 - `css/ui/application.css` là owner duy nhất của **app layout/kích thước dùng chung**: `.app`, `.app>main`, `.app .content`, desktop shell geometry, content padding/overflow và boot visibility guard; không chứa component primitive hay CSS nghiệp vụ.
 - `css/ui/primitives.css` sở hữu **UI primitives dùng chung**: `stats/stat`, `grid2`, `panel/panel-head`, `toolbar`, `table/table-wrap`, `badge`, `row-actions`, `empty`, `toast` và progress `bar`, kèm responsive trực tiếp của các primitive này.
+- `css/ui/layout-system.css` chỉ sở hữu **framework layout generic** `.aiclo-kpi-grid`, `.aiclo-action-grid`, `.aiclo-filter-bar`; không chứa selector domain/module trực tiếp. `js/ui/layout-system.js` chỉ gắn các class generic sau render. Domain/module CSS phải tự cung cấp first-paint layout khớp contract này, không dựa vào late alias.
 - `css/ui/shell.css` sở hữu **shell chrome**: sidebar/header controls và **Drawer xem chi tiết** (`drawer-backdrop`, `side-drawer`, `drawer-head`, `drawer-body`, responsive drawer).
-- `css/login-app.css` sở hữu **giao diện Auth/Login đang chạy**, gồm login card và UI “Quên mật khẩu / liên hệ Quản trị viên”. `css/login-fit.css` chỉ sở hữu **viewport/height fit** của màn đăng nhập; không đưa các rule này trở lại `css/app.css`.
+- `css/login-app.css` sở hữu **giao diện Auth/Login đang chạy**, gồm login card và UI “Quên mật khẩu / liên hệ Quản trị viên”. `css/login-fit.css` chỉ sở hữu **viewport/height fit** của màn đăng nhập; brand/logo thuộc `css/app-brand.css`.
 - `css/courses/structure.css` sở hữu **CSS nghiệp vụ Chương · Chủ đề · CLO**: danh sách chương/chủ đề, action edit/delete, safe-delete/dependency và compatibility `structure-v95`; không đặt các rule này trở lại `css/app.css` hoặc `css/ui/application.css`.
 - `css/courses/catalog.css` sở hữu **danh sách Môn học dạng card** ở không gian hệ thống (`course-grid`, `course-card`, `course-toolbar`, `course-card-actions` và metadata card liên quan).
-- `css/system/dashboard.css` sở hữu **Dashboard hệ thống/học phần V10.9** (`v109-dashboard`, hero, KPI `v109-stats`, course cards và quick actions).
+- `css/system/dashboard.css` sở hữu **Dashboard hệ thống/học phần V10.9** (`v109-dashboard`, hero, KPI `v109-stats`, course cards và quick actions), gồm first-paint KPI breakpoint khớp layout framework.
 - `css/system/profile.css` sở hữu cả **profile V10.8** và **profile/tài khoản V10.9 đang chạy** (`v109-profile`, `v109-security`, `v109-account-form`, password control).
 - `css/questions/analysis.css` sở hữu **thống kê/phân tích câu hỏi**; `css/question-exam.css` sở hữu metadata/list/detail của Ngân hàng câu hỏi như `question-clo`; `css/courses/class-list.css` sở hữu action/trạng thái và UI thành viên của học phần (`class-stats`, `last-login-cell`, `message-student`, `v109-member-tabs`, member summary/table compatibility).
 - `css/system/notifications.css` sở hữu **notification UI**: badge chưa đọc, task cards trên dashboard, `v109-notices`/“Thông báo gần đây”, Trung tâm thông báo và trang chi tiết; `css/system/activity.css` chỉ sở hữu **Nhật ký hoạt động** (`activity-filter`). Không tạo lại stylesheet trộn `activity-notifications.css`.
 - `css/questions/bank.css` là owner canonical cho **tab ngân hàng, scope chooser, fallback toolbar, bảng desktop và card mobile**. Các lớp V10.5/V10.5.3 phải được hợp nhất trong file này thay vì thêm tầng override/`!important`; `css/questions/bank-layout.css` chỉ sở hữu enhancement toolbar/filter drawer/chips. Không tạo lại late override riêng cho Question Bank.
 - `css/system/question-banks.css` sở hữu **quản trị Ngân hàng câu hỏi cấp hệ thống** do `js/system/question-banks.js` render (`v112/v113/v114`); không đưa các selector này về global UI.
-- `css/exams/assessment-shared.css` sở hữu **Assessment runtime dùng chung**, gồm `v109-tabs`, `v109-workspace-head`, `v109-assessment-workspace` và `online-matrix-*`; `css/exams/detail-enhancements.css` sở hữu toàn bộ **trang Chi tiết bài kiểm tra/attempt table**, cả layout lẫn chrome; `css/exams/final-workflow.css` sở hữu compatibility của danh sách đề cuối kỳ như `v102-final-list`.
+- `css/exams/assessment-shared.css` sở hữu **Assessment runtime dùng chung**, gồm `v109-tabs`, `v109-workspace-head`, `v109-assessment-workspace` và `online-matrix-*`; `css/exams/detail-enhancements.css` sở hữu toàn bộ **trang Chi tiết bài kiểm tra/attempt table**, cả layout lẫn chrome và first-paint KPI/action/filter breakpoints khớp generic layout contract; `css/exams/final-workflow.css` sở hữu compatibility của danh sách đề cuối kỳ như `v102-final-list`.
+- `css/students/profile.css` sở hữu **Hồ sơ học tập sinh viên**, gồm `academic-profile-summary` và breakpoint first-paint khớp generic KPI contract.
 - `css/ui/final-layer.css` đã **được loại khỏi runtime và xóa ở V12.4.22**. Không tạo lại “late compatibility layer”; rule còn sống phải về đúng owner domain/UI.
 - `app.html` **không load `css/public.css`**. Landing/public hiện dùng stylesheet riêng (`landing-v11.css`, `public-nav-static.css`); `public.css` chỉ được giữ như tài sản lịch sử nếu còn cần đối chiếu, không được để rule public/generic rò vào app runtime.
 - `css/legacy/auth-v8.css` và `css/legacy/question-v95.css` là **archive only, không load runtime**. V9.5 question tool grid/mobile table cũ không được đưa trở lại `application.css` khi UI hiện hành đã dùng V9.6/V10.5.
-- `css/app.css` chỉ giữ **global base/control/form primitives**: token màu, typography/control cơ bản, field/input/button states và `form-grid/form-actions/option-grid`. Không đặt app layout, panel/table/badge/toast, dialog/confirm/Drawer hay CSS nghiệp vụ trở lại file này.
+- `css/app.css` chỉ giữ **global base/control/form primitives**: token màu, typography/control cơ bản, field/input/button states và `form-grid/form-actions/option-grid`. Không đặt logo/brand, app layout, panel/table/badge/toast, dialog/confirm/Drawer hay CSS nghiệp vụ trở lại file này.
 - CSS/module nghiệp vụ chỉ sở hữu **nội dung bên trong editor** và khác biệt theo ngữ cảnh.
 - Không để class nghiệp vụ của Ngân hàng, Kiểm tra trùng và Assessment dùng lẫn nhau để tránh cascade/logic ảnh hưởng chéo.
 - Khi tái sử dụng cùng `#modal`, phải xóa class ngữ cảnh cũ trước khi gắn class ngữ cảnh mới.
@@ -94,6 +97,7 @@ Ownership kỹ thuật:
 Toàn web cần thống nhất một chuẩn `dense stats grid`:
 
 - desktop rộng: nhóm **5–6 card ưu tiên nằm trên 1 hàng**;
+- generic KPI contract dùng breakpoint **>1000 / ≤1000 / ≤700 / ≤430** tương ứng số cột theo nội dung / tối đa 3 / tối đa 2 / 1; domain owner phải cho first paint tương thích contract này nếu được layout adapter tag;
 - chỉ xuống hàng khi thực sự thiếu chiều rộng;
 - tablet: 2–3 cột tùy không gian;
 - mobile: 2 cột hoặc 1 cột;
