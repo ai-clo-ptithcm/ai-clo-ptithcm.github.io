@@ -1,10 +1,7 @@
-/* AI-CLO PTITHCM V11.8.4 — shared responsive layout system.
-   Centralizes KPI grids, action grids and filter toolbars so modules do not invent their own desktop breakpoints.
-   Known high-value layouts have direct CSS aliases to avoid first-paint flicker before JS tagging. */
+/* AI-CLO PTITHCM V12.4.24 — generic responsive layout framework only.
+   Domain/module owners provide their own first-paint layout; this file only styles elements tagged with AICLO layout classes. */
 
-:root{
-  --aiclo-layout-gap:12px;
-}
+:root{--aiclo-layout-gap:12px}
 
 .aiclo-kpi-grid{
   display:grid!important;
@@ -33,9 +30,7 @@
   white-space:normal;
   line-height:1.2;
 }
-.aiclo-action-grid>.aiclo-action-meta{
-  grid-column:1/-1;
-}
+.aiclo-action-grid>.aiclo-action-meta{grid-column:1/-1}
 
 .aiclo-filter-bar{
   display:grid!important;
@@ -48,75 +43,14 @@
 .aiclo-filter-bar>*{min-width:0!important;width:100%!important;margin:0!important}
 .aiclo-filter-bar>button{justify-self:stretch}
 
-/* Known summary/KPI groups use the shared sizing contract even before JS tagging completes. */
-.assessment-detail-stats,
-.stats,
-.v109-stats,
-.assessment-summary,
-.academic-profile-summary{
-  min-width:0;
-}
-
-/*
- * Direct aliases for the assessment detail page.
- * These intentionally override legacy module breakpoints loaded earlier.
- * Desktop keeps 5 KPI cards, all visible action buttons, and search + 2 filters + export on one row.
- */
-@media(min-width:1001px){
-  .assessment-detail-stats{
-    display:grid!important;
-    grid-template-columns:repeat(5,minmax(0,1fr))!important;
-    gap:var(--aiclo-layout-gap)!important;
-  }
-  .assessment-detail-actions{
-    display:grid!important;
-    grid-template-columns:none!important;
-    grid-auto-flow:column!important;
-    grid-auto-columns:minmax(0,1fr)!important;
-    gap:8px!important;
-    align-items:stretch!important;
-  }
-  .assessment-detail-actions>button{
-    width:100%!important;
-    min-width:0!important;
-    margin:0!important;
-  }
-  .attempt-page-toolbar{
-    display:grid!important;
-    grid-template-columns:minmax(260px,1.45fr) minmax(150px,.72fr) minmax(170px,.8fr) minmax(150px,.65fr)!important;
-    gap:10px!important;
-    align-items:center!important;
-  }
-  .attempt-page-toolbar>*{
-    min-width:0!important;
-    width:100%!important;
-    margin:0!important;
-    grid-column:auto!important;
-  }
-
-  /* Generic 5–6 compact groups remain one row on normal desktop/laptop widths. */
-  .aiclo-kpi-grid{
-    grid-template-columns:repeat(var(--aiclo-cols,4),minmax(0,1fr))!important;
-  }
-  .aiclo-action-grid{
-    grid-template-columns:repeat(var(--aiclo-action-cols,4),minmax(0,1fr))!important;
-  }
-}
-
-/* Tablet: compact but readable. */
 @media(max-width:1000px){
-  .aiclo-kpi-grid,.assessment-detail-stats{grid-template-columns:repeat(3,minmax(0,1fr))!important}
-  .aiclo-action-grid,.assessment-detail-actions{grid-template-columns:repeat(3,minmax(0,1fr))!important;grid-auto-flow:row!important}
-  .aiclo-filter-bar,.attempt-page-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  .attempt-page-toolbar input{grid-column:auto!important}
+  .aiclo-kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .aiclo-action-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;grid-auto-flow:row!important}
+  .aiclo-filter-bar{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
-
-/* Phone / narrow tablet. */
 @media(max-width:700px){
-  .aiclo-kpi-grid,.assessment-detail-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  .aiclo-action-grid,.assessment-detail-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  .aiclo-filter-bar,.attempt-page-toolbar{grid-template-columns:1fr!important}
+  .aiclo-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .aiclo-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .aiclo-filter-bar{grid-template-columns:1fr!important}
 }
-@media(max-width:430px){
-  .aiclo-kpi-grid,.assessment-detail-stats{grid-template-columns:1fr!important}
-}
+@media(max-width:430px){.aiclo-kpi-grid{grid-template-columns:1fr!important}}
