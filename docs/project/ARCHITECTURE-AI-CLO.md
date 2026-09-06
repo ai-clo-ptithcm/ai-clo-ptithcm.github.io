@@ -1,16 +1,16 @@
 # AI-CLO PTITHCM — KIẾN TRÚC HỆ THỐNG
 
-> Tài liệu này mô tả **kiến trúc hiện hành** của AI-CLO PTITHCM sau checkpoint frontend V12.4.24 ngày 06/09/2026. Đây là bản đồ để đọc dự án, tìm đúng owner trước khi sửa và tránh tạo thêm lớp compatibility chồng chéo.
+> Tài liệu này mô tả **kiến trúc hiện hành** của AI-CLO PTITHCM sau checkpoint Assessment V12.5.0 ngày 06/09/2026. Đây là bản đồ để đọc dự án, tìm đúng owner trước khi sửa và tránh tạo thêm lớp compatibility chồng chéo.
 
 ## 1. Mốc tham chiếu
 
 - Repository: `ai-clo-ptithcm/ai-clo-ptithcm.github.io`
 - Nhánh chuẩn: `main`
-- Frontend checkpoint: **V12.4.24**
-- Commit checkpoint: `874d1f13c2d1c0e363ceb421a01a83915497a41e`
-- GitHub Pages run: **#688 — success**
+- Frontend functional checkpoint: **V12.5.0**
+- Functional commit checkpoint: `49321fcffb83ad74befc91e59c983c6079c9737e`
+- GitHub Pages validation: **#690 — success**
 - Backend Assessment checkpoint: `assessment_schema_version = 12.3.1`
-- V12.4.0 → V12.4.24 không yêu cầu migration Supabase mới cho chuỗi refactor frontend/CSS gần nhất.
+- V12.5.0 thêm migration hardening `supabase/migrations/v12.5-admin-assessment-delete.sql`; migration này **không đổi bảng/cột/schema version**, chỉ thay RPC Admin xóa lượt để đánh số lại lịch sử an toàn.
 
 ## 2. Sơ đồ tổng thể
 
@@ -113,6 +113,9 @@ js/
 - Không tạo owner Assessment thứ hai.
 - Không thêm `MutationObserver` vào child module Assessment.
 - Utility xuất đề online ở `js/exams/online-export.js`.
+- `online-lifecycle.js` sở hữu lifecycle bài online phía giảng viên/Admin: trạng thái, chi tiết, danh sách lượt, preview/export và thao tác Admin xóa bài/xóa lượt.
+- `student-attempt.js` sở hữu toàn bộ luồng sinh viên: **danh sách bài → trang con Chi tiết bài → lịch sử lượt → workspace làm bài → Drawer xem câu hỏi/kết quả**.
+- Admin xóa bài dùng RPC `admin_delete_exam`; Admin xóa lượt dùng RPC `admin_delete_attempt`. Giảng viên không hiện nút xóa lượt sinh viên.
 
 ## 5. Persistence và recovery
 
@@ -134,6 +137,14 @@ Nhớ:
 - scroll position;
 - restore sau reload/discard/browser lifecycle.
 
+Assessment V12.5.0 đăng ký thêm/duy trì các kind quan trọng:
+
+- `assessment-detail` — Chi tiết bài phía giảng viên/Admin;
+- `assessment-student-detail` — trang con Chi tiết bài phía sinh viên;
+- `assessment-attempt` — workspace đang làm bài;
+- `assessment-attempt-result` — Drawer kết quả/xem câu hỏi; khi mở từ trang sinh viên giữ `parentKind=assessment-student-detail` để đóng Drawer quay lại đúng trang nền;
+- `assessment-builder`, `assessment-export`, `assessment-results`.
+
 ### `form-persistence.js`
 
 Nhớ:
@@ -153,9 +164,9 @@ Nhớ:
 
 Local recovery này **không phải navigation persistence thứ ba**. Workspace Attempt vẫn do `AICLO_SUBPAGE_STATE` quản lý.
 
-## 6. Kiến trúc CSS V12.4.24
+## 6. Kiến trúc CSS V12.5.0
 
-Đợt refactor V12.4.x đã chuyển từ nhiều lớp override lịch sử sang **owner-based CSS**.
+Đợt refactor V12.4.x đã chuyển từ nhiều lớp override lịch sử sang **owner-based CSS**. V12.5.0 giữ nguyên nguyên tắc đó và chốt owner riêng cho UI Assessment phía sinh viên.
 
 ### 6.1. Core UI owners
 
@@ -206,18 +217,18 @@ css/questions/
 
 Các file đang chạy được tách theo chức năng, nổi bật:
 
-- `assessment-shared.css`
-- `unified-builder.css`
-- `detail-enhancements.css`
-- `student-attempt.css`
-- `final-workflow.css`
-- `assessment-window.css`
-- `assessment-form-compact.css`
-- `online-export.css`
-- `create-wizard.css`
-- `final-matrix-compact.css`
+- `assessment-shared.css` — preview/result/live controls dùng chung, tabs/workspace/matrix;
+- `student-attempt.css` — **sole owner** danh sách bài sinh viên, trang con Chi tiết, lịch sử lượt và workspace làm bài;
+- `unified-builder.css`;
+- `detail-enhancements.css` — trang Chi tiết/attempt table phía giảng viên/Admin;
+- `final-workflow.css`;
+- `assessment-window.css`;
+- `assessment-form-compact.css`;
+- `online-export.css`;
+- `create-wizard.css`;
+- `final-matrix-compact.css`.
 
-Các CSS Assessment thế hệ cũ còn trong repo nhưng không được mặc định xem là runtime owner nếu `app.html` không load chúng.
+Không đưa lại selector `student-exam-grid/card` cũ về `assessment-shared.css`. Các CSS Assessment thế hệ cũ còn trong repo nhưng không được mặc định xem là runtime owner nếu `app.html` không load chúng.
 
 #### System
 
@@ -237,7 +248,7 @@ css/system/
 
 ### 6.3. Quy mô CSS hiện tại
 
-Tại checkpoint V12.4.24:
+Số liệu inventory gần nhất được đo ở checkpoint V12.4.24:
 
 - khoảng **61 file CSS source** trong thư mục `css/`;
 - tổng source CSS khoảng **226 KB** chưa nén;
@@ -256,6 +267,8 @@ Các file CSS lớn hiện vẫn ở mức hợp lý; `shell.css`, `unified-buil
 - Boolean setting → toggle switch khi đó là bật/tắt.
 - Mobile không được tràn ngang ở shell/form chính.
 - Các bảng rất rộng có thể dùng horizontal scroll có chủ đích hoặc card mode tùy nghiệp vụ.
+- Riêng sinh viên ở **Bài kiểm tra**: danh sách là list gọn; nhấn bài mở **full-width subpage**, không Drawer. Chỉ nút **Xem câu hỏi** của lượt đã nộp mới mở Drawer/panel.
+- Khi sinh viên đang làm bài, Quay lại trở về **Chi tiết bài kiểm tra**; sau khi nộp, Drawer kết quả nằm trên đúng trang Chi tiết phía sau.
 
 ## 8. Question Bank contract
 
@@ -284,6 +297,9 @@ Nguyên tắc dữ liệu:
 - `max_attempts` được phép chỉnh sau khi có lượt làm; lịch sử cũ không bị xóa/sửa khi giảm giới hạn.
 - Sinh viên Attempt chạy full-width trong `#content`.
 - Kết quả/AI chỉ lấy đúng scope học phần/bài/sinh viên.
+- Admin có quyền xóa bài online ở mọi trạng thái; nếu bài có lượt, `admin_delete_exam` xóa toàn bộ dữ liệu phụ thuộc theo RPC backend đã có.
+- Admin có quyền xóa một lượt làm; sau migration V12.5, `admin_delete_attempt` đánh số lại các lượt còn lại liên tục để lần làm kế tiếp không va unique `(exam_id,student_id,attempt_number)`.
+- Giảng viên không có nút xóa lượt sinh viên trong UI V12.5.0.
 
 ## 10. Supabase architecture
 
@@ -313,6 +329,7 @@ Quy tắc bắt buộc:
 - Không sửa schema ngầm từ frontend.
 - Không bypass RLS bằng frontend.
 - Dữ liệu nhạy cảm phải được kiểm quyền ở backend.
+- V12.5.0 cần chạy `supabase/migrations/v12.5-admin-assessment-delete.sql` trong SQL Editor để thay RPC `admin_delete_attempt`; không cần deploy Edge Function và không thay `assessment_schema_version = 12.3.1`.
 
 ## 11. AI / Gemini
 
@@ -363,4 +380,4 @@ Nếu tài liệu và code xung đột, phải kiểm tra commit/date và ưu ti
 
 ---
 
-**Checkpoint kiến trúc:** V12.4.24 — sau khi hoàn tất đợt CSS ownership/refactor lớn. Ưu tiên kế tiếp là smoke test UI/nghiệp vụ thực tế thay vì tiếp tục chia/tách CSS chỉ để làm sạch mã.
+**Checkpoint kiến trúc:** V12.5.0 — Admin quản trị xóa bài/xóa lượt bằng RPC backend; sinh viên dùng luồng danh sách → trang con Chi tiết → làm bài / Drawer xem câu hỏi, với Subpage State chung. Functional commit `49321fcffb83ad74befc91e59c983c6079c9737e` đã được GitHub Pages run **#690** deploy thành công. Migration RPC V12.5 cần được chạy riêng trên Supabase SQL Editor.
