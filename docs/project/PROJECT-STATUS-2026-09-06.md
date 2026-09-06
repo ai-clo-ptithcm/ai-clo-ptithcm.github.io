@@ -25,6 +25,7 @@ Không có migration Supabase hay Edge Function mới cho V12.4.x.
 - Các nút quay lại/hủy/đóng Result xóa workspace state để không tự restore ngược.
 - Không thêm `MutationObserver` trong Assessment modules.
 - README và checkpoint đã được đồng bộ với V12.4.3.
+- Tài liệu lịch sử đã được gom vào `docs/releases/` và `docs/project/`; file SQL/schema của Supabase đã được đưa về `supabase/`.
 
 ## Kiến trúc giữ nguyên
 
@@ -36,6 +37,14 @@ Không có migration Supabase hay Edge Function mới cho V12.4.x.
 - Local attempt draft chỉ giữ recovery bên trong lượt làm: pending answer, deadline, current question.
 - Supabase là nguồn dữ liệu chính thức.
 - Edge Functions phải self-contained, không phụ thuộc `_shared`.
+
+## Tổ chức repository
+
+- `README.md`: checkpoint hiện tại ở root.
+- `docs/releases/`: VERSION, hướng dẫn cập nhật, upgrade và technical notes theo phiên bản.
+- `docs/project/`: project notes, progress/status checkpoint và thỏa thuận kỹ thuật.
+- `supabase/`: SQL migration/schema/policy và mã nguồn Edge Function.
+- `supabase/docs/`: hướng dẫn deploy Supabase/Gemini.
 
 ## Trạng thái các hạng mục ưu tiên ngày 06/09
 
@@ -59,5 +68,5 @@ Không có migration Supabase hay Edge Function mới cho V12.4.x.
 Chi tiết kỹ thuật đầy đủ xem:
 
 - `PROJECT-PROGRESS-2026-09-06.md`
-- `README.md`
+- `../../README.md`
 - `PROJECT-PROGRESS-2026-09-05.md` (checkpoint lịch sử trước V12.4.x)
