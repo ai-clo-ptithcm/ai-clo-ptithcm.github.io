@@ -2,7 +2,7 @@
 
 > File này là **nguồn ghi nhớ kỹ thuật ưu tiên** để tiếp tục phát triển dự án trong các phiên sau. Khi bắt đầu chỉnh sửa AI-CLO, hãy đọc file này trước các changelog phiên bản nếu cần hiểu các quyết định đã chốt.
 
-Cập nhật gần nhất: **04/09/2026 — V11.8.2**
+Cập nhật gần nhất: **06/09/2026 — V12.4.4**
 
 ## 1. Nguyên tắc phát triển
 
@@ -27,6 +27,49 @@ Mọi popup chỉnh sửa dùng **AI-CLO app-window** thống nhất:
 - boolean dùng **toggle switch kiểu iPhone**, không dùng checkbox vuông nếu đó là thiết lập bật/tắt.
 
 Drawer chỉ dùng cho **xem nhanh/chi tiết** khi phù hợp. Không dùng drawer legacy để chỉnh cấu trúc bài kiểm tra.
+
+### Quy ước Sửa nhanh / Chi tiết
+
+Đây là quy định UI/UX chung, áp dụng cho toàn hệ thống:
+
+- **Chi tiết / xem thông tin** → dùng **panel/drawer**. Panel không dùng để chỉnh sửa nhanh.
+- **Sửa nhanh** → dùng **AI-CLO app-window** thống nhất, không mở drawer/panel.
+- **Sửa đầy đủ / chỉnh cấu trúc lớn** → dùng trang con/full-width workspace phù hợp, không ép vào panel nhỏ.
+- Trên desktop, cửa sổ Sửa nhanh dùng cùng chuẩn app-window: header đỏ, cùng kích thước cơ sở, kéo/resize được khi phù hợp.
+- Trên mobile, Sửa nhanh chuyển sang dạng gần full-screen để đủ chỗ cho nội dung và công thức.
+
+Ba ngữ cảnh Sửa nhanh câu hỏi phải **cùng giao diện và cách thao tác**, nhưng giữ riêng semantics lưu dữ liệu:
+
+1. **Ngân hàng câu hỏi — Sửa nhanh câu nguồn**
+   - Sửa trực tiếp câu hỏi trong ngân hàng.
+   - Thay đổi được lưu vào lịch sử chỉnh sửa câu hỏi.
+   - Giao diện phải ghi rõ rằng thao tác này cập nhật ngân hàng câu hỏi.
+
+2. **Kiểm tra câu hỏi trùng — Sửa nhanh trong ngữ cảnh kiểm tra trùng**
+   - Vẫn sửa **chính câu hỏi nguồn** trong ngân hàng, không tạo bản sao riêng.
+   - Sau khi lưu, quay lại đúng cặp đang xem và đánh dấu cặp đó **cần kiểm tra lại**.
+   - Giao diện phải ghi rõ rằng thao tác cập nhật ngân hàng và kết quả trùng cần được thẩm định lại.
+
+3. **Đánh giá / Builder — Sửa nhanh câu trong bản nháp**
+   - Chỉ sửa câu đang dùng trong **bản nháp bài kiểm tra/đánh giá**.
+   - **Không thay đổi ngân hàng câu hỏi**.
+   - Với online builder, tiếp tục dùng `draftOverrides`/draft state hiện hành; không đổi semantics lưu chỉ để đồng nhất giao diện.
+   - Giao diện phải ghi rõ “Chỉ áp dụng cho bài kiểm tra này; ngân hàng câu hỏi không thay đổi”.
+
+Các cửa sổ Sửa nhanh ưu tiên cùng bố cục:
+
+- Nội dung câu hỏi;
+- phương án A/B/C/D;
+- đáp án đúng;
+- lời giải/giải thích nếu nghiệp vụ hỗ trợ;
+- Hủy + Lưu/Áp dụng ở cuối.
+
+Ownership kỹ thuật:
+
+- `css/ui/app-window.css` chỉ sở hữu **window chrome**: vị trí, kích thước, header, drag, resize, responsive.
+- CSS/module nghiệp vụ chỉ sở hữu **nội dung bên trong editor** và khác biệt theo ngữ cảnh.
+- Không để class nghiệp vụ của Ngân hàng, Kiểm tra trùng và Assessment dùng lẫn nhau để tránh cascade/logic ảnh hưởng chéo.
+- Khi tái sử dụng cùng `#modal`, phải xóa class ngữ cảnh cũ trước khi gắn class ngữ cảnh mới.
 
 ### Card thống kê / KPI
 
