@@ -1,7 +1,10 @@
-/* AI-CLO PTITHCM V11.6.21 — notification center + notification detail. */
+/* AI-CLO PTITHCM V12.4.19 — notification center, dashboard tasks and detail UI owner. */
 .notice-detail-v108{display:grid;gap:16px}.notice-detail-v108 .notice-detail-icon{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#fff0f2;color:var(--red);font-size:20px}.notice-detail-v108 h3{margin:0}.notice-detail-v108 p{white-space:pre-wrap;color:#344054}.notice-detail-actions{display:flex;gap:10px;flex-wrap:wrap}
 .notice-target-highlight{outline:3px solid rgba(201,27,38,.55);outline-offset:3px;animation:notice-target-pulse 1.1s ease-in-out 2}
 @keyframes notice-target-pulse{50%{box-shadow:0 0 0 8px rgba(201,27,38,.12)}}
+
+/* Dashboard "Việc cần xử lý" cards created by js/system/notifications.js. */
+.task-center{display:grid;gap:9px}.notice-card{width:100%;display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px;text-align:left;padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);box-sizing:border-box}.notice-card:not(.read){border-left:4px solid var(--red);background:#fff8f9}.notice-card.read{opacity:1;background:#fff}.notice-card:hover{border-color:#d9a9b1;background:#fffafa}.notice-card>span:last-child{display:grid;gap:4px;min-width:0}.notice-card b{display:block}.notice-card small{display:block;color:var(--muted);white-space:normal;overflow-wrap:anywhere}.notice-card em{display:block;color:var(--muted);font-style:normal;font-size:12px}.notice-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;background:#fff0f2;color:#c62828;font-weight:800}
 
 .notification-center{display:grid;gap:14px}.notice-center-toolbar{display:flex;align-items:center;gap:10px;min-width:0}.notice-filter-chips{display:flex;align-items:center;gap:7px;min-width:0;flex-wrap:wrap}.notice-filter-chips button{border:1px solid var(--line);background:#fff;color:#4b5565;border-radius:999px;padding:9px 13px;font-weight:800;white-space:nowrap}.notice-filter-chips button:hover{border-color:#ddb4ba;background:#fff8f9}.notice-filter-chips button.active{border-color:#d95061;background:#fff0f2;color:var(--red)}.notice-filter-chips button span{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:#eef1f5;font-size:11px;margin-left:3px}.notice-filter-chips button.active span{background:#fff;color:var(--red)}
 .notice-toolbar-actions{margin-left:auto;display:flex;gap:8px;flex:none}.notice-toolbar-actions button{padding:10px 13px;white-space:nowrap}.notice-filter-mobile,.notice-page-menu-wrap{display:none}
@@ -11,6 +14,8 @@
 .notice-page-menu-wrap{position:relative}.notice-page-menu{position:absolute;z-index:30;right:0;top:44px;width:215px;padding:6px;border:1px solid var(--line);border-radius:10px;background:#fff;box-shadow:0 14px 34px rgba(16,24,40,.16)}
 
 @media(max-width:1000px){.notice-center-toolbar{align-items:flex-start;flex-wrap:wrap}.notice-toolbar-actions{margin-left:0}.notice-filter-chips{flex:1 1 100%}.notice-toolbar-actions{margin-left:auto}}
+
+@media(max-width:720px){.notice-card{padding:11px}.notice-card small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}}
 
 @media(max-width:650px){
  .notification-center{gap:10px}.notification-center-list{padding:9px!important;border-radius:13px}.notice-center-toolbar{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:8px}.notice-filter-mobile{display:block;width:100%;height:44px}.notice-toolbar-actions{display:none}.notice-page-menu-wrap{display:block}.notice-page-menu-trigger{display:grid;place-items:center;width:44px;height:44px;padding:0;font-size:21px}.notice-filter-chips{grid-column:1/-1;display:flex;overflow-x:auto;flex-wrap:nowrap;gap:6px;padding:1px 0 4px;scrollbar-width:none}.notice-filter-chips::-webkit-scrollbar{display:none}.notice-filter-chips button{padding:8px 11px;font-size:12px}.notice-filter-chips button[data-notice-filter="all"]{display:none}
