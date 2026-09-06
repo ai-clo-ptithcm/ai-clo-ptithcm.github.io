@@ -105,7 +105,7 @@ Các thư viện Excel/XLSX vẫn giữ nguyên.
 
 Migration V12 cần chạy nếu chưa có:
 
-`supabase/assessment-v12.0-migration.sql`
+`supabase/migrations/assessment-v12.0-migration.sql`
 
 Thêm cột:
 
@@ -136,4 +136,4 @@ Không có yêu cầu Edge Function mới cho các thay đổi frontend trong đ
 - `../releases/VERSION-v12.0.md`
 - `../releases/HUONG-DAN-CAP-NHAT-V12.md`
 - `PROJECT-NOTES-AI-CLO.md`
-- `../../supabase/assessment-v12.0-migration.sql`
+- `../../supabase/migrations/assessment-v12.0-migration.sql`
