@@ -46,7 +46,7 @@ AI cho một `exam` cụ thể hoặc một `attempt` cụ thể vẫn hoạt đ
 
 ## File thay đổi chính
 
-- `supabase/assessment-v12.1-migration.sql`
+- `supabase/migrations/assessment-v12.1-migration.sql`
 - `js/exams/assessment-v12.1.js`
 - `js/exams/attempt-autosave.js`
 - `js/core/feature-loader.js`
@@ -56,8 +56,8 @@ AI cho một `exam` cụ thể hoặc một `attempt` cụ thể vẫn hoạt đ
 
 ## Thứ tự cập nhật Supabase
 
-1. Đảm bảo đã chạy `supabase/assessment-v12.0-migration.sql`.
-2. Chạy `supabase/assessment-v12.1-migration.sql` trong Supabase SQL Editor.
+1. Đảm bảo đã chạy `supabase/migrations/assessment-v12.0-migration.sql`.
+2. Chạy `supabase/migrations/assessment-v12.1-migration.sql` trong Supabase SQL Editor.
 3. Deploy lại Edge Function `analyze-assessment` bằng file `supabase/functions/analyze-assessment/index.ts`.
 4. Deploy lại Edge Function `analyze-student-clo` bằng file `supabase/functions/analyze-student-clo/index.ts`.
 5. Sau đó mới kiểm thử frontend V12.1 trên GitHub Pages.
