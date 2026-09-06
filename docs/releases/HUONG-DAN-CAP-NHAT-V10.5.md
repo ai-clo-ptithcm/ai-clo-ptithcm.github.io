@@ -1,7 +1,7 @@
 # Cập nhật AI-CLO PTITHCM V10.5
 
 ## Nếu đang ở V10.4
-1. Chạy `supabase/v10.5-upgrade.sql` trong Supabase SQL Editor.
+1. Chạy `supabase/migrations/v10.5-upgrade.sql` trong Supabase SQL Editor.
 2. Upload frontend V10.5 lên GitHub Pages.
 3. Không cần deploy lại Edge Function Gemini. Các function tiếp tục self-contained như V10.2+.
 
