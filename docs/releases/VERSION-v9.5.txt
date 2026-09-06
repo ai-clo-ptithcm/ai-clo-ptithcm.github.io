@@ -14,4 +14,4 @@ Nội dung chính:
 - Ngăn nhiều lượt render đồng thời gây lặp khối thông báo.
 
 Cài đặt bổ sung:
-Chạy supabase/v9.5-addon.sql để bật chức năng giảng viên gửi thông báo riêng cho sinh viên.
+Chạy supabase/migrations/v9.5-addon.sql để bật chức năng giảng viên gửi thông báo riêng cho sinh viên.
