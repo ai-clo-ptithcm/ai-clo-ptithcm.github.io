@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V11 — user profiles extracted from legacy V10.8. */
+/* AI-CLO PTITHCM V12.6.20-kiemnghiem — canonical profile owner. */
 (() => {
 'use strict';
 
@@ -48,6 +48,15 @@ async function openUserProfile(p){
  });
 }
 
+async function openById(userId){
+ if(!userId)return;
+ try{
+  const rows=await q('profiles','*',x=>x.eq('id',userId).limit(1));
+  if(!rows[0])return toast('Không tìm thấy hồ sơ người dùng',true);
+  return openUserProfile(rows[0]);
+ }catch(ex){return err(ex)}
+}
+
 function makeMiniUserClickable(){
  const box=$('#miniUser');if(!box)return;
  box.classList.add('mini-user-button-v108');
@@ -59,19 +68,5 @@ function makeMiniUserClickable(){
  box.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}};
 }
 
-function enhanceUserLists(){
- const root=$('#content');if(!root)return;
- $$('#userRows tr,#classMemberRows tr,#classRows tr',root).forEach(tr=>{
-  const cell=tr.querySelector('td'),bold=cell?.querySelector('b');
-  if(!bold||cell.querySelector('.user-name-link-v108'))return;
-  const id=tr.querySelector('[data-manage-user]')?.dataset.manageUser||tr.querySelector('[data-profile]')?.dataset.profile||tr.querySelector('[data-ai]')?.dataset.ai;
-  if(!id)return;
-  const text=bold.textContent,btn=document.createElement('button');
-  btn.type='button';btn.className='user-name-link-v108';btn.textContent=text;
-  btn.onclick=async()=>{try{closeMobileSidebar();const rows=await q('profiles','*',x=>x.eq('id',id).limit(1));openUserProfile(rows[0])}catch(ex){err(ex)}};
-  bold.replaceWith(btn);
- });
-}
-
-window.AICLO_PROFILE=Object.freeze({openUserProfile,openStudentCourseProfile,makeMiniUserClickable,enhanceUserLists});
+window.AICLO_PROFILE=Object.freeze({version:'12.6.20-kiemnghiem',openUserProfile,openById,openStudentCourseProfile,makeMiniUserClickable});
 })();
