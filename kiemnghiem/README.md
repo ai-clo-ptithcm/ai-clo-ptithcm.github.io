@@ -27,6 +27,8 @@ Không dùng học phần có sinh viên thật để thử chức năng mới.
 
 - Assessment owner: `js/assessment.js` và các module con trong `js/assessment/`.
 - Online Builder owner: `js/assessment/online-builder.js`.
+- Student attempt owner: `js/assessment/student-attempt.js`.
+- Giám sát phiên làm bài frontend-only owner: `js/assessment/attempt-monitor.js` (`AICLO_ATTEMPT_MONITOR`).
 - Dashboard router owner: `js/system/dashboard.js`.
 - Tổng quan học phần owner: `js/courses/overview.js`.
 - Danh sách thành viên owner: `js/courses/members.js` (`AICLO_COURSE_MEMBERS`).
@@ -35,6 +37,26 @@ Không dùng học phần có sinh viên thật để thử chức năng mới.
 - Navigation/history owner: `js/ui/navigation.js` cùng `js/ui/subpage-state.js` cho trạng thái trang con.
 
 Nguyên tắc chính: **một hành vi chỉ có một runtime owner**. Legacy layer không được render thêm UI hoặc giành lại behavior nếu canonical owner đã tồn tại.
+
+## Giám sát phiên làm bài — frontend-only
+
+Bản staging hiện có cơ chế **Giám sát phiên làm bài** chỉ ở frontend:
+
+- phát hiện sinh viên chuyển tab/ẩn tab;
+- phát hiện cửa sổ mất focus;
+- phát hiện thoát Fullscreen sau khi đã bật;
+- đếm số lần rời màn hình trong phiên hiện tại;
+- cộng tổng thời gian rời màn hình;
+- hiển thị cảnh báo và nút **Bật toàn màn hình**;
+- lưu tạm dữ liệu giám sát trong `sessionStorage` trên chính thiết bị/trình duyệt đang làm bài.
+
+Giới hạn bắt buộc phải nhớ:
+
+- **không ghi bất kỳ log giám sát nào lên Supabase**;
+- không đổi schema/RLS/Edge Function;
+- không tự nộp bài khi vi phạm;
+- không thể ngăn tuyệt đối Alt+Tab, thiết bị thứ hai, chụp màn hình hay các hình thức gian lận ngoài trình duyệt;
+- đây là cơ chế cảnh báo/hạn chế rời màn hình, không phải hệ thống chống gian lận tuyệt đối.
 
 ## Quy ước AI
 
