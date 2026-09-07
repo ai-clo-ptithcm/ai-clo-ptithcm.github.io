@@ -116,6 +116,31 @@ Sau khi chạy migration cần có marker:
 ASSESSMENT_V12.6.4_OK
 ```
 
+## V12.6.5 — Tối ưu màn hình sinh viên làm bài
+
+Đã chỉnh lớp giao diện `css/exams/student-attempt.css` sau khi kiểm tra thực tế trên desktop:
+
+- phương án đang được trộn vẫn hiển thị nhãn theo thứ tự **A · B · C · D** trên màn hình;
+- ẩn CLO, Chương và Mục khỏi màn hình đang làm bài;
+- câu hỏi dùng trọng lượng chữ bình thường thay vì in đậm;
+- thu gọn header, khoảng cách, padding của card, đáp án, thanh điều hướng và đồng hồ để giảm cuộn;
+- nút quay về màn hình trước hiển thị ngắn gọn **“← Quay lại”**;
+- không thay đổi RPC, autosave, chấm điểm hay cơ chế sinh câu.
+
+Đã rà cơ chế giữ màn hình khi chuyển tab trình duyệt:
+
+- workspace lưu `answers`, `pending`, `deadline`, `currentQuestionIndex` trong localStorage;
+- `subpage-state.js` ghi lại subpage/scroll khi `visibilitychange` và `pagehide`;
+- khi tab chỉ bị ẩn, `.live-exam` vẫn tồn tại nên không render lại workspace;
+- đồng hồ dùng deadline tuyệt đối nên vẫn đúng sau khi browser throttling tab nền;
+- nếu trang bị reload/discard, subpage persistence có thể mở lại đúng attempt, còn pending local được gộp với dữ liệu server.
+
+Backup trước thay đổi:
+
+```text
+backup-before-student-attempt-ux-v12-6-5-20260907
+```
+
 ## Backup quan trọng
 
 Các backup gần nhất cần giữ:
@@ -123,6 +148,7 @@ Các backup gần nhất cần giữ:
 - `backup-before-bank-ownership-v12-6-2-20260906`
 - `backup-before-bank-write-v12-6-3-20260906`
 - `backup-before-assessment-bank-scope-v12-6-4-20260906`
+- `backup-before-student-attempt-ux-v12-6-5-20260907`
 
 ## Quy ước làm việc đã chốt
 
@@ -144,6 +170,7 @@ Sau khi chạy migration V12.6.3 và V12.6.4 trên Supabase:
 7. tạo bài mixed_fixed_random;
 8. tạo đề cuối kỳ từ secure bank;
 9. sinh lượt làm sinh viên và kiểm tra snapshot câu;
-10. kiểm tra CLO/GPA vẫn gắn đúng học phần hiện tại.
+10. kiểm tra CLO/GPA vẫn gắn đúng học phần hiện tại;
+11. smoke màn hình sinh viên V12.6.5 trên desktop/mobile và thử chuyển tab trình duyệt trong lúc đang làm bài.
 
 Nếu các kịch bản trên đều ổn thì có thể coi V12.6.x đạt mốc ổn định đầu tiên cho Question Bank dùng chung.
