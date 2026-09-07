@@ -42,12 +42,15 @@ Nguyên tắc chính: **một hành vi chỉ có một runtime owner**. Legacy l
 
 Bản staging hiện có cơ chế **Giám sát phiên làm bài** chỉ ở frontend:
 
+- khi sinh viên bấm **Làm bài** hoặc **Tiếp tục**, monitor yêu cầu Fullscreen ngay trong chính thao tác click của người dùng;
+- nếu trình duyệt từ chối Fullscreen, bài vẫn mở bình thường và monitor tiếp tục hoạt động;
+- card **Giám sát phiên làm bài** nằm trong sidebar, ngay phía trên thông tin tài khoản sinh viên;
 - phát hiện sinh viên chuyển tab/ẩn tab;
 - phát hiện cửa sổ mất focus;
-- phát hiện thoát Fullscreen sau khi đã bật;
+- phát hiện thoát Fullscreen sau khi monitor đã bật;
 - đếm số lần rời màn hình trong phiên hiện tại;
 - cộng tổng thời gian rời màn hình;
-- hiển thị cảnh báo và nút **Bật toàn màn hình**;
+- có nút **Bật lại toàn màn hình** trong sidebar khi sinh viên đã thoát Fullscreen;
 - lưu tạm dữ liệu giám sát trong `sessionStorage` trên chính thiết bị/trình duyệt đang làm bài.
 
 Giới hạn bắt buộc phải nhớ:
