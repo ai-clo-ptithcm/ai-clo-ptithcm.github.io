@@ -184,14 +184,16 @@ export default {
 
         const role: Role = target.role === "admin" ? "admin" : requestedRole;
         const mssv = role === "student" ? clean(body.mssv) : "";
+        const targetIsTeacher = ["teacher", "lecturer", "giangvien"].includes(String(target.role));
+        const promotingToAdmin = target.role !== "admin" && role === "admin";
 
         if (!full_name) return reply({ success: false, error: "Thiếu họ và tên." });
         if (!validEmail(email)) return reply({ success: false, error: "Email không hợp lệ." });
         if (role !== "admin" && role !== "teacher" && role !== "student") {
           return reply({ success: false, error: "Vai trò không hợp lệ." });
         }
-        if (target.role !== "admin" && role === "admin") {
-          return reply({ success: false, error: "Không hỗ trợ nâng tài khoản hiện có thành Admin. Hãy tạo một tài khoản Admin mới." }, 403);
+        if (promotingToAdmin && !targetIsTeacher) {
+          return reply({ success: false, error: "Chỉ tài khoản Giảng viên mới được nâng trực tiếp thành Admin." }, 403);
         }
         if (role === "student" && !mssv) return reply({ success: false, error: "Sinh viên phải có MSSV." });
 
@@ -231,7 +233,27 @@ export default {
           return reply({ success: false, error: publicError(profileError) });
         }
 
-        if (target.role !== role && role !== "admin") {
+        if (promotingToAdmin) {
+          const { error: memberError } = await ctx.supabaseAdmin.from("subject_members")
+            .delete().eq("user_id", targetId);
+          if (memberError) {
+            await ctx.supabaseAdmin.from("profiles").update({
+              full_name: target.full_name,
+              email: target.email,
+              role: target.role,
+              mssv: target.mssv,
+              updated_at: new Date().toISOString(),
+            }).eq("id", targetId);
+            await ctx.supabaseAdmin.auth.admin.updateUserById(targetId, {
+              email: target.email,
+              user_metadata: oldMetadata,
+            });
+            return reply({
+              success: false,
+              error: "Không thể hoàn tất việc nâng Admin vì chưa gỡ được quyền học phần cũ: " + publicError(memberError),
+            });
+          }
+        } else if (target.role !== role) {
           const { error: memberError } = await ctx.supabaseAdmin.from("subject_members")
             .update({ role }).eq("user_id", targetId);
           if (memberError) return reply({
@@ -240,7 +262,11 @@ export default {
           });
         }
 
-        return reply({ success: true, user: { id: targetId, full_name, email, role, mssv: mssv || null } });
+        return reply({
+          success: true,
+          promoted_to_admin: promotingToAdmin,
+          user: { id: targetId, full_name, email, role, mssv: mssv || null },
+        });
       }
 
       if (action === "reset_password") {
