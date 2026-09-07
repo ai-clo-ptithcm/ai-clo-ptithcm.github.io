@@ -1,0 +1,23 @@
+/* AI-CLO PTITHCM V12.4.24 — global base, controls and form primitives only. */
+:root{--red:#a61d2d;--red2:#7f1422;--ink:#18212f;--muted:#667085;--line:#e5e9ef;--bg:#f4f6f9;--white:#fff;--green:#087a55;--amber:#a15c05}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,"Segoe UI",Arial,sans-serif;color:var(--ink);background:var(--bg)}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}
+.hidden{display:none!important}
+.field{display:grid;gap:7px;font-size:13px;font-weight:700;color:#495366}
+input,select,textarea{border:1px solid #ccd3dc;border-radius:8px;padding:11px 12px;background:white;color:var(--ink);min-width:0}
+textarea{min-height:90px;resize:vertical}
+.primary,.danger,.secondary{border:0;border-radius:8px;padding:11px 16px;font-weight:700}
+.primary{background:var(--red);color:white}
+.primary:hover{background:var(--red2)}
+.secondary{background:#eef1f5;color:#344054}
+.danger{background:#feecef;color:#9b1c2e}
+.link-btn{border:0;background:none;color:var(--red)}
+.hint{font-size:12px;color:var(--muted);line-height:1.5}
+.form-grid{padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.form-grid .wide{grid-column:1/-1}
+.form-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:8px;margin-top:5px}
+.option-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:560px){.form-grid,.option-grid{grid-template-columns:1fr}.form-grid .wide{grid-column:auto}}

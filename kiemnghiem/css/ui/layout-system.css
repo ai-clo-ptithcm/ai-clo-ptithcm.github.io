@@ -1,0 +1,56 @@
+/* AI-CLO PTITHCM V12.4.24 — generic responsive layout framework only.
+   Domain/module owners provide their own first-paint layout; this file only styles elements tagged with AICLO layout classes. */
+
+:root{--aiclo-layout-gap:12px}
+
+.aiclo-kpi-grid{
+  display:grid!important;
+  grid-template-columns:repeat(var(--aiclo-cols,4),minmax(0,1fr))!important;
+  gap:var(--aiclo-layout-gap)!important;
+  width:100%;
+  min-width:0;
+}
+.aiclo-kpi-grid>*{min-width:0}
+.aiclo-kpi-grid b,.aiclo-kpi-grid strong{overflow-wrap:anywhere}
+
+.aiclo-action-grid{
+  display:grid!important;
+  grid-template-columns:repeat(var(--aiclo-action-cols,4),minmax(0,1fr))!important;
+  gap:8px!important;
+  align-items:stretch!important;
+  width:100%;
+  min-width:0;
+}
+.aiclo-action-grid>button,
+.aiclo-action-grid>a.button,
+.aiclo-action-grid>.button{
+  width:100%!important;
+  min-width:0!important;
+  margin:0!important;
+  white-space:normal;
+  line-height:1.2;
+}
+.aiclo-action-grid>.aiclo-action-meta{grid-column:1/-1}
+
+.aiclo-filter-bar{
+  display:grid!important;
+  grid-template-columns:minmax(260px,1.45fr) minmax(150px,.72fr) minmax(170px,.8fr) minmax(150px,.65fr)!important;
+  gap:10px!important;
+  align-items:center!important;
+  width:100%;
+  min-width:0;
+}
+.aiclo-filter-bar>*{min-width:0!important;width:100%!important;margin:0!important}
+.aiclo-filter-bar>button{justify-self:stretch}
+
+@media(max-width:1000px){
+  .aiclo-kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .aiclo-action-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;grid-auto-flow:row!important}
+  .aiclo-filter-bar{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:700px){
+  .aiclo-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .aiclo-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .aiclo-filter-bar{grid-template-columns:1fr!important}
+}
+@media(max-width:430px){.aiclo-kpi-grid{grid-template-columns:1fr!important}}

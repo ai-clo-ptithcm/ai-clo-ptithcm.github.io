@@ -1,0 +1,9 @@
+/* AI-CLO legacy Auth V8 — archive only; DO NOT load at runtime. */
+/* Retained for rollback/reference after V12.4.18 moved live login ownership to css/login-app.css. */
+.auth-shell{min-height:100vh;display:grid;grid-template-columns:1.1fr .9fr;background:white}
+.brand-panel{background:linear-gradient(145deg,#771422,#b52034);color:white;padding:10vh 10vw;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden}
+.brand-panel:after{content:"CLO";position:absolute;right:-35px;bottom:-65px;font-size:220px;font-weight:900;opacity:.06}
+.brand-panel h1{font-size:clamp(38px,5vw,72px);line-height:1.02;margin:60px 0 24px;letter-spacing:-3px}
+.brand-panel p{font-size:18px;line-height:1.6;max-width:600px;color:#f7dbe0}
+.flow{margin-top:55px;border-top:1px solid #ffffff47;padding-top:24px;word-spacing:12px}
+@media(max-width:900px){.auth-shell{grid-template-columns:1fr}.brand-panel{display:none}}

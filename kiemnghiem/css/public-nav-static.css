@@ -1,0 +1,23 @@
+/* AI-CLO PTITHCM — static public navigation. The DOM is final in HTML; JS must not rearrange it. */
+body.v107-public{padding-top:72px!important}
+.public-nav.public-nav-unified{position:fixed!important;top:0;left:0;right:0;z-index:1000;height:72px!important;min-height:72px!important;padding:0 clamp(20px,6vw,90px)!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;grid-template-areas:'links actions'!important;align-items:center!important;gap:18px!important;background:#fff!important;border-bottom:1px solid #e5e9ef!important;box-shadow:0 3px 16px rgba(17,24,39,.04)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.public-nav-unified .public-nav-links{grid-area:links!important;margin:0!important;display:flex!important;align-items:center!important;gap:22px!important;min-width:0!important;overflow:visible!important;padding:0!important}
+.public-nav-unified .public-nav-links a{color:#667085!important;text-decoration:none!important;font-weight:750!important;font-size:14px!important;line-height:1.2!important;white-space:nowrap!important}
+.public-nav-unified .public-nav-links a:hover,.public-nav-unified .public-nav-links a.active{color:#a61d2d!important}
+.public-nav-unified .public-home-link{display:inline-flex!important;width:auto!important;height:auto!important;border-radius:0!important;background:transparent!important;color:#667085!important;font-size:14px!important;padding:0!important;flex:none!important}
+.public-nav-unified .public-home-link:hover,.public-nav-unified .public-home-link.active{background:transparent!important;color:#a61d2d!important}
+.public-nav-unified .public-nav-actions{grid-area:actions;display:grid;grid-template-columns:auto auto;gap:10px;align-items:center}
+.public-nav-unified .public-nav-actions .public-ai-button,.public-nav-unified .public-nav-actions .public-system-link{min-height:42px;display:inline-flex!important;align-items:center;justify-content:center;border-radius:12px!important;padding:0 15px!important;font-weight:800!important;white-space:nowrap!important;text-decoration:none!important}
+.public-nav-unified .public-nav-actions .public-ai-button{appearance:none;border:1px solid #a98bc7!important;background:#f5effc!important;color:#60358a!important;font:800 15px/1 Inter,"Segoe UI",Arial,sans-serif;cursor:pointer}
+.public-nav-unified .public-nav-actions .public-ai-button:hover{background:#ede2f8!important;border-color:#8f6bb5!important}
+.public-nav-unified .public-nav-actions .public-system-link{border:1px solid #a61d2d!important;background:#a61d2d!important;color:#fff!important}
+.public-nav-unified .public-nav-actions .public-system-link:hover{background:#8d1725!important;color:#fff!important}
+@media(max-width:760px){
+ body.v107-public{padding-top:96px!important}
+ .public-nav.public-nav-unified{height:96px!important;min-height:96px!important;padding:5px 14px!important;grid-template-columns:1fr!important;grid-template-rows:34px 42px!important;grid-template-areas:'links' 'actions'!important;gap:4px!important}
+ .public-nav-unified .public-nav-links{width:100%!important;display:grid!important;grid-template-columns:.85fr 1.45fr 1.1fr!important;gap:5px!important;align-items:center!important}
+ .public-nav-unified .public-nav-links a{min-width:0!important;text-align:center!important;font-size:12.5px!important;padding:3px 2px!important;white-space:nowrap!important}
+ .public-nav-unified .public-home-link{justify-content:center!important}
+ .public-nav-unified .public-nav-actions{width:100%;grid-template-columns:1fr 1fr;gap:9px}
+ .public-nav-unified .public-nav-actions .public-ai-button,.public-nav-unified .public-nav-actions .public-system-link{width:100%!important;min-height:40px!important;padding:0 10px!important;font-size:14px!important}
+}

@@ -1,0 +1,13 @@
+EXAM-CLO V1.4
+- Chọn nhiều file UnT cùng lúc.
+- Bỏ OCR khỏi luồng chính; kiểm tra SBD trực tiếp từ UnT.
+- SBD hợp lệ chỉ cần là số; 000001 được chuẩn hóa thành 1.
+- SBD trống/ký tự lạ bắt buộc sửa; bảng sửa hiển thị toàn bộ sinh viên.
+- SBD trùng có cảnh báo và nút bỏ qua.
+- Sau khi chấm vẫn có nút Chỉnh sửa SBD và chấm lại.
+- Giữ xác nhận ánh xạ mã đề UnT -> mã đề đáp án.
+- Thêm file khảo thí tùy chọn nhiều sheet; gợi ý ghép theo số phách.
+- Khi có file khảo thí, số phách không có bài được giữ thành dòng trống khi xuất.
+- Xuất 2 workbook nhiều sheet; bảng chi tiết thêm sheet BM33 - Tổng hợp.
+- Thêm Log hệ thống trực tiếp trên web, có Sao chép/Xóa log.
+- Câu bỏ trống hoặc chọn nhiều đáp án tính sai, không chặn chấm.

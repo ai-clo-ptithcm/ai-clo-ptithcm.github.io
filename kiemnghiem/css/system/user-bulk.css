@@ -1,0 +1,75 @@
+/* AI-CLO PTITHCM V12.6.12 — bulk account actions */
+.user-select-heading,
+.user-select-cell{
+  width:42px;
+  min-width:42px;
+  text-align:center!important;
+  padding-left:8px!important;
+  padding-right:8px!important;
+}
+.user-row-check{
+  width:18px;
+  height:18px;
+  margin:0;
+  accent-color:#b91c32;
+  cursor:pointer;
+}
+.user-row-check:disabled{
+  cursor:not-allowed;
+  opacity:.35;
+}
+.user-bulk-bar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:12px 14px;
+  margin:12px 0;
+  border:1px solid #dde3ec;
+  border-radius:14px;
+  background:#fff;
+  box-shadow:0 5px 18px rgba(15,23,42,.04);
+}
+.user-bulk-bar.hidden{display:none!important}
+.user-bulk-count{
+  display:flex;
+  align-items:baseline;
+  gap:6px;
+  white-space:nowrap;
+}
+.user-bulk-count b{
+  font-size:1.15rem;
+  color:#b91c32;
+}
+.user-bulk-count span{color:#64748b}
+.user-bulk-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.user-bulk-actions button{
+  min-height:40px;
+  padding:8px 13px;
+}
+.bulk-password-result code{
+  display:inline-block;
+  min-width:130px;
+  font-weight:800;
+  font-size:.95rem;
+  user-select:all;
+}
+.bulk-password-errors{
+  margin-top:14px;
+  padding:12px 14px;
+  border-radius:12px;
+  background:#fff1f2;
+  color:#9f1239;
+}
+.bulk-password-errors p{margin:6px 0 0}
+@media (max-width:760px){
+  .user-bulk-bar{align-items:flex-start;flex-direction:column}
+  .user-bulk-actions{justify-content:flex-start;width:100%}
+  .user-bulk-actions button{flex:1 1 auto}
+}

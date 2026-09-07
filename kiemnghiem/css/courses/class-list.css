@@ -1,0 +1,35 @@
+/* AI-CLO PTITHCM V12.4.23 — compact class list + member workspace styles. */
+.class-stats{grid-template-columns:repeat(3,1fr)}
+.v1053-class-stats{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:14px!important;margin-bottom:18px}
+.v1053-class-stats .stat{min-height:106px!important;padding:18px 20px!important;border-radius:16px!important}
+.v1053-class-stats .stat small{font-size:13px!important;margin-bottom:12px!important}
+.v1053-class-stats .stat b{font-size:30px!important;line-height:1!important}
+.v1053-class-toolbar{display:grid!important;grid-template-columns:minmax(260px,1fr) minmax(190px,220px) auto;gap:12px!important;align-items:center;margin-bottom:16px}
+.v1053-class-toolbar input,.v1053-class-toolbar select{min-width:0}
+.v1053-class-table .row-actions{width:142px}
+.v1053-class-table .row-actions button{white-space:normal;line-height:1.2}
+.v1053-class-manager .hint{margin-top:-6px}
+.last-login-cell{white-space:nowrap}
+.message-student{color:var(--red)!important}
+
+/* Current course-member tabs/table compatibility rendered by js/ui/final-layer.js. */
+.v109-member-tabs{display:flex;justify-content:flex-start;gap:6px;margin:0 0 18px;padding:5px;border:1px solid var(--line);border-radius:12px;background:#eef1f5;width:max-content;max-width:100%}
+.v109-member-tabs button{border:0;border-radius:8px;background:transparent;padding:10px 16px;font-weight:800;color:#596273}
+.v109-member-tabs button.active{background:#fff;color:var(--red);box-shadow:0 2px 8px #1112}
+.v109-member-summary{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:16px}
+.v109-member-summary>div{min-width:170px}
+.v109-member-summary small,.v109-member-summary b{display:block}
+.v109-member-summary small{color:var(--muted)}
+.v109-member-summary b{font-size:28px;margin-top:5px}
+.v109-member-summary input{width:min(480px,100%)}
+
+@media(max-width:1200px){.v1053-class-stats{grid-template-columns:repeat(3,minmax(120px,1fr))!important;gap:10px!important}.v1053-class-stats .stat{padding:14px 16px!important;min-height:94px!important}.v1053-class-stats .stat b{font-size:26px!important}}
+@media(max-width:700px){
+ .v1053-class-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.v1053-class-stats .stat:last-child{grid-column:1/-1}.v1053-class-toolbar{grid-template-columns:1fr!important}.v1053-class-toolbar>*{grid-column:auto!important}
+ .v109-member-tabs{width:100%}.v109-member-tabs button{flex:1;padding:9px 7px}
+ .v109-member-summary{align-items:stretch;flex-direction:column}.v109-member-summary input{width:100%}
+ .v109-teacher-members table,.v109-teacher-members tbody,.v109-teacher-members tr,.v109-teacher-members td{display:block}
+ .v109-teacher-members thead{display:none}.v109-teacher-members tr{padding:12px;border-bottom:1px solid var(--line)}.v109-teacher-members td{padding:5px 0;border:0}.v109-teacher-members td:nth-child(2){word-break:break-word}
+}
+@media(max-width:560px){.class-stats{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.v1053-class-stats{grid-template-columns:1fr!important}.v1053-class-stats .stat:last-child{grid-column:auto}.v1053-class-stats .stat{min-height:82px!important}.v1053-class-stats .stat b{font-size:24px!important}}

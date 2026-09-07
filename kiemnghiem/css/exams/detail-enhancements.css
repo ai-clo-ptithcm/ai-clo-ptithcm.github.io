@@ -1,0 +1,64 @@
+/* AI-CLO PTITHCM V12.5.1 — assessment detail layout and chrome owner. */
+.assessment-detail-page{display:grid;gap:16px;width:100%;max-width:100%;min-width:0;overflow-x:hidden}
+.assessment-detail-page>*{max-width:100%;min-width:0}
+.assessment-detail-page .panel{max-width:100%;min-width:0}
+.assessment-detail-head{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:18px;width:100%;max-width:100%;min-width:0;padding:20px 22px;border:1px solid var(--line);border-radius:17px;background:#fff}
+.assessment-detail-head>div{min-width:0}.assessment-detail-head small{color:var(--red);font-weight:900;letter-spacing:.08em}.assessment-detail-head h3{margin:4px 0;font-size:25px}.assessment-detail-head p{margin:0;color:var(--muted)}.assessment-detail-head h3,.assessment-detail-head p{max-width:100%;overflow-wrap:anywhere}
+.assessment-detail-stats{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:12px!important;width:100%;max-width:100%;min-width:0}
+.assessment-detail-stats>div{min-width:0}.assessment-detail-stats b{overflow-wrap:anywhere}
+.assessment-detail-meta{display:grid!important;grid-template-columns:minmax(0,1fr)!important;align-items:stretch!important;gap:14px!important;width:100%;max-width:100%;min-width:0}
+.assessment-detail-meta>div:first-child{display:grid;gap:5px;min-width:0}.assessment-detail-meta span,.exam-ai-section p{color:var(--muted)}
+.assessment-detail-actions{display:grid!important;grid-template-columns:none!important;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px!important;width:100%;max-width:100%;min-width:0;justify-content:stretch!important;align-items:stretch!important}
+.assessment-detail-actions button{width:100%;min-width:0!important;min-height:48px;margin:0!important;padding:10px 12px!important;white-space:normal;line-height:1.2;font-weight:800}
+.assessment-detail-actions #examAiAnalyze.ai-btn{display:inline-flex;align-items:center;justify-content:center}
+
+/* V12.5.1 — teacher detail information + frozen question-set summary. */
+.assessment-detail-v122>section.panel:first-of-type .panel-head{display:grid;grid-template-columns:minmax(210px,260px) minmax(0,1fr);align-items:start;gap:20px;margin-bottom:22px}
+.assessment-detail-v122>section.panel:first-of-type .panel-head>div:first-child{min-width:0}
+.assessment-detail-v122>section.panel:first-of-type .panel-head .hint{display:none}
+.assessment-detail-v122>section.panel:first-of-type .assessment-detail-actions{align-self:start;grid-auto-columns:minmax(118px,1fr);gap:8px!important}
+.assessment-detail-v122>section.panel:first-of-type .assessment-detail-actions button{height:50px;min-height:50px!important;padding:8px 11px!important;font-size:13px;line-height:1.18}
+.assessment-detail-v122>section.panel:first-of-type>.detail-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;padding:1px;margin-top:2px;border-radius:12px;overflow:hidden;background:var(--line)}
+.assessment-detail-v122>section.panel:first-of-type>.detail-grid>div{display:block;min-width:0;min-height:78px;padding:14px 16px;background:#fff}
+.assessment-detail-v122>section.panel:first-of-type>.detail-grid>div:nth-child(5),.assessment-detail-v122>section.panel:first-of-type>.detail-grid>div:nth-child(6){grid-column:span 2}
+.assessment-detail-v122>section.panel:first-of-type>.detail-grid small,#v122DesignSummary .detail-grid small{display:block;margin:0 0 7px;color:var(--muted);font-size:10.5px;font-weight:800;letter-spacing:.055em;text-transform:uppercase;line-height:1.35}
+.assessment-detail-v122>section.panel:first-of-type>.detail-grid b,#v122DesignSummary .detail-grid b{display:block;margin:0;color:var(--ink);font-size:17px;font-weight:800;line-height:1.4;overflow-wrap:anywhere}
+.assessment-detail-v122>section.panel:first-of-type>.detail-grid>div:nth-child(n+5) b{font-size:15px;line-height:1.45}
+.assessment-detail-v122>section.panel:nth-of-type(2) .panel-head{margin-bottom:14px}
+.assessment-detail-v122>section.panel:nth-of-type(2) .panel-head .hint{display:none}
+#v122DesignSummary .detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;padding:1px;border-radius:12px;overflow:hidden;background:var(--line)}
+#v122DesignSummary .detail-grid>div{display:block;min-width:0;padding:15px 16px;background:#fff}
+#v122DesignSummary .detail-grid>div:nth-child(3){grid-column:1/-1;min-height:70px;background:#fcfcfd}
+#v122DesignSummary .detail-grid>div:nth-child(3) b{font-size:14px;line-height:1.65;color:#344054;word-spacing:2px}
+
+.exam-ai-section{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}.exam-ai-section h3,.exam-ai-section p{margin:0}.exam-ai-section p{margin-top:5px}.exam-ai-section #examAiResult{flex:1 0 100%}
+.exam-ai-section.exam-ai-result-only{display:grid!important;gap:12px!important;align-items:stretch!important;max-width:100%;min-width:0}
+.exam-ai-section.exam-ai-result-only[hidden]{display:none!important}
+.exam-ai-section.exam-ai-result-only>div:first-child{display:block}.exam-ai-section.exam-ai-result-only h3{margin:0}.exam-ai-section.exam-ai-result-only>button{display:none!important}.exam-ai-section.exam-ai-result-only #examAiResult{width:100%;max-width:100%;min-width:0}
+.attempt-page-toolbar{display:grid!important;grid-template-columns:minmax(260px,1.45fr) minmax(150px,.72fr) minmax(170px,.8fr) minmax(150px,.65fr)!important;gap:10px!important;align-items:center!important;max-width:100%;min-width:0;margin-bottom:14px}
+.attempt-page-toolbar>*{min-width:0!important;width:100%!important;margin:0!important;grid-column:auto!important}
+.score-low{color:#b42318!important}.score-low-cell{background:#fff0f1!important;color:#b42318;font-weight:900}
+.assessment-detail-page .table-wrap{display:block;width:100%;max-width:100%;min-width:0;overflow-x:auto!important;overflow-y:visible;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.exam-attempt-table{width:100%;min-width:960px;max-width:none}.exam-attempt-table th{white-space:nowrap}
+.exam-attempt-table .attempt-student-col{min-width:220px;width:28%}
+.exam-attempt-table .attempt-date-col,.exam-attempt-table .attempt-date-cell{width:112px;min-width:112px;max-width:112px;text-align:center;white-space:nowrap}
+.exam-attempt-table .attempt-date-cell span,.exam-attempt-table .attempt-date-cell small{display:block}.exam-attempt-table .attempt-date-cell span{font-weight:750}.exam-attempt-table .attempt-date-cell small{margin-top:3px;color:var(--muted);font-size:11px}
+.exam-attempt-table .attempt-actions-col,.exam-attempt-table .attempt-actions-cell{min-width:300px}
+.exam-attempt-table .attempt-actions-cell{display:grid!important;grid-template-columns:minmax(62px,.7fr) minmax(62px,.7fr) minmax(132px,1.4fr)!important;gap:6px!important;align-items:center}
+.exam-attempt-table .attempt-actions-cell button{width:100%;min-width:0!important;margin:0!important;padding:8px 9px!important;white-space:nowrap;line-height:1.15}
+.exam-attempt-table .attempt-actions-cell [data-ai-attempt].ai-btn{display:inline-flex;align-items:center;justify-content:center}
+.exam-attempt-table th:not(.attempt-student-col):not(.attempt-actions-col),.exam-attempt-table td:not(.attempt-student-col):not(.attempt-actions-cell){font-variant-numeric:tabular-nums}
+.assessment-table .row-actions .primary{white-space:nowrap}
+.final-assessment-list-back{white-space:nowrap;flex:0 0 auto}
+.question-workspace .workspace-head:has(.final-assessment-list-back){flex-wrap:wrap;align-items:center}
+.question-workspace .workspace-head:has(.final-assessment-list-back)>div{min-width:min(420px,100%);flex:1}
+@media(max-width:1180px){.exam-attempt-table .attempt-student-col{min-width:200px}.exam-attempt-table .attempt-actions-col,.exam-attempt-table .attempt-actions-cell{min-width:275px}}
+@media(max-width:1000px){.assessment-detail-stats{grid-template-columns:repeat(3,minmax(0,1fr))!important}.assessment-detail-actions{grid-template-columns:repeat(3,minmax(0,1fr))!important;grid-auto-flow:row!important}.attempt-page-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))!important}.assessment-detail-v122>section.panel:first-of-type .panel-head{grid-template-columns:1fr}.assessment-detail-v122>section.panel:first-of-type>.detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.assessment-detail-v122>section.panel:first-of-type>.detail-grid>div:nth-child(5),.assessment-detail-v122>section.panel:first-of-type>.detail-grid>div:nth-child(6){grid-column:auto}}
+@media(max-width:760px){.assessment-detail-head{grid-template-columns:1fr;align-items:stretch;gap:12px}.assessment-detail-head>button{width:100%}.assessment-detail-head>span{justify-self:start}.assessment-detail-actions button{min-height:44px}.assessment-detail-v122>section.panel:first-of-type .assessment-detail-actions button{height:46px;min-height:46px!important}.exam-attempt-table{min-width:900px}.exam-attempt-table .attempt-student-col{min-width:190px}.exam-attempt-table .attempt-actions-col,.exam-attempt-table .attempt-actions-cell{min-width:260px}.exam-attempt-table .attempt-actions-cell{grid-template-columns:64px 64px minmax(122px,1fr)!important}.final-assessment-list-back{width:100%}.question-workspace .workspace-head:has(.final-assessment-list-back)>div{min-width:0;width:100%}}
+@media(max-width:700px){.assessment-detail-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}.assessment-detail-actions{grid-template-columns:repeat(2,minmax(0,1fr))!important}.attempt-page-toolbar{grid-template-columns:1fr!important}}
+@media(max-width:560px){.assessment-detail-v122>section.panel:first-of-type>.detail-grid,#v122DesignSummary .detail-grid{grid-template-columns:1fr}.assessment-detail-v122>section.panel:first-of-type>.detail-grid>div:nth-child(5),.assessment-detail-v122>section.panel:first-of-type>.detail-grid>div:nth-child(6),#v122DesignSummary .detail-grid>div:nth-child(3){grid-column:auto}.assessment-detail-v122>section.panel:first-of-type>.detail-grid>div{min-height:0;padding:12px 13px}.assessment-detail-v122>section.panel:first-of-type>.detail-grid b{font-size:15px}.assessment-detail-v122>section.panel:first-of-type .assessment-detail-actions{grid-template-columns:1fr!important}.assessment-detail-v122>section.panel:first-of-type .assessment-detail-actions button{height:auto;min-height:44px!important}}
+@media(max-width:430px){.assessment-detail-stats{grid-template-columns:1fr!important}}
+
+/* V12.3.4 — attempt CLO table and Excel export */
+.assessment-attempt-toolbar{align-items:flex-end}.assessment-attempt-tools{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}.assessment-export-dropdown{position:relative}.assessment-export-dropdown summary{list-style:none;cursor:pointer;user-select:none}.assessment-export-dropdown summary::-webkit-details-marker{display:none}.assessment-export-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:20;min-width:210px;padding:6px;background:#fff;border:1px solid var(--border,#e4e7ec);border-radius:10px;box-shadow:0 10px 28px #0002}.assessment-export-menu button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:9px 10px;border-radius:7px;cursor:pointer}.assessment-export-menu button:hover{background:var(--soft,#f8fafc)}.attempt-time-cell small{display:block;white-space:nowrap}.score-below{color:#a61d2d}.assessment-attempt-table th,.assessment-attempt-table td{vertical-align:middle}.assessment-attempt-table td:nth-child(n+5){text-align:center}
+@media(max-width:800px){.assessment-attempt-toolbar{align-items:stretch;flex-direction:column}.assessment-attempt-tools{width:100%}.assessment-export-dropdown{flex:1}.assessment-export-dropdown summary{width:100%;box-sizing:border-box;text-align:center}.assessment-export-menu{left:0;right:auto;min-width:100%}.attempt-time-cell small{white-space:normal}}

@@ -1,0 +1,15 @@
+EXAM-CLO V1.2 - OCR SBD + UnT linh hoạt + xuất BM17
+
+- Nhận diện linh hoạt cấu trúc UnT theo SBD, Mã đề và các cột câu 1..N.
+- N lấy theo số câu trong file đáp án; thiếu câu sẽ báo lỗi rõ ràng.
+- Chấp nhận file UnT mất các dòng đầu và/hoặc đã xóa các cột Điểm.
+- Giữ nguyên SBD đã có; chỉ OCR ảnh cột B cùng hàng khi SBD trống hoặc ------.
+- Hiển thị kết quả OCR theo dòng với mức tin cậy xanh/vàng/đỏ; trường hợp thấp/không đọc được yêu cầu nhập xác nhận.
+- Kiểm tra SBD trùng trước khi chấm.
+- Đọc/xuất Excel dùng thư viện local trong thư mục libs.
+- Bảng điểm xuất theo mẫu BM17: giữ 5 cột CLO.
+- Bảng điểm chi tiết xuất theo mẫu BM17: 3 nhóm CLO, mỗi nhóm gồm Số câu đúng + Điểm.
+- Giữ phần Hướng dẫn nhanh trên giao diện.
+
+Lưu ý OCR:
+Tesseract.js được tải khi cần OCR. Nếu không tải được OCR hoặc kết quả không đủ tin cậy, hệ thống vẫn cho người dùng nhập/xác nhận SBD thủ công trước khi chấm.

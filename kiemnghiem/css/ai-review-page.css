@@ -1,0 +1,27 @@
+/* AI-CLO PTITHCM V11.6.10 — in-page AI draft review. */
+.ai-review-page{display:grid;gap:16px;padding:0}
+.ai-review-page .review-progress{padding:0 2px}
+.ai-review-editor{display:grid;gap:14px;padding:16px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.ai-review-editor .ai-note{margin:0}
+.ai-review-answer-row{display:grid;grid-template-columns:minmax(180px,.34fr) minmax(0,1fr);gap:12px;align-items:start}
+.ai-review-answer-row .field{margin:0}
+.ai-review-answer-row textarea{min-height:110px}
+.ai-review-page .ai-similar-panel{margin:0}
+.ai-review-page .ai-similar-head small{display:block;margin-top:5px;color:var(--muted);font-size:11px;line-height:1.45}
+.ai-text-similar-panel{border-left:4px solid #94a0b2}
+.ai-semantic-panel{border-left:4px solid #7b55d9;background:#fcfbff}
+.ai-semantic-panel .ai-similar-head{align-items:center}
+.ai-semantic-panel #aiSemanticSimilarity:empty{display:none}
+.ai-review-actions{position:sticky;bottom:10px;z-index:5;padding:12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.96);box-shadow:0 8px 24px rgba(15,23,42,.08);backdrop-filter:blur(8px)}
+.ai-review-actions button{min-height:42px}
+.ai-review-page .ai-similar-item.math{border-left-color:#7b55d9;background:#faf8ff}
+.ai-review-page .ai-similar-item.math.warning{border-left-color:#e58a00;background:#fff8e8}
+.ai-review-page .ai-similar-item.math.danger{border-left-color:#dc3545;background:#fff1f2}
+@media(max-width:760px){
+ .ai-review-answer-row{grid-template-columns:1fr}
+ .ai-review-page .ai-similar-head{display:grid}
+ .ai-review-page .ai-similar-head button{width:100%}
+ .ai-review-actions{display:grid;grid-template-columns:1fr 1fr;position:static}
+ .ai-review-actions button{width:100%}
+}
+@media(max-width:430px){.ai-review-actions{grid-template-columns:1fr}.ai-review-page .review-progress{display:grid;gap:4px}}

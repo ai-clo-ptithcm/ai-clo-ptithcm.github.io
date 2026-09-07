@@ -1,0 +1,12 @@
+EXAM-CLO V1.8
+
+- Chuẩn hóa đọc file đáp án theo đúng 2 sheet: dạng ngang và dạng dọc.
+- Ưu tiên sheet dọc khi workbook có cả hai sheet hợp lệ; không gộp dữ liệu hai sheet.
+- Không còn hiểu nhầm số câu (30/40/50...) thành số mã đề.
+- Mã đề không cố định: hỗ trợ 001, 101, A01, HK1-04...; mã số được chuẩn hóa giữ dạng 3 chữ số khi phù hợp.
+- Bỏ lỗi/cảnh báo bắt buộc phân bố CLO giữa các mã đề phải giống nhau.
+- Thêm bảng xác nhận: Mã đề | Số câu | số câu từng CLO.
+- Khi bắt đầu chấm, người dùng phải xem và xác nhận dữ liệu đáp án trước khi tiếp tục.
+- Vẫn giữ các kiểm tra lỗi thật: thiếu đáp án, đáp án ngoài A-D, thiếu CLO khi có dùng CLO, trùng/trống mã đề, số câu giữa các mã đề không đồng nhất.
+- Sửa tính điểm chi tiết CLO theo đúng cơ cấu CLO của từng mã đề, không lấy mã đề đầu tiên làm chuẩn chung.
+- Nhập đáp án trực tiếp cũng không còn bắt buộc phân bố CLO giữa các mã đề phải giống nhau.

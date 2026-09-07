@@ -1,0 +1,7 @@
+/* AI-CLO PTITHCM — structural shell only.
+   Public header/footer appearance is owned exclusively by ../css/v107-public.css
+   to avoid first-paint flicker from competing .tool-header/.public-nav rules. */
+.tool-shell{min-height:100vh;display:flex;flex-direction:column}
+.tool-content{flex:1;min-width:0}
+.page-shell{margin-top:28px}
+@media(max-width:760px){.page-shell{margin-top:16px}}

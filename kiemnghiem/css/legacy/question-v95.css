@@ -1,0 +1,13 @@
+/* AI-CLO legacy Question V9.5 — archive only; DO NOT load at runtime. */
+/* V12.4.18: current bank uses v96/v105 tool grids and v105 mobile card layout. */
+.v95-question-tools{grid-template-columns:minmax(210px,1.4fr) repeat(5,minmax(135px,.8fr))}
+@media(max-width:1180px){.v95-question-tools{grid-template-columns:repeat(3,minmax(150px,1fr))}}
+@media(max-width:900px){.v95-question-tools{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){
+ .v95-question-tools{grid-template-columns:1fr}
+ .question-table table,.question-table tbody,.question-table tr,.question-table td{display:block}
+ .question-table thead{display:none}
+ .question-table tr{padding:14px;border-bottom:1px solid var(--line)}
+ .question-table td{padding:5px 0;border:0}
+ .question-table .row-actions{padding-top:10px}
+}

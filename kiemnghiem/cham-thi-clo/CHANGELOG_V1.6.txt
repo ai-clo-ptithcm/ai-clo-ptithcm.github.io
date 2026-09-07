@@ -1,0 +1,16 @@
+EXAM-CLO V1.6
+
+- Hỗ trợ 2 nguồn đáp án: file Excel hoặc nhập/dán trực tiếp trên web.
+- Nhập trực tiếp có thể dán từng đoạn (ví dụ 15 câu rồi 15 câu tiếp), dán nguyên bảng ngang từ Word/Excel, sửa mã đề.
+- Thêm khu Xem lại đáp án: sửa mã đề, đáp án, CLO trước khi chấm.
+- Giữ khu kiểm tra UnT: ảnh số phách cột B, SBD gốc, ô sửa SBD, ô sửa mã đề.
+- SBD hợp lệ là số tự nhiên dương; 000001 được chuẩn hóa thành 1 khi xử lý/xuất.
+- File khảo thí là tùy chọn.
+- Bảng điểm phách có thêm sheet Đáp án và thông tin nguồn đáp án, số mã đề, số câu, thời điểm xuất.
+- Tỷ trọng % trong hai file điểm để “...” để giảng viên điền theo từng học phần.
+- Tách xuất thành 3 file:
+  1) Bảng điểm phách nhiều phòng + sheet Đáp án.
+  2) Chi tiết CLO nhiều phòng.
+  3) Báo cáo phân tích: Đáp án + Toàn bộ bài làm + BM33 - Báo cáo.
+- Sheet BM33 có vùng nhập tỷ trọng CLO/GPA, thống kê bằng công thức Excel, phân bố GPA, mức CLO, mức độ đạt CLO, và ô nhận xét/khuyến nghị để “...”.
+- Khi đáp án bị chỉnh sau khi đã chấm, hệ thống khóa xuất kết quả cũ và yêu cầu chấm lại để tránh sai điểm.

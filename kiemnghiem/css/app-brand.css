@@ -1,0 +1,16 @@
+/* AI-CLO PTITHCM V12.4.24 — canonical app/login brand and logo ownership. */
+.logo{font-size:24px;font-weight:900;letter-spacing:-1px}
+.logo span{color:#ef9aa5}
+
+/* Login brand. */
+.login-brand .logo{font-size:clamp(46px,6vw,82px);font-weight:900;letter-spacing:-5px}
+.login-brand .logo span{color:#f1a4af}
+.login-brand .logo em{display:block;margin-top:8px;font-style:normal;font-size:clamp(18px,2vw,28px);letter-spacing:7px}
+
+/* App sidebar brand. */
+.app>aside>.logo{display:flex;align-items:baseline;gap:0;white-space:nowrap;font-size:21px;font-weight:900;letter-spacing:-1px;color:#fff}
+.app>aside>.logo em{display:inline;margin:0 0 0 9px;color:#fff;font-style:normal;font-size:21px;font-weight:900;letter-spacing:-1px}
+.app>aside>.logo span{color:#ef9aa5}
+
+@media(max-width:900px){.app>aside>.logo,.app>aside>.logo em{font-size:20px}}
+@media(max-width:820px){.login-brand .logo{font-size:48px}}

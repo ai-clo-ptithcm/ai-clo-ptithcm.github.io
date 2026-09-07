@@ -1,0 +1,8 @@
+Nhấn vào file index.html
+=== V1.7 ===
+- Đáp án: có thể tải Excel hoặc chọn Nhập trực tiếp.
+- Nhập trực tiếp: nhập mã đề, dán đáp án/CLO từng đoạn rồi bấm “Thêm đoạn vào mã đề”; có thể dán tiếp nhiều lần.
+- Có thể dán nguyên bảng ngang từ Word/Excel.
+- Bấm “Xem lại đáp án” để sửa mã đề, đáp án, CLO.
+- File khảo thí không bắt buộc.
+- Sau khi chấm, xuất 3 file: Bảng điểm phách, Bảng điểm chi tiết, Báo cáo.

@@ -1,0 +1,17 @@
+EXAM-CLO V1.7
+
+- Thay phần nhập đáp án thủ công bằng khung dạng Excel.
+- Số câu nhập tự do (1–200), mặc định 30 câu.
+- Có nút chuyển kiểu bảng Dọc/Ngang:
+  + Dọc: câu hỏi theo hàng, các mã đề theo cặp cột Đáp án/CLO.
+  + Ngang: câu hỏi theo cột, mỗi mã đề gồm một hàng đáp án và một hàng CLO.
+- Mã đề được nhập/sửa trực tiếp ngay trên bảng.
+- Hỗ trợ copy/paste nhiều ô từ Excel bằng Ctrl+V.
+- Tự bỏ khoảng trắng và chuẩn hóa: a -> A; clo 1 hoặc 1 -> CLO1.
+- Cảnh báo trực tiếp: ô vàng = thiếu; ô đỏ = sai. Kiểm tra mã đề trống/trùng, đáp án ngoài A/B/C/D, CLO ngoài CLO1/CLO2/CLO3.
+- Không cho dùng dữ liệu nhập trực tiếp để chấm khi bảng còn lỗi/thiếu.
+- Đổi tên file xuất thành Bang-diem-phach.xlsx và Bang-diem-chi-tiet.xlsx.
+- Khi có file khảo thí .xlsx: giữ nguyên 9 dòng đầu của sheet khảo thí tương ứng trong cả hai bảng điểm.
+- Ở Bảng điểm chi tiết, tiêu đề BẢNG ĐIỂM THEO PHÁCH lấy từ file khảo thí được đổi thành BẢNG ĐIỂM CHI TIẾT.
+- Cột Ghi chú giữ lại nội dung theo từng số phách từ file khảo thí ở cả hai bảng điểm.
+- Cơ chế hiệu chỉnh điểm chi tiết vẫn dùng từng nấc +/-0.1 và áp dụng cho đề 30/40/50 câu.

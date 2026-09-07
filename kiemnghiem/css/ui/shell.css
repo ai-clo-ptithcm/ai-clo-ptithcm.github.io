@@ -1,0 +1,98 @@
+/* AI-CLO PTITHCM V12.4.16 — shared app shell chrome. */
+:root{--v108-red:#b51f32;--v108-soft:#fff4f6;--v108-border:#e4e8ef;--v108-text:#172033;--v108-muted:#667085}
+
+/* Shared app header chrome — canonical owner. */
+.app>main>header{height:74px;gap:12px;padding:0 22px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;position:sticky;top:0;z-index:5}
+#menuBtn{display:none;border:0;background:none;font-size:22px}
+.page-heading{flex:1;min-width:0}
+.page-heading h2,.page-heading p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.page-heading h2{margin:0;font-size:21px}.page-heading p{margin:3px 0 0;color:var(--muted);font-size:12px}
+.page-heading #v108ContextBadge{display:none!important}
+.system-home,.notification-bell{flex:0 0 46px;width:46px;height:46px;border:1px solid var(--line);border-radius:12px;background:#fff;display:grid;place-items:center;font-size:20px}
+.notification-bell{position:relative}.notification-bell span{position:absolute;right:-5px;top:-7px}
+.system-home{position:relative;display:inline-flex!important;align-items:center!important;justify-content:center!important;width:auto!important;min-width:112px;height:46px!important;flex:0 0 auto!important;padding:0 13px!important;gap:7px;white-space:nowrap;line-height:1;border-color:#c71f37;background:#fff0f2;color:var(--red);font-weight:900;box-shadow:0 4px 14px #a61d2d18}
+.system-home:hover{background:var(--red);color:#fff;transform:translateY(-1px)}
+.notification-bell:hover{background:#f5f7fa}
+.system-home span,.system-home b{display:inline!important;line-height:1!important}.system-home b{font-size:12px}
+.system-home[data-tooltip]:after{content:attr(data-tooltip);position:absolute;left:50%;top:calc(100% + 9px);transform:translateX(-50%) translateY(-3px);padding:7px 10px;border-radius:7px;background:#171d28;color:#fff;font-size:11px;font-weight:700;white-space:nowrap;opacity:0;pointer-events:none;transition:.15s;z-index:20}.system-home[data-tooltip]:hover:after{opacity:1;transform:translateX(-50%) translateY(0)}
+.subject-pick{position:relative;margin-left:0;width:260px;height:50px;display:block}.subject-pick>label{display:none}.subject-pick select{position:absolute;inset:0;width:100%;height:100%;opacity:0;z-index:2;cursor:pointer}.subject-value{position:absolute;inset:0;border:1px solid #ccd3dc;border-radius:10px;background:#fff;padding:7px 34px 7px 11px;display:flex;flex-direction:column;justify-content:center;line-height:1.15;pointer-events:none}.subject-value:after{content:'⌄';position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:20px}.subject-value b{font-size:14px;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.subject-value small{font-size:10px;color:var(--muted);margin-top:3px}
+
+.app-ai-button{appearance:none;border:1px solid #edc6cd;background:#fff7f8;color:var(--v108-red);font-weight:800;border-radius:999px;padding:9px 14px;white-space:nowrap;cursor:pointer}.app-ai-button:hover{background:#ffecef}
+.app-context-badge{display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border-radius:999px;background:#f3f5f8;color:#586174;font-size:12px;font-weight:800;margin-top:4px}.app-context-badge.course{background:#fff1f3;color:var(--v108-red)}
+
+/* Shared sidebar chrome + fit/scroll behavior — canonical owner. Geometry stays in css/ui/application.css. */
+.app>aside{height:100vh;height:100dvh;min-height:0;overflow:hidden;background:#161b24;color:#d7dce4;padding:24px 15px;display:flex;flex-direction:column}
+.app>aside>.logo{flex:0 0 auto;padding-top:3px;padding-right:12px;padding-bottom:20px;padding-left:12px}
+.app>aside>#nav{display:grid;gap:5px;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;align-content:start;padding-right:3px;scrollbar-width:thin;scrollbar-color:#ffffff2b transparent}
+.app>aside>#nav button{background:none;border:0;color:#aeb6c3;text-align:left;padding:12px 14px;border-radius:8px;display:flex;align-items:center;gap:11px}
+.app>aside>#nav button:hover,.app>aside>#nav button.active{background:#ffffff12;color:white}
+.app>aside>#nav button.active{border-left:3px solid #df4055}
+.app>aside>.aside-foot{flex:0 0 auto;margin-top:12px;padding:14px 12px 4px;background:#161b24;color:#d7dce4;border-top:1px solid #ffffff1c;font-size:12px;display:grid;gap:8px}
+.app>aside>.aside-foot button{margin-top:0;background:none;border:0;color:#f0808f;padding:0;text-align:left}
+.app>aside>.aside-foot #homeBtn{color:#c7ced8}
+.app>aside>.aside-foot #miniUser{overflow-wrap:anywhere;line-height:1.45}
+.app>aside>.aside-foot #logoutBtn{display:block;position:static;color:#f0808f}
+.course-system-return,.course-context{margin:0 10px 10px;padding:11px 12px;border:1px solid #ffffff18;border-radius:10px;background:#ffffff09}.course-system-return{width:calc(100% - 20px);display:flex;align-items:center;gap:9px;color:#fff;text-align:left}.course-system-return:hover{background:#ffffff13;border-color:#ffffff2b}.course-system-return span{font-size:17px}.course-system-return b{font-size:13px}.course-context{display:grid;gap:3px}.course-context b{color:#fff;line-height:1.3}.course-context span{font-size:11px;color:#98a2b3}
+.nav-icon{width:18px;text-align:center;flex:0 0 18px}
+@media(min-width:901px){.app>aside{padding-top:19px}.app>aside>.logo{padding-bottom:25px}}
+@media(max-width:900px){#menuBtn{display:block}.app>aside{position:fixed;left:-260px;z-index:20;width:245px;max-width:calc(100vw - 38px);padding-bottom:max(18px,env(safe-area-inset-bottom));transition:.2s}.app>aside.open{left:0}}
+
+.mobile-sidebar-close{display:none}.app-sidebar-backdrop{position:fixed;inset:0;background:rgba(10,18,31,.46);z-index:1490;opacity:0;pointer-events:none;transition:.2s}.app-sidebar-backdrop.show{opacity:1;pointer-events:auto}
+@media(max-width:760px){
+ .app>aside{z-index:1500!important;width:min(82vw,320px)!important;max-width:320px!important;transition:transform .22s ease!important}.app>aside:not(.open){transform:translateX(-105%)!important}.app>aside.open{transform:translateX(0)!important}.mobile-sidebar-close{display:grid;position:absolute;top:13px;right:13px;width:36px;height:36px;place-items:center;border:1px solid rgba(255,255,255,.18);border-radius:9px;background:rgba(255,255,255,.08);color:#fff;font-size:22px;z-index:2}.app.sidebar-open{overflow:hidden}.app.sidebar-open main{overflow:hidden}
+ .app main>header{gap:8px!important}.app-ai-button{width:38px;height:38px;padding:0;display:grid;place-items:center;font-size:0}.app-ai-button::before{content:'💬';font-size:17px}.notification-bell{flex:none}.page-heading{min-width:0}.page-heading h2{font-size:18px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.page-heading p{display:none!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:58vw}.app-context-badge{font-size:10px;padding:4px 7px}.subject-pick{display:none!important}.system-home[data-tooltip]:after{display:none}
+
+ /* Mobile header: title on top, Home | AI | notifications | course picker on one row. */
+ #app.app main>header{display:grid!important;grid-template-columns:40px 38px 42px minmax(0,1fr)!important;grid-template-rows:42px minmax(48px,auto)!important;grid-template-areas:"menu title title title" "home ai bell subject"!important;align-items:center!important;gap:6px 7px!important;height:auto!important;min-height:102px!important;padding:7px 10px!important;overflow:visible!important}
+ #app.app main>header>#menuBtn{grid-area:menu!important;order:initial!important;width:40px!important;min-width:40px!important;margin:0!important;padding:4px!important}
+ #app.app main>header>.page-heading{grid-area:title!important;order:initial!important;min-width:0!important;max-width:none!important;width:100%!important}
+ #app.app main>header>.system-home{grid-area:home!important;order:initial!important;width:40px!important;min-width:40px!important;height:40px!important;padding:0!important;margin:0!important;justify-self:start!important}
+ #app.app main>header>.system-home b{display:none!important}
+ #app.app main>header>.app-ai-button{grid-area:ai!important;order:initial!important;width:38px!important;min-width:38px!important;height:38px!important;margin:0!important;padding:0!important}
+ #app.app main>header>.notification-bell{grid-area:bell!important;order:initial!important;width:42px!important;min-width:42px!important;height:40px!important;margin:0!important;padding:0!important;display:grid!important;place-items:center!important}
+ #app.app main>header>.subject-pick:not(.hidden){grid-area:subject!important;order:initial!important;display:block!important;width:100%!important;min-width:0!important;max-width:none!important;height:auto!important;min-height:46px!important;margin:0!important}
+ #app.app main>header>.subject-pick label{display:none!important}
+ #app.app main>header>.subject-pick .subject-value{height:auto!important;min-height:46px!important;padding:6px 30px 6px 9px!important;white-space:normal!important;display:flex!important;align-items:center!important}
+ #app.app main>header>.subject-pick .subject-value b{display:-webkit-box!important;white-space:normal!important;overflow:hidden!important;text-overflow:ellipsis!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:3!important;font-size:11.5px!important;line-height:1.16!important;overflow-wrap:break-word!important}
+ #app.app main>header>.subject-pick .subject-value small{display:none!important}
+ #app.app main>header>.system-home.hidden{display:none!important}
+ #app.app main>header:has(.subject-pick.hidden){grid-template-columns:40px minmax(0,1fr) 42px!important;grid-template-rows:44px!important;grid-template-areas:"menu title bell"!important;min-height:58px!important}
+ #app.app main>header:has(.subject-pick.hidden)>.app-ai-button,#app.app main>header:has(.subject-pick.hidden)>.system-home{display:none!important}
+}
+@media(max-width:430px){.page-heading p{max-width:50vw}#app.app main>header{grid-template-columns:38px 36px 40px minmax(0,1fr)!important;gap:5px 6px!important;padding-inline:8px!important}#app.app main>header>.system-home{width:38px!important;min-width:38px!important}#app.app main>header>.app-ai-button{width:36px!important;min-width:36px!important}#app.app main>header>.notification-bell{width:40px!important;min-width:40px!important}#app.app main>header>.subject-pick .subject-value b{font-size:11px!important}}
+
+/* Laptop hẹp / tablet ngang: giữ trọn hàng điều khiển thứ hai bên trong header. */
+@media(min-width:761px) and (max-width:900px){
+ #app.app main>header:has(.subject-pick:not(.hidden)){display:grid!important;grid-template-columns:44px minmax(150px,auto) minmax(0,1fr) 48px 230px!important;grid-template-rows:52px 54px!important;grid-template-areas:"menu home title title title" "ai ai . bell subject"!important;align-items:center!important;gap:6px 10px!important;height:auto!important;min-height:126px!important;padding:7px 14px!important;overflow:visible!important;background:#fff!important}
+ #app.app main>header:has(.subject-pick:not(.hidden))>#menuBtn{grid-area:menu!important;margin:0!important}
+ #app.app main>header:has(.subject-pick:not(.hidden))>.system-home{grid-area:home!important;margin:0!important;justify-self:start!important}
+ #app.app main>header:has(.subject-pick:not(.hidden))>.page-heading{grid-area:title!important;min-width:0!important;width:100%!important}
+ #app.app main>header:has(.subject-pick:not(.hidden))>.page-heading h2{font-size:18px}
+ #app.app main>header:has(.subject-pick:not(.hidden))>.page-heading p{display:none}
+ #app.app main>header:has(.subject-pick:not(.hidden))>.app-ai-button{grid-area:ai!important;margin:0!important;justify-self:start!important}
+ #app.app main>header:has(.subject-pick:not(.hidden))>.notification-bell{grid-area:bell!important;margin:0!important;width:42px;height:42px;flex-basis:42px}
+ #app.app main>header:has(.subject-pick:not(.hidden))>.subject-pick{grid-area:subject!important;display:block!important;width:230px!important;max-width:100%!important;height:48px!important;margin:0!important}
+ #app.app main>header:has(.subject-pick:not(.hidden))>.subject-pick .subject-value{padding-left:9px}
+ #app.app main>header:has(.subject-pick:not(.hidden))>.subject-pick .subject-value b{font-size:12px}
+ #app.app main>header:has(.subject-pick:not(.hidden))>.subject-pick .subject-value small{display:none}
+ #app.app main>header:has(.subject-pick.hidden){display:flex!important;height:68px!important;min-height:68px!important;padding:0 14px!important}
+}
+
+/* Shared app footer chrome — canonical shell owner. */
+.app-footer.site-footer{min-height:52px;padding:13px 28px;background:#fff;border-top:1px solid var(--line);color:var(--muted);font-size:12px;display:flex;align-items:center;justify-content:space-between;gap:18px}
+.app-footer.site-footer nav{display:flex;align-items:center;gap:22px}
+.app-footer.site-footer a{color:var(--muted);font-weight:700;text-decoration:none}
+.app-footer.site-footer a:hover{color:var(--red)}
+@media(max-width:620px){.app-footer.site-footer nav{flex-wrap:wrap}}
+@media(max-width:560px){.app-footer.site-footer{align-items:flex-start;flex-direction:column;gap:8px;padding:13px 16px}.app-footer.site-footer nav{gap:16px}}
+
+/* Shared detail drawer chrome — canonical shell owner. */
+.drawer-backdrop{position:fixed;inset:0;background:#11182742;z-index:39;backdrop-filter:blur(1px)}
+.side-drawer{position:fixed;right:0;top:0;bottom:0;width:min(56vw,860px);min-width:520px;background:#fff;z-index:40;box-shadow:-18px 0 55px #1118272b;display:flex;flex-direction:column;transform:translateX(0);transition:width .18s ease}
+.side-drawer.wide{width:min(64vw,1020px)}.side-drawer.expanded{width:min(82vw,1280px)}
+.drawer-head{position:sticky;top:0;z-index:2;height:auto;min-height:74px;padding:13px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;background:#fff}
+.drawer-head>div:not(.drawer-spacer){min-width:0}.drawer-head small{display:block;color:var(--red);font-size:9px;font-weight:900;letter-spacing:1.3px;margin-bottom:3px}.drawer-head h3{font-size:18px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.drawer-spacer{flex:1}
+.drawer-head>button{border:0;background:#f1f3f6;border-radius:8px;width:36px;height:36px;display:grid;place-items:center;font-size:18px;color:#344054;padding:0}.drawer-head>button:hover{background:#e7ebf0}.drawer-head .drawer-back{font-size:20px}
+.drawer-body{padding:18px;overflow:auto;overscroll-behavior:contain;flex:1;min-height:0;background:#fafbfc}.drawer-body>.panel:last-child{margin-bottom:0}
+body.drawer-open{overflow:hidden}
+@media(max-width:900px){.side-drawer,.side-drawer.wide,.side-drawer.expanded{width:100vw;min-width:0}.drawer-backdrop{display:none}.drawer-head #drawerExpand{display:none}.drawer-body{padding:14px}}

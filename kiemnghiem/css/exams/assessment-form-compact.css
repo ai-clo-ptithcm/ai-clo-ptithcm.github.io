@@ -1,0 +1,11 @@
+/* AI-CLO PTITHCM V11.6.27 — compact create-assessment form layout. */
+.assessment-window-form.exam-blueprint-form{gap:12px 16px!important;padding:16px 18px 12px!important}
+.assessment-window-form.exam-blueprint-form .field{gap:5px}
+.assessment-window-form.exam-blueprint-form input,
+.assessment-window-form.exam-blueprint-form select,
+.assessment-window-form.exam-blueprint-form textarea{padding:9px 11px}
+.assessment-window-form.exam-blueprint-form textarea{min-height:68px}
+.assessment-window-form.exam-blueprint-form .assessment-bank-fixed{padding:10px 12px}
+.assessment-window-form.exam-blueprint-form .assessment-window-footer{padding-top:10px}
+@media(max-width:899px){.assessment-window-form.exam-blueprint-form{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.assessment-window-form.exam-blueprint-form{grid-template-columns:1fr}.assessment-window-form.exam-blueprint-form .wide{grid-column:auto}}

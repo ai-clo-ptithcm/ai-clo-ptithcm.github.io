@@ -1,0 +1,15 @@
+/* AI-CLO PTITHCM V12.4.22 — native dialog/modal/confirmation chrome. */
+dialog{border:0;border-radius:14px;width:min(720px,92vw);padding:0;box-shadow:0 20px 80px #0004}
+dialog::backdrop{background:#111827aa}
+.modal-head{display:flex;padding:17px 20px;border-bottom:1px solid var(--line);align-items:center}
+.modal-head h3{margin:0}
+.modal-head button{margin-left:auto;border:0;background:none;font-size:25px}
+
+/* Shared confirmation dialog. */
+.confirm-dialog{width:min(430px,92vw);border-radius:14px}
+.confirm-dialog .confirm-card{padding:25px;text-align:center}
+.confirm-icon{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;margin:0 auto 12px;background:#fff0f2;color:var(--red);font-weight:900;font-size:22px}
+.confirm-card h3{margin:0 0 8px}
+.confirm-card p{color:var(--muted);line-height:1.6;margin:0}
+.confirm-actions{display:flex;justify-content:center;gap:9px;margin-top:20px}
+.confirm-actions button{min-width:110px}
