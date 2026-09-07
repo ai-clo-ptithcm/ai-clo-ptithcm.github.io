@@ -150,3 +150,30 @@
   .student-attempt-page .live-top{flex-direction:row;align-items:center}
   .student-attempt-page .exam-timer{width:auto;text-align:center}
 }
+
+/* V12.6.6 — reduce vertical travel inside the live attempt only; global header stays unchanged. */
+main:has(.student-attempt-page) #content{padding-top:12px!important;padding-bottom:12px!important}
+.student-attempt-page{gap:6px}
+.student-attempt-page-head{gap:8px}
+.student-attempt-page-head>button{min-height:30px;padding:6px 10px!important}
+.student-attempt-title{gap:7px}
+.student-attempt-card{padding:10px 16px}
+.student-attempt-page .live-exam{gap:7px}
+.student-attempt-page .live-top{padding:0 0 6px}
+.student-attempt-page .live-context{display:none!important}
+.student-attempt-page .preview-question{line-height:1.4}
+.student-attempt-page .live-options{gap:5px}
+.student-attempt-page .live-options label{padding:7px 10px;min-height:42px}
+.student-attempt-page .question-jump{padding-top:6px;row-gap:5px}
+.student-attempt-page .question-jump button{width:29px;height:29px}
+.student-attempt-page .preview-nav{padding-top:6px;gap:6px}
+.student-attempt-page .preview-nav button{min-height:36px;padding:7px 13px!important}
+.student-attempt-page .exam-timer{font-size:18px;padding:6px 10px}
+
+@media(max-width:760px){
+  main:has(.student-attempt-page) #content{padding-top:10px!important;padding-bottom:10px!important}
+  .student-attempt-card{padding:10px 12px}
+  .student-attempt-page .live-exam{gap:8px}
+  .student-attempt-page .live-options label{padding:8px 10px;min-height:44px}
+  .student-attempt-page .preview-nav button{min-height:40px}
+}
