@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.6.1 — Online Assessment Builder module. */
+/* AI-CLO PTITHCM V12.6.15-kiemnghiem — Online Assessment Builder module. */
 (() => {
   "use strict";
   window.AICLO_ASSESSMENT_MODULES = window.AICLO_ASSESSMENT_MODULES || {};
@@ -339,7 +339,7 @@
         ch = findById(ctx.sets.chapters, q.chapter_id),
         tp = findById(ctx.sets.topics, q.topic_id),
         code = questionCode(ctx, q);
-      return `<article class="ub-question-card v122-question-card"><div class="ub-question-head"><div><b>Câu ${index + 1}</b><span class="ub-question-code">${escapeHtml(code)}</span><span class="badge red">${escapeHtml(clo?.code || "—")}</span><span class="badge">${escapeHtml(ch?.name || "—")}</span><span class="badge">${escapeHtml(tp?.name || "—")}</span></div>${ctx.locked ? "" : `<div class="ub-question-actions"><button type="button" class="secondary compact" data-v122-replace="${index}">Đổi câu</button><button type="button" class="secondary compact" data-v123-pick="${index}">Tự chọn</button><button type="button" class="secondary compact" data-v123-quick-edit="${index}">Sửa nhanh</button><button type="button" class="ai-btn compact" data-v122-ai="${index}">✦ Gemini sinh câu</button></div>`}</div><div class="detail-question">${escapeHtml(q.content || "")}</div><div class="detail-options">${["A", "B", "C", "D"].map((k) => `<div class="${String(q.correct_answer || "").toUpperCase() === k ? "correct" : ""}"><b>${k}</b><span>${escapeHtml(opts[k] || "")}</span></div>`).join("")}</div>${q.explanation ? `<p class="hint"><b>Lời giải:</b> ${escapeHtml(q.explanation)}</p>` : ""}</article>`;
+      return `<article class="ub-question-card v122-question-card"><div class="ub-question-head"><div><b>Câu ${index + 1}</b><span class="ub-question-code">${escapeHtml(code)}</span><span class="badge red">${escapeHtml(clo?.code || "—")}</span><span class="badge">${escapeHtml(ch?.name || "—")}</span><span class="badge">${escapeHtml(tp?.name || "—")}</span></div>${ctx.locked ? "" : `<div class="ub-question-actions"><button type="button" class="secondary compact" data-v122-replace="${index}">Đổi câu</button><button type="button" class="secondary compact" data-v123-pick="${index}">Tự chọn</button><button type="button" class="secondary compact" data-v123-quick-edit="${index}">Sửa nhanh</button><button type="button" class="ai-btn compact" data-v122-ai="${index}" title="AI sinh một câu mới đúng Chương · Chủ đề · CLO của vị trí hiện tại">✦ AI sinh câu hỏi</button></div>`}</div><div class="detail-question">${escapeHtml(q.content || "")}</div><div class="detail-options">${["A", "B", "C", "D"].map((k) => `<div class="${String(q.correct_answer || "").toUpperCase() === k ? "correct" : ""}"><b>${k}</b><span>${escapeHtml(opts[k] || "")}</span></div>`).join("")}</div>${q.explanation ? `<p class="hint"><b>Lời giải:</b> ${escapeHtml(q.explanation)}</p>` : ""}</article>`;
     }
     function fixedQuestionCard(ctx, q) {
       const clo = findById(ctx.sets.clos, q.clo_id),
@@ -367,7 +367,7 @@
         return `<section class="panel ub-required-panel"><div class="panel-head"><div><h3>3. Câu cố định trước · ngẫu nhiên sau</h3><p class="hint">Chọn câu cố định trước. Mỗi câu được trừ ngay vào đúng ô ma trận; phần còn thiếu mới được rút ngẫu nhiên.</p></div>${ctx.locked ? "" : `<div class="ub-required-actions"><button type="button" class="secondary" id="v126AddFixed">+ Chọn câu cố định</button><button type="button" class="ai-btn" id="v126AiFixed">✦ AI tạo câu cố định</button></div>`}</div><div class="ub-required-summary"><b>${fixed.length} câu cố định</b><span>${randomCount} câu ngẫu nhiên</span><span>Tổng ${total} câu</span><span class="${ctx.mixedDrawReady ? "badge green" : "badge"}">${step}</span>${ctx.selectionDirty ? '<span class="badge">Chưa lưu thay đổi</span>' : ""}</div>${fixed.length ? `<div class="ub-required-list">${fixed.map((q) => fixedQuestionCard(ctx, q)).join("")}</div>` : '<div class="empty ub-required-empty"><b>Hãy chọn câu cố định trước</b><span>Chế độ này cần ít nhất một câu cố định. Nếu không cần câu cố định, hãy dùng “Đề riêng theo sinh viên” hoặc “Rút lại mỗi lần làm”.</span></div>'}</section>`;
       }
       if (isPureRandomMode(ctx.settings.question_mode)) return randomSummary(ctx);
-      return `<section class="panel"><div class="panel-head"><div><h3>3. Bộ câu cố định</h3><p class="hint">Đề chung cố định dùng đúng bộ câu hiển thị dưới đây. Đổi câu/Gemini chỉ sửa bản nháp; bấm Lưu mới thay snapshot trong DB.</p></div></div>${
+      return `<section class="panel"><div class="panel-head"><div><h3>3. Bộ câu cố định</h3><p class="hint">Đề chung cố định dùng đúng bộ câu hiển thị dưới đây. Đổi câu/AI chỉ sửa bản nháp; bấm Lưu mới thay snapshot trong DB.</p></div></div>${
         ctx.selected.length
           ? `<div class="v122-selected-summary"><b>${ctx.selected.length}/${matrixTotal(ctx)} câu đã rút</b> · ${Object.entries(cloCountsFromQuestions(ctx.selected, ctx.sets)).map(([k, v]) => `${escapeHtml(k)}: ${v}`).join(" · ")}${ctx.selectionDirty ? ' · <span class="badge">Chưa lưu thay đổi câu</span>' : ""}</div><div class="v122-selected-list">${ctx.selected.map((q, i) => questionCard(ctx, q, i)).join("")}</div>`
           : '<div class="empty"><b>Chưa rút câu</b><span>Hoàn tất ma trận rồi nhấn “Rút câu hỏi”.</span></div>'
@@ -457,7 +457,24 @@
       notify(`Đã đổi Câu ${index + 1}. Bấm Lưu thay đổi để cập nhật snapshot.`);
     }
 
-    async function generateAiQuestion(ctx, index, button) {
+    function openAiQuestionSetup(ctx, index, sourceButton) {
+      const old = ctx.selected[index];
+      if (!old) return;
+      const ch = findById(ctx.sets.chapters, old.chapter_id),
+        tp = findById(ctx.sets.topics, old.topic_id),
+        clo = findById(ctx.sets.clos, old.clo_id);
+      const html = `<div class="v126-fixed-window assessment-ai-question-setup"><p class="hint">AI sẽ sinh một câu mới đúng phạm vi của vị trí hiện tại. Chương, Chủ đề và CLO được khóa theo ma trận.</p><div class="v126-fixed-scope"><label class="field">Chương<input value="${escapeHtml(ch?.name || "—")}" readonly></label><label class="field">Chủ đề<input value="${escapeHtml(tp?.name || "—")}" readonly></label><label class="field">CLO<input value="${escapeHtml(clo?.code || "—")}" readonly></label></div><label class="field wide">Yêu cầu thêm cho AI<textarea id="v126ReplaceAiRequirements" rows="5" placeholder="Ví dụ: bài tính ngắn, số liệu đẹp, mức độ tương đương câu hiện tại..."></textarea></label><p class="hint">Câu mới chỉ được lưu vào <b>Ngân hàng luyện tập – kiểm tra</b> sau khi bạn xem trước và chọn <b>Dùng câu này</b>.</p><div class="form-actions"><button type="button" class="secondary" id="v126ReplaceAiCancel">Hủy</button><button type="button" class="ai-btn" id="v126ReplaceAiGenerate">✦ Sinh câu hỏi</button></div></div>`;
+      openBuilderWindow("AI sinh câu hỏi", html, () => {
+        qs("#v126ReplaceAiCancel")?.addEventListener("click", () => closeModal?.());
+        qs("#v126ReplaceAiGenerate")?.addEventListener("click", () => {
+          const requirements = qs("#v126ReplaceAiRequirements")?.value.trim() || "";
+          closeModal?.();
+          generateAiQuestion(ctx, index, sourceButton, requirements);
+        });
+      }, { width: 760, height: 540 });
+    }
+
+    async function generateAiQuestion(ctx, index, button, additionalRequirements = "") {
       const old = ctx.selected[index];
       if (!old) return;
       if (button) {
@@ -471,26 +488,27 @@
             chapter_id: old.chapter_id,
             topic_id: old.topic_id,
             clo_id: old.clo_id,
+            additional_requirements: additionalRequirements,
           },
         });
         if (error) throw error;
         if (!data?.success || !data?.question)
-          throw new Error(data?.error || "Gemini không tạo được câu hỏi");
-        previewAiQuestion(ctx, index, data.question, data.model || "Gemini");
+          throw new Error(data?.error || "AI không tạo được câu hỏi");
+        previewAiQuestion(ctx, index, data.question);
       } catch (e) {
         showError(e);
         if (button) {
           button.disabled = false;
-          button.textContent = "✦ Gemini sinh câu";
+          button.textContent = "✦ AI sinh câu hỏi";
         }
       }
     }
-    function previewAiQuestion(ctx, index, g, model) {
-      if (typeof modal !== "function") return notify("Không mở được cửa sổ xem trước câu Gemini.", true);
+    function previewAiQuestion(ctx, index, g) {
+      if (typeof modal !== "function") return notify("Không mở được cửa sổ xem trước câu AI.", true);
       const opts = g.options || {};
       modal(
-        `AI-CLO | Câu ${index + 1} do Gemini đề xuất`,
-        `<div class="v122-ai-preview"><p class="hint">${escapeHtml(model)} · Câu chỉ được đưa vào bài sau khi bạn chọn “Dùng câu này” và bấm “Lưu thay đổi”.</p><div class="detail-question">${escapeHtml(g.content || "")}</div><div class="detail-options">${["A", "B", "C", "D"].map((k) => `<div class="${String(g.correct_answer || "").toUpperCase() === k ? "correct" : ""}"><b>${k}</b><span>${escapeHtml(opts[k] || "")}</span></div>`).join("")}</div>${g.explanation ? `<p class="hint"><b>Lời giải:</b> ${escapeHtml(g.explanation)}</p>` : ""}<p class="hint">Khi chấp nhận, câu này sẽ được lưu vào <b>Ngân hàng luyện tập – kiểm tra</b> để có mã câu hợp lệ cho frozen pool.</p><div class="form-actions"><button type="button" id="v122AiCancel" class="secondary">Hủy</button><button type="button" id="v122AiUse" class="primary">Dùng câu này</button></div></div>`,
+        `AI-CLO | Câu ${index + 1} do AI đề xuất`,
+        `<div class="v122-ai-preview"><p class="hint">AI · Câu chỉ được đưa vào bài sau khi bạn chọn “Dùng câu này” và bấm “Lưu thay đổi”.</p><div class="detail-question">${escapeHtml(g.content || "")}</div><div class="detail-options">${["A", "B", "C", "D"].map((k) => `<div class="${String(g.correct_answer || "").toUpperCase() === k ? "correct" : ""}"><b>${k}</b><span>${escapeHtml(opts[k] || "")}</span></div>`).join("")}</div>${g.explanation ? `<p class="hint"><b>Lời giải:</b> ${escapeHtml(g.explanation)}</p>` : ""}<p class="hint">Khi chấp nhận, câu này sẽ được lưu vào <b>Ngân hàng luyện tập – kiểm tra</b> để có mã câu hợp lệ cho frozen pool.</p><div class="form-actions"><button type="button" id="v122AiCancel" class="secondary">Hủy</button><button type="button" id="v122AiUse" class="primary">Dùng câu này</button></div></div>`,
       );
       qs("#v122AiCancel")?.addEventListener("click", () => {
         if (typeof closeModal === "function") closeModal();
@@ -518,7 +536,7 @@
         ctx.selectionDirty = true;
         if (typeof closeModal === "function") closeModal();
         renderBuilder(ctx);
-        notify(`Đã dùng câu Gemini cho Câu ${index + 1}. Bấm Lưu thay đổi để cập nhật bài.`);
+        notify(`Đã dùng câu AI cho Câu ${index + 1}. Bấm Lưu thay đổi để cập nhật bài.`);
       } catch (e) {
         if (createdId) {
           try { await db.from("questions").delete().eq("id", createdId); } catch {}
@@ -673,9 +691,9 @@
           },
         });
         if (error) throw error;
-        if (!data?.success || !data?.question) throw new Error(data?.error || "Gemini không tạo được câu hỏi");
+        if (!data?.success || !data?.question) throw new Error(data?.error || "AI không tạo được câu hỏi");
         const g = data.question, opts = g.options || {}, preview = qs("#v126AiPreview");
-        if (preview) preview.innerHTML = `<div class="v126-ai-card"><small>${escapeHtml(data.model || "Gemini")}</small><div class="detail-question">${escapeHtml(g.content || "")}</div><div class="detail-options">${["A","B","C","D"].map((k) => `<div class="${String(g.correct_answer || "").toUpperCase() === k ? "correct" : ""}"><b>${k}</b><span>${escapeHtml(opts[k] || "")}</span></div>`).join("")}</div>${g.explanation ? `<p class="hint"><b>Lời giải:</b> ${escapeHtml(g.explanation)}</p>` : ""}<div class="form-actions"><button type="button" class="secondary" id="v126AiAgain">Sinh lại</button><button type="button" class="primary" id="v126AiUseFixed">Dùng câu này</button></div></div>`;
+        if (preview) preview.innerHTML = `<div class="v126-ai-card"><small>AI</small><div class="detail-question">${escapeHtml(g.content || "")}</div><div class="detail-options">${["A","B","C","D"].map((k) => `<div class="${String(g.correct_answer || "").toUpperCase() === k ? "correct" : ""}"><b>${k}</b><span>${escapeHtml(opts[k] || "")}</span></div>`).join("")}</div>${g.explanation ? `<p class="hint"><b>Lời giải:</b> ${escapeHtml(g.explanation)}</p>` : ""}<div class="form-actions"><button type="button" class="secondary" id="v126AiAgain">Sinh lại</button><button type="button" class="primary" id="v126AiUseFixed">Dùng câu này</button></div></div>`;
         qs("#v126AiAgain")?.addEventListener("click", () => generateAiFixedQuestion(ctx));
         qs("#v126AiUseFixed")?.addEventListener("click", () => acceptAiFixedQuestion(ctx, scope, g));
         renderMathIn(preview);
@@ -847,7 +865,7 @@
         el.onclick = () => openQuickEdit(ctx, +el.dataset.v123QuickEdit),
       );
       qsa("[data-v122-ai]", c).forEach((el) =>
-        el.onclick = () => generateAiQuestion(ctx, +el.dataset.v122Ai, el),
+        el.onclick = () => openAiQuestionSetup(ctx, +el.dataset.v122Ai, el),
       );
       qsa("[data-v126-remove-fixed]", c).forEach((el) =>
         el.onclick = () => {
