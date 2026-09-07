@@ -1,13 +1,13 @@
 /* AI-CLO PTITHCM V11.6.18 — question provenance and Academy verification. */
 (() => {
 'use strict';
-const label=value=>value==='gemini'?'✦ Gemini hỗ trợ':value==='academy'?'🏛 Câu hỏi Học viện':'✍️ Giảng viên biên soạn';
+const label=value=>value==='gemini'?'✦ AI hỗ trợ':value==='academy'?'🏛 Câu hỏi Học viện':'✍️ Giảng viên biên soạn';
 const status=x=>x.origin_type==='academy'?(x.is_official?'Đã được Admin xác nhận':'Chờ Admin xác nhận'):'';
 
 function bindOriginField(form,x){
  const target=form.querySelector('.v105-scope-chooser')||form.querySelector('.option-grid');if(!target)return;
  const current=x.origin_type||'lecturer',locked=current==='gemini'&&role()!=='admin';
- const field=document.createElement('label');field.className='field question-origin-field';field.innerHTML=`<span>Nguồn câu hỏi</span><select name="origin_type" ${locked?'disabled':''}><option value="lecturer">Giảng viên biên soạn</option><option value="academy">Câu hỏi Học viện (đề xuất)</option>${current==='gemini'?'<option value="gemini">Gemini hỗ trợ</option>':''}</select><small class="question-origin-note" hidden></small>${locked?'<input type="hidden" name="origin_type" value="gemini">':''}`;
+ const field=document.createElement('label');field.className='field question-origin-field';field.innerHTML=`<span>Nguồn câu hỏi</span><select name="origin_type" ${locked?'disabled':''}><option value="lecturer">Giảng viên biên soạn</option><option value="academy">Câu hỏi Học viện (đề xuất)</option>${current==='gemini'?'<option value="gemini">AI hỗ trợ</option>':''}</select><small class="question-origin-note" hidden></small>${locked?'<input type="hidden" name="origin_type" value="gemini">':''}`;
  target.insertAdjacentElement('beforebegin',field);field.querySelector('select').value=current;
  const note=field.querySelector('.question-origin-note');
  const apply=()=>{
