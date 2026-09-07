@@ -7,30 +7,33 @@ Cập nhật: 07/09/2026
 - Production đang chạy tại thư mục gốc của repo.
 - Production phải giữ nguyên ở mốc đã xác nhận ổn: **V12.6.13**.
 - Commit Production an toàn: `57a725a1a07ffd9982f429a51579c5fcff1ca7e1`.
-- Môi trường kiểm nghiệm nằm tại: `/kiemnghiem`.
+- Môi trường kiểm nghiệm nằm tại `/kiemnghiem`.
 - URL kiểm nghiệm: `https://ai-clo-ptithcm.github.io/kiemnghiem/app.html`.
-- `/kiemnghiem` được tạo bằng cách copy bản V12.6.13 để làm nền sạch.
+- `/kiemnghiem` được khởi tạo từ V12.6.13 sạch, sau đó đã phục hồi có chọn lọc các chức năng A–D theo kiến trúc mới.
+- Không xem `/kiemnghiem` hiện tại là bản sao nguyên trạng của V12.6.13 nữa.
 - Chỉ Admin Nam dùng `/kiemnghiem` để kiểm nghiệm.
-- `/kiemnghiem` vẫn dùng **cùng Supabase production hiện tại**.
-- Vì dùng chung Supabase, mọi thao tác ghi dữ liệu trong `/kiemnghiem` vẫn ghi vào database thật. Vì vậy chỉ kiểm nghiệm trên **môn Demo + ngân hàng câu hỏi Demo + bài kiểm tra Demo riêng**.
+- `/kiemnghiem` vẫn dùng **cùng Supabase Production hiện tại**.
+- Vì dùng chung Supabase, mọi thao tác ghi dữ liệu trong `/kiemnghiem` vẫn ghi vào database thật. Chỉ thử trên **môn Demo + ngân hàng câu hỏi Demo + bài kiểm tra Demo + tài khoản Demo**.
 
-## 2. Quy tắc bắt buộc khi ChatGPT tiếp tục dự án
+## 2. Quy tắc bắt buộc khi tiếp tục dự án
 
-1. **Không sửa file Production ở root** khi đang phát triển chức năng mới.
+1. **Không sửa file Production ở root** khi đang phát triển hoặc kiểm nghiệm chức năng mới.
 2. Mọi thay đổi mới chỉ được thực hiện bên trong `kiemnghiem/`, trừ khi người dùng nói rõ **“xuất bản”**.
 3. Trước mỗi thay đổi đáng kể trong `/kiemnghiem`, tạo một branch backup mới từ `main`.
-4. Không copy nguyên các commit lỗi cũ sang `/kiemnghiem`; chỉ phục hồi **mục tiêu/chức năng**, viết lại theo kiến trúc sạch.
-5. Một hành vi chỉ có **một runtime owner**. Không dùng wrapper/monkey-patch/capture event/MutationObserver để thay thế behavior của owner nếu có thể sửa trực tiếp owner.
-6. Không thay đổi Supabase schema, migration, RLS hay Edge Function nếu chưa có yêu cầu rõ và chưa chứng minh là cần.
-7. Sau mỗi nhóm thay đổi, phải kiểm tra lại Assessment đề cố định trước khi làm tiếp.
-8. Nếu một thay đổi làm hỏng đề cố định, dừng ngay tại commit đó, không tiếp tục chồng thêm bản vá.
-9. Chỉ khi `/kiemnghiem` đã kiểm nghiệm ổn và người dùng nói **“xuất bản”**, mới đồng bộ các file đã kiểm tra từ `/kiemnghiem` ra root Production.
+4. Không copy nguyên commit/bản lỗi cũ sang `/kiemnghiem`; chỉ phục hồi mục tiêu/chức năng và viết lại theo kiến trúc sạch.
+5. Một hành vi chỉ có **một runtime owner**.
+6. Không dùng wrapper/monkey-patch/capture event/MutationObserver để thay thế behavior của owner nếu có thể sửa trực tiếp owner.
+7. Legacy layer không được render thêm UI hoặc giành quyền behavior nếu canonical owner đã tồn tại.
+8. Không thay đổi Supabase schema, migration, RLS hay Edge Function nếu chưa có yêu cầu rõ và chưa chứng minh là cần.
+9. Sau thay đổi đáng kể, phải kiểm tra lại Assessment đề cố định.
+10. Nếu một thay đổi làm hỏng đề cố định, dừng ngay tại commit đó; không chồng thêm patch.
+11. Chỉ khi `/kiemnghiem` đã kiểm nghiệm ổn và người dùng nói **“xuất bản”**, mới đồng bộ các file đã kiểm tra ra root Production.
 
-## 3. Lỗi đã khoanh được ngày 07/09/2026
+## 3. Lỗi gốc đã khoanh ngày 07/09/2026
 
-### Triệu chứng chính
+### Triệu chứng
 
-Trong Assessment, khi **chỉnh đề cố định**, luồng rút câu bị lỗi. Có lúc bấm **Rút câu** đứng im; có lúc trước đó Console báo:
+Trong Assessment, khi chỉnh đề cố định, luồng rút câu từng bị lỗi: có lúc bấm **Rút câu** đứng im; có lúc Console báo:
 
 `NotFoundError: Failed to set the 'innerHTML' property on 'Element': The node to be removed is no longer a child of this node. Perhaps it was moved in a 'blur' event handler?`
 
@@ -39,155 +42,192 @@ Trong Assessment, khi **chỉnh đề cố định**, luồng rút câu bị l�
 - **V12.6.13: hoạt động đúng.**
 - **V12.6.14: lỗi xuất hiện.**
 
-Do đó, lỗi bắt đầu từ thay đổi sau V12.6.13, đặc biệt vùng `quick-edit-window.js` của V12.6.14 trở đi.
+V12.6.14 bắt đầu can thiệp sâu vào Sửa nhanh câu hỏi trong Assessment. Các bản sau còn wrap Builder, proxy DB, capture click và dùng MutationObserver. Những kiểu tích hợp đó không được phục hồi lại.
 
-### Nguyên nhân kỹ thuật đáng nghi nhất
+## 4. Trạng thái phục hồi A–D hiện tại
 
-V12.6.14 bắt đầu can thiệp sâu vào luồng **Sửa nhanh câu hỏi trong Assessment**: chặn Save, ghi trực tiếp về câu gốc trong ngân hàng rồi cho handler Builder chạy tiếp.
+### Nhóm A — AI trong Assessment — ✅ đã phục hồi
 
-V12.6.15 tiếp tục làm sâu hơn bằng cách:
+Đã thực hiện trong canonical owner, chủ yếu `js/assessment/online-builder.js`:
 
-- wrap `createOnlineBuilderModule`;
-- proxy `db`;
-- wrap `modal` và `notify`;
-- dùng global capture click cho nút AI;
-- dùng `MutationObserver` trên `#content`.
+- nút **AI sinh câu hỏi** tại vị trí câu hỏi;
+- mở cấu hình ngắn trước khi gọi AI;
+- khóa Chương/Chủ đề/CLO theo vị trí hiện tại;
+- có yêu cầu bổ sung;
+- câu AI chỉ được đưa vào ngân hàng theo quy tắc hiện có;
+- UI dùng chữ **AI**, không hiển thị Gemini cho người dùng;
+- không wrap `createOnlineBuilderModule`, không global capture click, không proxy DB, không MutationObserver để chèn behavior.
 
-Đây là kiểu tích hợp cần tránh khi viết lại.
+### Nhóm B — canonical owners — ✅ đã phục hồi
 
-V12.6.21 còn thay đổi global `window.render` và lifecycle shell/navigation. Đây cũng là vùng phải kiểm nghiệm riêng vì có tác động toàn app.
+- Dashboard router owner: `js/system/dashboard.js`.
+- Tổng quan học phần owner: `js/courses/overview.js` (`AICLO_OVERVIEW`).
+- Danh sách thành viên owner: `js/courses/members.js` (`AICLO_COURSE_MEMBERS`).
+- Hồ sơ người dùng owner: `js/system/profile.js` (`AICLO_PROFILE`).
+- Tên thành viên gọi trực tiếp API Profile; không quét/sửa DOM hậu kỳ.
+- Đã xử lý hiện tượng tab Sinh viên/Giảng viên bị lặp do legacy layer gọi lồng canonical members owner.
 
-## 4. Chuỗi kiểm tra bắt buộc cho Assessment đề cố định
+### Nhóm C — Shell / Navigation — ✅ đã phục hồi
 
-Sau mỗi nhóm thay đổi, phải test ít nhất chuỗi sau trên môn Demo:
+Phân quyền hiện tại:
 
-1. Vào **Đánh giá**.
-2. Tạo bài kiểm tra mới ở chế độ **đề chung cố định**.
-3. Chọn Chương/Chủ đề.
-4. Nhập ma trận CLO.
-5. Bấm **Rút câu hỏi**.
-6. Xác nhận đã rút đúng số câu.
-7. Đổi một câu.
-8. Sửa nhanh một câu nếu chức năng đó đang được kiểm nghiệm.
-9. Lưu bài kiểm tra.
-10. Mở lại bài kiểm tra vừa tạo.
-11. Chỉnh ma trận nếu cho phép.
-12. Rút lại câu.
-13. Lưu lại.
-14. Kiểm tra Console không có lỗi DOM/event.
+- `js/ui/navigation.js`: `state.space`, `state.view`, lịch sử Back, `navigate`, `enterSystem`, `enterCourse`.
+- `js/ui/shell.js`: sidebar, header/context, tên học phần, nút quay lại/về hệ thống, shell UI.
 
-Nếu một bước trên lỗi thì dừng, không làm nhóm tiếp theo.
+Quy tắc:
 
-## 5. Các chức năng cần làm lại trong `/kiemnghiem`
+- Shell không wrap `window.render`.
+- Navigation không sở hữu HTML shell.
+- Không tạo vòng render lồng nhau.
 
-Mục tiêu là phục hồi các ý tưởng từ **V12.6.15 đến V12.6.27**, nhưng theo cách an toàn, không copy nguyên cách cài đặt cũ.
+### Nhóm D — history / account / UI — ✅ đã phục hồi có chọn lọc
 
-### Nhóm A — V12.6.15–V12.6.16: AI trong Assessment
+- Giữ history/back hiện có trong Navigation.
+- Giữ `js/ui/subpage-state.js` cho trạng thái trang con.
+- Không phục hồi history engine cũ dựa trên MutationObserver/capture click.
+- Đã phục hồi tài khoản sinh viên tạm kiểu `MSSV@aiclo.local` và luồng Admin đổi email khi phù hợp.
+- Đã chuẩn hóa wording UI từ **Gemini** sang **AI**.
 
-Mục tiêu:
+## 5. Kiến trúc runtime hiện tại
 
-- Nút **AI sinh câu hỏi** tại từng vị trí câu hỏi trong Assessment.
-- Trước khi gọi AI, mở cửa sổ cấu hình ngắn.
-- Chương, Chủ đề, CLO phải khóa theo vị trí hiện tại trong ma trận.
-- Có ô cho giảng viên nhập yêu cầu thêm cho AI.
-- Câu AI sinh ra chỉ được lưu vào ngân hàng luyện tập/kiểm tra theo đúng quy tắc hiện có.
-- UI hiển thị chữ **AI**, không hiển thị “Gemini” cho người dùng.
-- Chuỗi `gemini` vẫn được giữ ở metadata kỹ thuật/provider/log nếu backend đang dùng nó.
+### Assessment
 
-Cách làm mới:
+Owner/router chính:
 
-- Sửa trực tiếp owner phù hợp của Assessment, ưu tiên `kiemnghiem/js/assessment/online-builder.js`.
-- Không dùng global capture click.
-- Không proxy `db` chỉ để chèn thêm payload.
-- Không dùng MutationObserver để sửa text/nút sau render.
-- Không wrap `createOnlineBuilderModule` từ file UI khác.
+```text
+js/assessment.js
+  ├─ js/assessment/online-lifecycle.js
+  ├─ js/assessment/online-builder.js
+  ├─ js/assessment/student-attempt.js
+  ├─ js/assessment/results.js
+  └─ js/assessment/final-exam.js
+```
 
-### Nhóm B — V12.6.18–V12.6.20: canonical owners
+`online-builder.js` sở hữu trực tiếp ma trận, rút câu, fixed/mixed, đổi câu và AI tại vị trí câu hỏi.
 
-Mục tiêu:
+### Dashboard
 
-- Dashboard có owner rõ ràng.
-- Danh sách thành viên học phần có owner rõ ràng.
-- Hồ sơ người dùng có owner rõ ràng.
-- Từ danh sách thành viên, tên người dùng mở đúng hồ sơ canonical.
+```text
+system/dashboard.js
+  ├─ system space → System Dashboard
+  └─ course space → AICLO_OVERVIEW.render()
+```
+
+`courses/overview.js` chỉ sở hữu Tổng quan học phần.
+
+### Members / Profile
+
+```text
+courses/members.js
+  → AICLO_PROFILE.openUserProfile(...)
+  → system/profile.js
+```
+
+Không dùng Profile để quét DOM của Members sau render.
+
+### Shell / Navigation / State
+
+```text
+navigation.js → điều hướng + history/back
+shell.js      → shell UI
+subpage-state.js → state trang con/workspace
+```
+
+Không tạo thêm một history engine thứ hai.
+
+## 6. Quy tắc AI hiện tại
+
+Nguyên tắc bắt buộc:
+
+- **Người dùng nhìn thấy:** dùng từ **AI**.
+- **Metadata/backend:** có thể giữ `gemini`, `origin_type='gemini'`, provider/model/log để tương thích dữ liệu và backend hiện có.
+
+Ví dụ hợp lệ:
+
+- UI: `AI hỗ trợ`, `AI sinh câu hỏi`, `AI đang phân tích`, `Nhận xét của AI`.
+- Kỹ thuật: `origin_type = 'gemini'` vẫn được giữ nếu schema hiện tại dùng giá trị này.
+
+Không đổi tên kỹ thuật chỉ để đồng bộ wording UI.
+
+## 7. Quy tắc Assessment cần bảo vệ
+
+Các chế độ chính:
+
+- `common_fixed`
+- `student_fixed`
+- `attempt_random`
+- `mixed_fixed_random`
 
 Nguyên tắc:
 
-- Không tạo hai module cùng render một màn hình.
-- Không để legacy wrapper giành quyền render sau owner mới.
+- random-only builder không hiện danh sách câu cụ thể;
+- mixed phải chọn ít nhất một câu cố định trước;
+- phần random của mixed chỉ hiển thị số lượng/thống kê, không hiện danh sách câu;
+- fixed chiếm đúng quota từng ô ma trận;
+- fixed IDs lưu trong blueprint theo cấu trúc hiện hành;
+- thay đổi ma trận phải làm mất hiệu lực selection cũ khi nghiệp vụ yêu cầu;
+- thao tác **Rút câu/Rút phần còn lại** phải hoạt động ngay lần nhấn đầu tiên.
 
-### Nhóm C — V12.6.21–V12.6.22: Shell/Navigation
+## 8. Chuỗi smoke test bắt buộc cho đề cố định
 
-Mục tiêu:
+Sau thay đổi đáng kể, test trên Demo:
 
-- Chuẩn hóa shell/navigation runtime owner.
-- Sửa hiện tượng nháy layout trên mobile/system dashboard.
+1. Vào **Đánh giá**.
+2. Tạo/chỉnh bài ở chế độ **đề chung cố định**.
+3. Chọn Chương/Chủ đề.
+4. Nhập ma trận CLO.
+5. Bấm **Rút câu hỏi**.
+6. Xác nhận đúng số câu.
+7. Đổi một câu.
+8. Sửa nhanh/AI sinh câu nếu phần đó đang được kiểm nghiệm.
+9. Lưu.
+10. Mở lại.
+11. Chỉnh ma trận nếu cho phép.
+12. Rút lại.
+13. Lưu lại.
+14. Kiểm tra Console không có lỗi DOM/event.
 
-Cảnh báo:
+Nếu lỗi tại bất kỳ bước nào thì dừng ở commit gần nhất.
 
-- Không được thay `window.render` theo cách có thể phá domain render hoặc gây render lồng nhau.
-- Phải test riêng: Dashboard, Học phần, Ngân hàng, Đánh giá, Kết quả, Thông báo, Người dùng.
-- Sau nhóm này phải test lại đầy đủ đề cố định.
+## 9. Quy ước dữ liệu kiểm nghiệm
 
-### Nhóm D — V12.6.23–V12.6.27: navigation/history/account/UI
-
-Mục tiêu cần phục hồi theo yêu cầu đã trao đổi trước đó:
-
-- Lịch sử màn hình và nút Back hợp lý.
-- Quay lại đúng màn hình trước thay vì luôn về hệ thống.
-- Giữ trạng thái trang con cần thiết khi điều hướng.
-- Các cải tiến tài khoản/tạm thời nếu còn phù hợp.
-- Chuẩn hóa text UI liên quan AI.
-
-Các backup cũ còn trong repo để tham khảo mục tiêu, nhưng không được lấy nguyên code nếu code đó kéo theo lỗi.
-
-## 6. Thứ tự triển khai khuyến nghị
-
-Làm theo từng nhóm nhỏ:
-
-1. **Nhóm A: V12.6.15–16** → kiểm tra Assessment đề cố định.
-2. **Nhóm B: V12.6.18–20** → kiểm tra Dashboard/Thành viên/Hồ sơ + Assessment.
-3. **Nhóm C: V12.6.21–22** → kiểm tra navigation/mobile + Assessment.
-4. **Nhóm D: V12.6.23–27** → kiểm tra tổng.
-
-Không gom tất cả thành một commit lớn.
-
-## 7. Quy ước dữ liệu kiểm nghiệm
-
-- Tạo riêng một **môn Demo** trong Supabase production.
-- Tạo **ngân hàng câu hỏi Demo** riêng.
-- Chỉ thử tạo/sửa/xóa câu hỏi trong Demo.
+- Chỉ dùng môn Demo.
+- Chỉ dùng ngân hàng câu hỏi Demo.
+- Chỉ tạo/sửa/xóa câu hỏi Demo.
 - Chỉ tạo bài kiểm tra Demo.
-- Không dùng học phần có sinh viên thật để thử chức năng mới.
-- Không xóa hoặc sửa dữ liệu thật của Production từ `/kiemnghiem`.
+- Chỉ dùng tài khoản Demo cho thử nghiệm tài khoản.
+- Không dùng học phần có sinh viên thật.
+- Không xóa/sửa dữ liệu thật của Production từ `/kiemnghiem`.
 
-## 8. Quy ước xuất bản
+## 10. Quy ước xuất bản
 
-Chỉ khi người dùng nói **“xuất bản”**:
+Chỉ khi người dùng nói rõ **“xuất bản”**:
 
 1. Xác định chính xác file nào trong `/kiemnghiem` đã kiểm nghiệm ổn.
 2. Tạo backup mới của Production.
-3. Copy đúng các file đã kiểm nghiệm từ `/kiemnghiem/...` ra root tương ứng.
-4. Không mang theo file thử, log, marker staging hoặc code debug.
-5. So diff trước/sau và xác nhận chỉ đúng file dự kiến thay đổi.
-6. Deploy Production.
-7. Chạy smoke test ngắn trên Production.
+3. Copy đúng các file staging đã kiểm nghiệm ra root tương ứng.
+4. Không mang file thử, log, marker staging hoặc code debug.
+5. So diff trước/sau.
+6. Xác nhận không kéo theo patch legacy ngoài ý muốn.
+7. Deploy Production.
+8. Smoke test ngắn trên Production.
 
-## 9. Mốc Git quan trọng
+## 11. Mốc Git quan trọng
 
-- Production an toàn V12.6.13: `57a725a1a07ffd9982f429a51579c5fcff1ca7e1`
-- Commit tạo `/kiemnghiem` từ V12.6.13: `d863f2d0fd7c746bc31602f805e1df56876f49ac`
-- Backup trước khi tạo `/kiemnghiem`: `backup-before-kiemnghiem-v12.6.13-20260907`
-- Backup trước file handoff này: `backup-before-kiemnghiem-chatgpt-handoff-20260907`
+- Production an toàn V12.6.13: `57a725a1a07ffd9982f429a51579c5fcff1ca7e1`.
+- Commit tạo `/kiemnghiem` từ V12.6.13: `d863f2d0fd7c746bc31602f805e1df56876f49ac`.
+- Backup trước khi tạo `/kiemnghiem`: `backup-before-kiemnghiem-v12.6.13-20260907`.
+- Backup trước khi refresh tài liệu staging hiện tại: `backup-before-kiemnghiem-md-refresh-20260907`.
 
-## 10. Điều ChatGPT phải nhớ khi mở chat mới
+## 12. Điều ChatGPT phải nhớ khi mở chat mới
 
-Nếu người dùng nói “tiếp tục kiểm nghiệm”, “làm bản mới”, “tiếp tục V12.6.15–27”, hoặc tương tự:
+Nếu người dùng nói “tiếp tục kiểm nghiệm”, “tiếp tục bản staging”, hoặc tương tự:
 
-- Đọc file này trước.
-- Chỉ sửa trong `/kiemnghiem`.
-- Không đụng root Production.
-- Bắt đầu từ V12.6.13 sạch.
-- Ưu tiên phục hồi chức năng theo kiến trúc sạch, không khôi phục nguyên patch lỗi cũ.
-- Sau mỗi nhóm thay đổi, test lại luồng **đề cố định → ma trận → Rút câu → chỉnh → lưu**.
-- Chỉ xuất bản khi người dùng ra lệnh rõ ràng.
+- đọc `kiemnghiem/README.md` và file này trước;
+- chỉ sửa trong `/kiemnghiem`;
+- không đụng root Production;
+- coi A–D là **đã phục hồi**, không làm lại từ đầu;
+- ưu tiên canonical owner và sửa trực tiếp owner;
+- tránh wrapper/observer/capture/DOM patch hậu kỳ;
+- sau thay đổi đáng kể, test lại **đề cố định → ma trận → Rút câu → chỉnh → lưu**;
+- chỉ xuất bản khi người dùng ra lệnh rõ ràng.
