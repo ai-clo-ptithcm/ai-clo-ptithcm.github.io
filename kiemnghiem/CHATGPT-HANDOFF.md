@@ -99,11 +99,16 @@ js/assessment.js
   ├─ js/assessment/online-lifecycle.js
   ├─ js/assessment/online-builder.js
   ├─ js/assessment/student-attempt.js
+  ├─ js/assessment/attempt-monitor.js
   ├─ js/assessment/results.js
   └─ js/assessment/final-exam.js
 ```
 
 `online-builder.js` sở hữu trực tiếp ma trận, rút câu, fixed/mixed, đổi câu và AI tại vị trí câu hỏi.
+
+`student-attempt.js` sở hữu luồng mở/làm/nộp bài của sinh viên.
+
+`attempt-monitor.js` là **canonical owner riêng cho hành vi giám sát rời màn hình ở frontend**. Nó không thay thế render của `student-attempt.js`, không monkey-patch Assessment, không dùng MutationObserver và không ghi log lên Supabase.
 
 ### Dashboard
 
@@ -168,7 +173,39 @@ Nguyên tắc:
 - thay đổi ma trận phải làm mất hiệu lực selection cũ khi nghiệp vụ yêu cầu;
 - thao tác **Rút câu/Rút phần còn lại** phải hoạt động ngay lần nhấn đầu tiên.
 
-## 8. Chuỗi smoke test bắt buộc cho đề cố định
+## 8. Giám sát phiên làm bài — frontend-only
+
+Mục tiêu hiện tại là **hạn chế/cảnh báo việc rời màn hình**, chưa phải hệ thống chống gian lận tuyệt đối.
+
+Canonical owner:
+
+- `js/assessment/attempt-monitor.js`
+- API global chỉ để quan sát/trợ giúp: `AICLO_ATTEMPT_MONITOR`
+
+Hành vi hiện tại:
+
+- khi `.student-attempt-page` đang hoạt động, monitor tự kích hoạt;
+- phát hiện `visibilitychange` khi tab bị ẩn;
+- phát hiện `window blur/focus`;
+- phát hiện `fullscreenchange` khi sinh viên thoát Fullscreen sau khi đã bật;
+- đếm số lần rời màn hình theo từng `attempt_id`;
+- cộng tổng thời gian rời màn hình;
+- hiển thị overlay **Giám sát phiên làm bài** và nút **Bật toàn màn hình**;
+- lưu tạm trạng thái monitor trong `sessionStorage` theo `attempt_id`.
+
+Giới hạn bắt buộc:
+
+- **không thay đổi Supabase schema/migration/RLS/Edge Function**;
+- **không ghi event giám sát lên Supabase**;
+- giảng viên chưa xem được log monitor từ máy khác;
+- reload/đổi trình duyệt/thiết bị khác không tạo log server;
+- không tự nộp bài khi vi phạm;
+- không chặn tuyệt đối Alt+Tab, chuyển ứng dụng, thiết bị thứ hai hoặc chụp màn hình;
+- không gọi cơ chế này là “chống gian lận tuyệt đối”.
+
+Nếu sau này người dùng yêu cầu lưu log cho giảng viên, đó là **một giai đoạn Supabase riêng**, phải được phê duyệt rõ trước khi làm.
+
+## 9. Chuỗi smoke test bắt buộc cho đề cố định
 
 Sau thay đổi đáng kể, test trên Demo:
 
@@ -189,7 +226,19 @@ Sau thay đổi đáng kể, test trên Demo:
 
 Nếu lỗi tại bất kỳ bước nào thì dừng ở commit gần nhất.
 
-## 9. Quy ước dữ liệu kiểm nghiệm
+### Smoke test riêng cho monitor
+
+1. Dùng tài khoản sinh viên Demo mở một bài đang làm.
+2. Xác nhận overlay **Giám sát phiên làm bài** xuất hiện.
+3. Bấm **Bật toàn màn hình**.
+4. Chuyển tab rồi quay lại: số lần rời màn hình tăng đúng 1 lần cho một incident.
+5. Alt+Tab/chuyển cửa sổ rồi quay lại: cảnh báo hoạt động, không đếm lặp cùng incident.
+6. Thoát Fullscreen: có cảnh báo.
+7. Chuyển qua nhiều câu: overlay không mất trạng thái.
+8. Rời trang làm bài: overlay tự tắt và Fullscreen do monitor bật được thoát hợp lý.
+9. Xác nhận đáp án/timer/nộp bài vẫn hoạt động bình thường.
+
+## 10. Quy ước dữ liệu kiểm nghiệm
 
 - Chỉ dùng môn Demo.
 - Chỉ dùng ngân hàng câu hỏi Demo.
@@ -199,7 +248,7 @@ Nếu lỗi tại bất kỳ bước nào thì dừng ở commit gần nhất.
 - Không dùng học phần có sinh viên thật.
 - Không xóa/sửa dữ liệu thật của Production từ `/kiemnghiem`.
 
-## 10. Quy ước xuất bản
+## 11. Quy ước xuất bản
 
 Chỉ khi người dùng nói rõ **“xuất bản”**:
 
@@ -212,14 +261,15 @@ Chỉ khi người dùng nói rõ **“xuất bản”**:
 7. Deploy Production.
 8. Smoke test ngắn trên Production.
 
-## 11. Mốc Git quan trọng
+## 12. Mốc Git quan trọng
 
 - Production an toàn V12.6.13: `57a725a1a07ffd9982f429a51579c5fcff1ca7e1`.
 - Commit tạo `/kiemnghiem` từ V12.6.13: `d863f2d0fd7c746bc31602f805e1df56876f49ac`.
 - Backup trước khi tạo `/kiemnghiem`: `backup-before-kiemnghiem-v12.6.13-20260907`.
 - Backup trước khi refresh tài liệu staging hiện tại: `backup-before-kiemnghiem-md-refresh-20260907`.
+- Backup trước khi thêm monitor frontend-only: `backup-before-kiemnghiem-attempt-monitor-20260907`.
 
-## 12. Điều ChatGPT phải nhớ khi mở chat mới
+## 13. Điều ChatGPT phải nhớ khi mở chat mới
 
 Nếu người dùng nói “tiếp tục kiểm nghiệm”, “tiếp tục bản staging”, hoặc tương tự:
 
@@ -227,6 +277,8 @@ Nếu người dùng nói “tiếp tục kiểm nghiệm”, “tiếp tục b�
 - chỉ sửa trong `/kiemnghiem`;
 - không đụng root Production;
 - coi A–D là **đã phục hồi**, không làm lại từ đầu;
+- `student-attempt.js` sở hữu luồng làm bài; `attempt-monitor.js` chỉ sở hữu giám sát frontend-only;
+- không tự ý thêm lưu log monitor lên Supabase;
 - ưu tiên canonical owner và sửa trực tiếp owner;
 - tránh wrapper/observer/capture/DOM patch hậu kỳ;
 - sau thay đổi đáng kể, test lại **đề cố định → ma trận → Rút câu → chỉnh → lưu**;
