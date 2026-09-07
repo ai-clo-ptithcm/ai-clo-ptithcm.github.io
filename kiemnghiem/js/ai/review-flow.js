@@ -118,7 +118,7 @@ async function runSemanticSimilarityCheck(batch,draft){
  const button=$('#checkSemanticSimilarity'),box=$('#aiSemanticSimilarity'),status=$('#aiSemanticStatus');
  if(!button||!box)return;
  button.disabled=true;button.textContent='✦ AI đang phân tích…';
- if(status)status.textContent='Gemini đang so sánh bản chất nội dung…';
+ if(status)status.textContent='AI đang so sánh bản chất nội dung…';
  box.innerHTML='<p class="ai-similar-empty checking">Đang phân tích cấu trúc kiến thức, dữ kiện và hướng giải…</p>';
  try{
   const options=['A','B','C','D'].map(k=>`${k}. ${$('#draft'+k)?.value||''}`).join('\n');
@@ -133,7 +133,7 @@ async function runSemanticSimilarityCheck(batch,draft){
   if(error){let detail;try{detail=await error.context?.json()}catch{}throw new Error(detail?.error||error.message)}
   if(!data?.success)throw new Error(data?.error||'Không thể phân tích độ giống nội dung.');
   const domain=disciplineText(data.discipline_group),matches=data.matches||[];
-  if(status)status.textContent=`Đã kiểm tra ${domain.nature}${data.model?` · ${data.model}`:''}`;
+  if(status)status.textContent=`Đã kiểm tra ${domain.nature} · AI`;
   box.innerHTML=matches.length?matches.map(item=>`<article class="ai-similar-item math ${scoreClass(Number(item.score||0)/100)}"><div><b>${esc(item.code||'—')}</b><span class="ai-similar-score">${Number(item.score||0)}% giống ${esc(domain.noun)}</span>${item.only_surface_changed?'<span class="badge red">Chỉ thay dữ kiện bề mặt</span>':''}</div><p>${esc(item.content||'')}</p><small>${esc(item.reason||'')}</small></article>`).join(''):`<p class="ai-similar-empty">AI không phát hiện câu giống đáng kể về ${esc(domain.nature)}.</p>`;
   renderMath(box);
   button.textContent='✦ Kiểm tra lại bằng AI';

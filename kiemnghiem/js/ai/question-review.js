@@ -10,7 +10,7 @@ aiHistory=async function(){
  try{
   captureQuestionFilters();
   const batches=await q('ai_generation_batches','*, chapters(name), clos(code)',x=>x.eq('subject_id',state.subjectId).order('created_at',{ascending:false}).limit(30));
-  questionWorkspace('Các phiên tạo câu hỏi AI','Chọn phiên để tiếp tục duyệt trong trang.',`<div class="history-list">${batches.map(b=>`<button data-batch="${b.id}"><span><b>${esc(b.clos?.code)} · ${esc(b.chapters?.name)}</b><small>${new Date(b.created_at).toLocaleString('vi-VN')} · ${b.generated_count}/${b.requested_count} câu · ${esc(b.model||'Gemini')}</small></span><span class="badge ${b.status==='completed'?'green':'red'}">${esc(b.status)}</span></button>`).join('')||'<div class="empty">Chưa có phiên AI nào.</div>'}</div>`);
+  questionWorkspace('Các phiên tạo câu hỏi AI','Chọn phiên để tiếp tục duyệt trong trang.',`<div class="history-list">${batches.map(b=>`<button data-batch="${b.id}"><span><b>${esc(b.clos?.code)} · ${esc(b.chapters?.name)}</b><small>${new Date(b.created_at).toLocaleString('vi-VN')} · ${b.generated_count}/${b.requested_count} câu · AI</small></span><span class="badge ${b.status==='completed'?'green':'red'}">${esc(b.status)}</span></button>`).join('')||'<div class="empty">Chưa có phiên AI nào.</div>'}</div>`);
   $$('.history-list [data-batch]').forEach(b=>b.onclick=()=>reviewBatch(b.dataset.batch,0));
  }catch(ex){err(ex)}
 };
