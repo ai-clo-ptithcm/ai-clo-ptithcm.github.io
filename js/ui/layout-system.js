@@ -1,9 +1,9 @@
-/* AI-CLO PTITHCM V12.4.24 — shared layout adapter.
+/* AI-CLO PTITHCM V12.6.12 — shared layout adapter.
    Tags recurring KPI/action/filter patterns so the generic layout framework controls responsive behavior after render.
    Domain/module CSS owns first-paint layout; this adapter does not rely on direct module selectors in layout-system.css. */
 (()=>{
 'use strict';
-const VERSION='12.4.24';
+const VERSION='12.6.12';
 let observer=null,queued=false;
 
 const directElements=el=>[...el.children].filter(x=>!x.hidden&&getComputedStyle(x).display!=='none');
@@ -70,6 +70,14 @@ function queue(){
   scan(host||document);
  });
 }
+function loadUserBulkActions(){
+ if(document.querySelector('script[data-aiclo-user-bulk]'))return;
+ const script=document.createElement('script');
+ script.src='js/system/user-bulk-actions.js?v=12.6.12';
+ script.async=false;
+ script.dataset.aicloUserBulk='1';
+ document.head.appendChild(script);
+}
 function init(){
  scan(document);
  const host=document.querySelector('#content');
@@ -77,6 +85,7 @@ function init(){
   observer=new MutationObserver(()=>queue());
   observer.observe(host,{childList:true,subtree:true});
  }
+ loadUserBulkActions();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 window.AICLO_LAYOUT_SYSTEM=Object.freeze({version:VERSION,scan:()=>scan(document)});
