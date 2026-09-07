@@ -108,7 +108,9 @@ export default {
           try {
             if (!full_name) throw new Error("Thiếu họ và tên.");
             if (!validEmail(email)) throw new Error("Email không hợp lệ.");
-            if (role !== "teacher" && role !== "student") throw new Error("Vai trò chỉ được là teacher hoặc student.");
+            if (role !== "admin" && role !== "teacher" && role !== "student") {
+              throw new Error("Vai trò chỉ được là admin, teacher hoặc student.");
+            }
             if (role === "student" && !mssv) throw new Error("Sinh viên phải có MSSV.");
             if (emailsInRequest.has(email)) throw new Error("Email bị trùng trong file nhập.");
             if (mssv && mssvInRequest.has(mssv)) throw new Error("MSSV bị trùng trong file nhập.");
@@ -175,6 +177,11 @@ export default {
         const full_name = clean(body.full_name);
         const email = normalizeEmail(body.email);
         const requestedRole = clean(body.role) as Role;
+
+        if (target.role === "admin" && requestedRole !== "admin") {
+          return reply({ success: false, error: "Không được hạ quyền tài khoản Admin." }, 403);
+        }
+
         const role: Role = target.role === "admin" ? "admin" : requestedRole;
         const mssv = role === "student" ? clean(body.mssv) : "";
 
@@ -184,7 +191,7 @@ export default {
           return reply({ success: false, error: "Vai trò không hợp lệ." });
         }
         if (target.role !== "admin" && role === "admin") {
-          return reply({ success: false, error: "Không hỗ trợ nâng tài khoản thành Admin tại đây." }, 403);
+          return reply({ success: false, error: "Không hỗ trợ nâng tài khoản hiện có thành Admin. Hãy tạo một tài khoản Admin mới." }, 403);
         }
         if (role === "student" && !mssv) return reply({ success: false, error: "Sinh viên phải có MSSV." });
 
