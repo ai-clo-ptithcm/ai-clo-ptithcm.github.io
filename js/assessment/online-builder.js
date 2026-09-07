@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.6.28 — Online Assessment Builder module. */
+/* AI-CLO PTITHCM V12.6.29 — Online Assessment Builder module. */
 (() => {
   "use strict";
   window.AICLO_ASSESSMENT_MODULES = window.AICLO_ASSESSMENT_MODULES || {};
@@ -747,26 +747,6 @@
       }
     }
 
-    function syncVisibleMatrix(ctx, root = getAssessmentRoot()) {
-      let changed = false;
-      qsa(".v122-matrix-input", root || document).forEach((el) => {
-        const key = el.dataset.key;
-        if (!key) return;
-        const next = Math.max(0, +el.value || 0), current = +ctx.matrix[key] || 0;
-        if (next !== current) {
-          ctx.matrix[key] = next;
-          changed = true;
-        }
-      });
-      if (changed) {
-        ctx.selected = [];
-        ctx.mixedDrawReady = false;
-        ctx.selectionDirty = true;
-        cleanMatrix(ctx);
-      }
-      return changed;
-    }
-
     function bindBuilder(ctx) {
       const c = getAssessmentRoot();
       qs("#v122BuilderBack", c).onclick = () => ctx.examId ? openExamDetail(ctx.examId) : exams(c);
@@ -854,7 +834,6 @@
           ctx.mixedDrawReady = false;
           ctx.selectionDirty = true;
           cleanMatrix(ctx);
-          renderBuilder(ctx);
         },
       );
       qsa("[data-v122-replace]", c).forEach((el) =>
@@ -880,47 +859,33 @@
       qs("#v126AddFixed", c)?.addEventListener("click", () => openFixedQuestionPicker(ctx));
       qs("#v126AiFixed", c)?.addEventListener("click", () => openAiFixedQuestionWindow(ctx));
       const draw = qs("#v122Draw", c);
-      if (draw) {
-        draw.onmousedown = (e) => {
-          syncVisibleMatrix(ctx, c);
-          if (document.activeElement?.classList?.contains("v122-matrix-input")) e.preventDefault();
-        };
-        draw.onclick = () => {
-          try {
-            syncVisibleMatrix(ctx, c);
-            validateBuilder(ctx);
-            ctx.selected = drawSelection(ctx);
-            ctx.selectionDirty = true;
-            renderBuilder(ctx);
-            notify(`Đã rút ${ctx.selected.length} câu phù hợp ma trận`);
-          } catch (e) {
-            showError(e);
-          }
-        };
-      }
+      if (draw) draw.onclick = () => {
+        try {
+          validateBuilder(ctx);
+          ctx.selected = drawSelection(ctx);
+          ctx.selectionDirty = true;
+          renderBuilder(ctx);
+          notify(`Đã rút ${ctx.selected.length} câu phù hợp ma trận`);
+        } catch (e) {
+          showError(e);
+        }
+      };
       const mixedDraw = qs("#v126DrawRandom", c);
-      if (mixedDraw) {
-        mixedDraw.onmousedown = (e) => {
-          syncVisibleMatrix(ctx, c);
-          if (document.activeElement?.classList?.contains("v122-matrix-input")) e.preventDefault();
-        };
-        mixedDraw.onclick = () => {
-          try {
-            syncVisibleMatrix(ctx, c);
-            const total = validateBuilder(ctx);
-            ctx.selected = drawSelection(ctx);
-            if (ctx.selected.length !== total) throw new Error("Không rút đủ phần câu ngẫu nhiên theo ma trận.");
-            ctx.mixedDrawReady = true;
-            ctx.selectionDirty = true;
-            renderBuilder(ctx);
-            const fixed = fixedQuestions(ctx).length;
-            notify(`Đã kiểm tra đủ ma trận: ${fixed} câu cố định + ${total - fixed} câu ngẫu nhiên.`);
-          } catch (e) {
-            ctx.mixedDrawReady = false;
-            showError(e);
-          }
-        };
-      }
+      if (mixedDraw) mixedDraw.onclick = () => {
+        try {
+          const total = validateBuilder(ctx);
+          ctx.selected = drawSelection(ctx);
+          if (ctx.selected.length !== total) throw new Error("Không rút đủ phần câu ngẫu nhiên theo ma trận.");
+          ctx.mixedDrawReady = true;
+          ctx.selectionDirty = true;
+          renderBuilder(ctx);
+          const fixed = fixedQuestions(ctx).length;
+          notify(`Đã kiểm tra đủ ma trận: ${fixed} câu cố định + ${total - fixed} câu ngẫu nhiên.`);
+        } catch (e) {
+          ctx.mixedDrawReady = false;
+          showError(e);
+        }
+      };
       qs("#v122Save", c).onclick = () => saveBuilder(ctx);
     }
     function cleanMatrix(ctx) {
