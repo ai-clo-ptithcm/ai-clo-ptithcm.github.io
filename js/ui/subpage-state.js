@@ -1,18 +1,20 @@
-/* AI-CLO PTITHCM V12.3.6 — shared subpage/workspace persistence.
+/* AI-CLO PTITHCM V12.6.23 — shared subpage/workspace persistence + screen history.
    One state contract for every full-page child workspace.
    Module-specific draft stores remain the source of form data; this layer restores WHERE the user was. */
 (()=>{
 'use strict';
-const VERSION='12.3.6';
+const VERSION='12.6.23';
 const TTL=24*60*60*1000;
 const SCROLL_IDLE_MS=400;
 const DETECT_IDLE_MS=90;
-let restoring=false,queued=false,observer=null,pendingStudentId='',navigationInstalled=false;
+const HISTORY_LIMIT=40;
+let restoring=false,queued=false,observer=null,pendingStudentId='',navigationInstalled=false,backInstalled=false,baseHeaderBack=null;
 let detectTimer=null,scrollTimer=null,cacheKey='',cacheValue=null,cacheSignature='';
 const registry=new Map();
 const userId=()=>state?.user?.id||'guest';
 const storageKey=()=>`aiclo:v1182:subpage:${userId()}`;
 const legacyKey=()=>`aiclo:v1181:subpage:${userId()}`;
+const historyKey=()=>`aiclo:v12623:screen-history:${userId()}`;
 const safeParse=v=>{try{return JSON.parse(v||'null')}catch{return null}};
 const normalize=x=>{if(!x)return null;const {updated_at,...rest}=x;return rest};
 const signature=x=>{try{return JSON.stringify(normalize(x))}catch{return''}};
@@ -33,8 +35,27 @@ function write(x){
  try{sessionStorage.setItem(key,JSON.stringify(value));sessionStorage.removeItem(legacyKey());cacheKey=key;cacheValue=value;cacheSignature=sig;return true}catch{return false}
 }
 function clear(){try{sessionStorage.removeItem(storageKey());sessionStorage.removeItem(legacyKey())}catch{}pendingStudentId='';resetCache()}
+function readHistory(){try{const rows=safeParse(sessionStorage.getItem(historyKey()));return Array.isArray(rows)?rows:[]}catch{return[]}}
+function writeHistory(rows){try{sessionStorage.setItem(historyKey(),JSON.stringify((rows||[]).slice(-HISTORY_LIMIT)))}catch{}}
+function clearHistory(){try{sessionStorage.removeItem(historyKey())}catch{}}
 const context=()=>({space:state?.space||'system',view:state?.view||'dashboard',subjectId:state?.subjectId||null});
-function remember(kind,payload={}){if(restoring||!kind)return false;return write({...context(),kind,...payload,scrollY:Math.max(0,Math.round(window.scrollY||0))})}
+const rootSnapshot=()=>({...context(),kind:'view-root',scrollY:Math.max(0,Math.round(window.scrollY||0))});
+const screenKey=x=>x?`${x.space||'system'}|${x.view||'dashboard'}|${x.subjectId||''}|${x.kind||'view-root'}|${x.entityType||''}|${x.entityId||''}|${x.mode||''}`:'';
+function pushParent(next){
+ const current=read();
+ if(current&&screenKey(current)===screenKey(next))return;
+ const parent=current&&current.space===next.space&&current.view===next.view&&(current.subjectId||null)===(next.subjectId||null)?normalize(current):rootSnapshot();
+ if(screenKey(parent)===screenKey(next))return;
+ const rows=readHistory();
+ if(rows.length&&screenKey(rows[rows.length-1])===screenKey(parent))return;
+ rows.push(parent);writeHistory(rows);
+}
+function remember(kind,payload={}){
+ if(restoring||!kind)return false;
+ const next={...context(),kind,...payload,scrollY:Math.max(0,Math.round(window.scrollY||0))};
+ pushParent(next);
+ return write(next)
+}
 function sameContext(x){return !!x&&x.space===(state?.space||'system')&&x.view===(state?.view||'dashboard')&&(x.subjectId||null)===(state?.subjectId||null)}
 function savePosition(){const x=read();if(!x||!sameContext(x))return false;const y=Math.max(0,Math.round(window.scrollY||0));if(Math.abs((+x.scrollY||0)-y)<4)return false;return write({...x,scrollY:y})}
 function waitFor(fn,timeout=3500){return new Promise(resolve=>{const start=Date.now(),tick=()=>{let v;try{v=fn()}catch{}if(v)return resolve(v);if(Date.now()-start>=timeout)return resolve(null);setTimeout(tick,60)};tick()})}
@@ -70,6 +91,35 @@ function queueRestore(reason){
  queued=true;setTimeout(async()=>{queued=false;if(document.hidden||liveChildWorkspace()||document.querySelector('#modal[open],#confirmDialog[open]'))return;await restore(reason)},55)
 }
 function applyStartupLocation(){const x=read();if(!x)return false;if(x.subjectId){state.subjectId=x.subjectId;try{localStorage.setItem('aiclo_subject',x.subjectId)}catch{}}if(x.space){state.space=x.space;try{localStorage.setItem('aiclo_space',x.space)}catch{}}if(x.view)state.view=x.view;return true}
+function applyScreenContext(x){
+ if(!x)return;
+ if(x.subjectId){state.subjectId=x.subjectId;try{localStorage.setItem('aiclo_subject',x.subjectId)}catch{};try{fillSubjectSelect?.()}catch{}}
+ if(x.space){state.space=x.space;try{localStorage.setItem('aiclo_space',x.space)}catch{}}
+ if(x.view)state.view=x.view;
+ try{window.v95RefreshShell?.()}catch{}
+}
+async function restoreScreen(x){
+ if(!x)return false;
+ closeDrawer?.();
+ applyScreenContext(x);
+ if(x.kind==='view-root'){
+  clear();
+  if(typeof window.render==='function')await window.render();
+  if(Number.isFinite(+x.scrollY)){const y=Math.max(0,+x.scrollY);requestAnimationFrame(()=>requestAnimationFrame(()=>window.scrollTo({top:y,left:0,behavior:'auto'})))}
+  return true;
+ }
+ restoring=true;try{write(x)}finally{restoring=false}
+ if(typeof window.render==='function')await window.render();
+ return restore('screen-back');
+}
+async function goBackScreen(){
+ const rows=readHistory();
+ if(rows.length){const target=rows.pop();writeHistory(rows);return restoreScreen(target)}
+ clear();
+ if(typeof baseHeaderBack==='function'){baseHeaderBack.call($('#systemHomeBtn'));return true}
+ if(state.space==='course'&&window.AICLO_NAVIGATION?.enterSystem){window.AICLO_NAVIGATION.enterSystem('dashboard');return true}
+ return false;
+}
 async function fetchExam(id){if(!id)return null;try{const {data,error}=await db.from('exams').select('*').eq('id',id).maybeSingle();if(error)throw error;return data||null}catch(e){console.warn('AI-CLO subpage: cannot load exam',e);return null}}
 register('exam-detail',{
  detect(){if(!document.querySelector('.assessment-detail-page'))return null;const id=activeExamId();return id?{entityType:'exam',entityId:id}:null},
@@ -97,26 +147,32 @@ register('final-workspace',{
  async restore(){try{await window.AICLO_FEATURES?.ensureView?.('exams')}catch{}if(typeof window.render==='function')await window.render();return !!(await waitFor(()=>document.querySelector('.question-workspace'),3200))}
 });
 function installEnterApp(){const base=window.enterApp;if(typeof base!=='function'||base.__aicloSubpageState)return;const wrapped=function(...args){applyStartupLocation();const r=base.apply(this,args);Promise.resolve(r).finally(()=>queueRestore('enter-app'));return r};wrapped.__aicloSubpageState=true;wrapped.__aicloBase=base;window.enterApp=wrapped}
-function installNavigation(){if(navigationInstalled)return;navigationInstalled=true;const base=window.navigate;if(typeof base!=='function'||base.__aicloSubpageNavigation)return;const wrapped=function(view,...args){if(!restoring){const x=read();if(x&&view!==state.view)clear()}return base.call(this,view,...args)};wrapped.__aicloSubpageNavigation=true;wrapped.__aicloBase=base;window.navigate=wrapped}
-function explicitLeaveTarget(el){return el?.closest?.('#nav [data-view],#systemHomeBtn,#courseSystemReturn,#logoutBtn,[data-open-course],#examDetailBack,#academicProfileBack,#questionBack,#finalAssessmentListBack,[data-aiclo-subpage-back]')}
+function installNavigation(){if(navigationInstalled)return;navigationInstalled=true;const base=window.navigate;if(typeof base!=='function'||base.__aicloSubpageNavigation)return;const wrapped=function(view,...args){if(!restoring&&view!==state.view){clear();clearHistory()}return base.call(this,view,...args)};wrapped.__aicloSubpageNavigation=true;wrapped.__aicloBase=base;window.navigate=wrapped}
+function installHeaderBack(){
+ if(backInstalled)return;
+ const b=$('#systemHomeBtn');if(!b)return;
+ backInstalled=true;baseHeaderBack=b.onclick;
+ b.onclick=e=>{e?.preventDefault?.();goBackScreen()};
+}
+function explicitLeaveTarget(el){return el?.closest?.('#nav [data-view],#courseSystemReturn,#logoutBtn,[data-open-course],#examDetailBack,#academicProfileBack,#questionBack,#finalAssessmentListBack,[data-aiclo-subpage-back]')}
 function isBuilderBack(el){const b=el?.closest?.('.ub-workspace button,.assessment-builder-v122 button');if(!b)return false;return /quay lại|danh sách|hủy/i.test(String(b.textContent||''))}
 document.addEventListener('click',e=>{
  const target=e.target.closest?.('[data-attempts],[data-profile],[data-student-profile]');
  if(target?.dataset.attempts&&!document.querySelector('.assessment-detail-page'))remember('exam-detail',{entityType:'exam',entityId:target.dataset.attempts});
  if(target?.dataset.profile||target?.dataset.studentProfile){pendingStudentId=target.dataset.profile||target.dataset.studentProfile;remember('student-profile',{entityType:'student',entityId:pendingStudentId,originView:state.view})}
- if(explicitLeaveTarget(e.target)||isBuilderBack(e.target))clear();
+ if(explicitLeaveTarget(e.target)||isBuilderBack(e.target)){clear();clearHistory()}
 },true);
-document.addEventListener('change',e=>{if(e.target?.matches?.('#subjectSelect'))clear()},true);
+document.addEventListener('change',e=>{if(e.target?.matches?.('#subjectSelect')){clear();clearHistory()}},true);
 document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTimeout(detectTimer);detect();savePosition()}else queueRestore('visible')});
 window.addEventListener('pagehide',()=>{clearTimeout(detectTimer);detect();savePosition()});
 window.addEventListener('pageshow',()=>queueRestore('pageshow'));
 window.addEventListener('scroll',()=>{clearTimeout(scrollTimer);scrollTimer=setTimeout(()=>{scrollTimer=null;savePosition()},SCROLL_IDLE_MS)},{passive:true});
 function init(){
- installEnterApp();installNavigation();
+ installEnterApp();installNavigation();installHeaderBack();
  const host=document.querySelector('#content');
  if(host&&!observer){observer=new MutationObserver(records=>{if(records.some(r=>r.addedNodes.length||r.removedNodes.length))scheduleDetect('content-change')});observer.observe(host,{childList:true,subtree:true})}
  detect();queueRestore('init')
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
-window.AICLO_SUBPAGE_STATE=Object.freeze({version:VERSION,remember,clear,current:read,restore:()=>restore('api'),detect,savePosition,isRestoring:()=>restoring,register,unregister,applyStartupLocation});
+window.AICLO_SUBPAGE_STATE=Object.freeze({version:VERSION,remember,clear,current:read,restore:()=>restore('api'),detect,savePosition,isRestoring:()=>restoring,register,unregister,applyStartupLocation,goBack:goBackScreen,history:readHistory,clearHistory});
 })();
