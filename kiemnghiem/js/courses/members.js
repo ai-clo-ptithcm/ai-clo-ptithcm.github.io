@@ -66,6 +66,7 @@ function renderTeachers(body,members,profiles){
 }
 
 async function renderCourseMembers(c){
+ if(c?.id==='v109MembersBody')c=document.querySelector('#content')||c;
  if(state.space!=='course')return systemUsersRenderer?.(c);
  if(!state.subjectId){c.replaceChildren(empty());return}
  const subject=activeSubject();
