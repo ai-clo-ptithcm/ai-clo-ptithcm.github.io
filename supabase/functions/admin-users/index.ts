@@ -2,7 +2,15 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "npm:@supabase/server@^1";
 
 type Role = "admin" | "teacher" | "student";
-type Action = "create" | "update" | "reset_password" | "ban" | "unban" | "delete";
+type Action =
+  | "create"
+  | "update"
+  | "reset_password"
+  | "ban"
+  | "unban"
+  | "delete"
+  | "bulk_ban"
+  | "bulk_reset_password";
 
 interface AccountInput {
   full_name?: string;
@@ -15,11 +23,15 @@ interface RequestPayload {
   action?: Action;
   users?: AccountInput[];
   user_id?: string;
+  user_ids?: string[];
+  subject_id?: string;
   full_name?: string;
   email?: string;
   role?: Role;
   mssv?: string | null;
 }
+
+const teacherRoles = new Set(["teacher", "lecturer", "giangvien"]);
 
 function reply(body: Record<string, unknown>, status = 200) {
   return Response.json(body, { status });
@@ -82,13 +94,136 @@ export default {
         .eq("id", callerId)
         .single();
 
-      if (callerError || !caller || caller.role !== "admin" || caller.is_active === false) {
-        return reply({ success: false, error: "Chỉ Admin đang hoạt động mới được quản lý tài khoản." }, 403);
+      if (callerError || !caller || caller.is_active === false) {
+        return reply({ success: false, error: "Tài khoản không có quyền thực hiện thao tác này." }, 403);
       }
 
       const body: RequestPayload = await req.json();
       // Tương thích giao diện cũ: nếu chỉ gửi users thì hiểu là tạo tài khoản.
       const action: Action = body.action || "create";
+      const callerRole = clean(caller.role);
+      const callerIsAdmin = callerRole === "admin";
+      const callerIsTeacher = teacherRoles.has(callerRole);
+      const isBulkAction = action === "bulk_ban" || action === "bulk_reset_password";
+
+      if (!callerIsAdmin && !(callerIsTeacher && isBulkAction)) {
+        return reply({ success: false, error: "Chỉ Admin được quản lý tài khoản; Giảng viên chỉ được thao tác hàng loạt với sinh viên thuộc học phần mình phụ trách." }, 403);
+      }
+
+      if (isBulkAction) {
+        const ids = [...new Set((Array.isArray(body.user_ids) ? body.user_ids : [])
+          .map(clean)
+          .filter(Boolean))].slice(0, 100);
+        if (!ids.length) return reply({ success: false, error: "Chưa chọn tài khoản." });
+
+        const subjectId = clean(body.subject_id);
+        let allowedStudentIds: Set<string> | null = null;
+
+        if (!callerIsAdmin) {
+          if (!subjectId) return reply({ success: false, error: "Thiếu học phần để xác minh quyền Giảng viên." }, 400);
+
+          const { data: callerMemberships, error: membershipError } = await ctx.supabaseAdmin
+            .from("subject_members")
+            .select("user_id, role")
+            .eq("subject_id", subjectId)
+            .eq("user_id", callerId);
+          if (membershipError) return reply({ success: false, error: publicError(membershipError) }, 400);
+          const teachesSubject = (callerMemberships || []).some((m) => teacherRoles.has(clean(m.role)));
+          if (!teachesSubject) {
+            return reply({ success: false, error: "Giảng viên chỉ được quản lý sinh viên trong học phần mình phụ trách." }, 403);
+          }
+
+          const { data: studentMemberships, error: studentMembershipError } = await ctx.supabaseAdmin
+            .from("subject_members")
+            .select("user_id, role")
+            .eq("subject_id", subjectId)
+            .in("user_id", ids);
+          if (studentMembershipError) return reply({ success: false, error: publicError(studentMembershipError) }, 400);
+          allowedStudentIds = new Set(
+            (studentMemberships || [])
+              .filter((m) => clean(m.role) === "student")
+              .map((m) => clean(m.user_id)),
+          );
+        }
+
+        const { data: targets, error: targetsError } = await ctx.supabaseAdmin
+          .from("profiles")
+          .select("id, full_name, email, role, is_active")
+          .in("id", ids);
+        if (targetsError) return reply({ success: false, error: publicError(targetsError) }, 400);
+
+        const targetRows = (targets || []) as Array<Record<string, any>>;
+        const targetById = new Map<string, Record<string, any>>(targetRows.map((p) => [clean(p.id), p]));
+        const results: Record<string, unknown>[] = [];
+
+        for (const id of ids) {
+          const target = targetById.get(id);
+          const base = {
+            id,
+            full_name: target?.full_name || "",
+            email: target?.email || "",
+          };
+
+          try {
+            if (!target) throw new Error("Không tìm thấy tài khoản.");
+            const targetRole = clean(target.role);
+
+            if (targetRole === "admin") throw new Error("Không được thao tác hàng loạt với tài khoản Admin.");
+            if (id === callerId) throw new Error("Không thể áp dụng thao tác lên tài khoản đang đăng nhập.");
+            if (!callerIsAdmin) {
+              if (targetRole !== "student" || !allowedStudentIds?.has(id)) {
+                throw new Error("Sinh viên không thuộc học phần mà Giảng viên được phép quản lý.");
+              }
+            }
+
+            if (action === "bulk_reset_password") {
+              const password = temporaryPassword();
+              const { error } = await ctx.supabaseAdmin.auth.admin.updateUserById(id, { password });
+              if (error) throw error;
+              results.push({ ...base, temporary_password: password, success: true });
+              continue;
+            }
+
+            if (target.is_active === false) {
+              results.push({ ...base, success: true, skipped: true, message: "Tài khoản đã bị khóa trước đó." });
+              continue;
+            }
+
+            const { error: authError } = await ctx.supabaseAdmin.auth.admin.updateUserById(id, {
+              ban_duration: "876000h",
+            });
+            if (authError) throw authError;
+
+            const { error: profileError } = await ctx.supabaseAdmin.from("profiles").update({
+              is_active: false,
+              locked_at: new Date().toISOString(),
+              locked_by: callerId,
+              updated_at: new Date().toISOString(),
+            }).eq("id", id);
+            if (profileError) {
+              await ctx.supabaseAdmin.auth.admin.updateUserById(id, { ban_duration: "none" });
+              throw profileError;
+            }
+            results.push({ ...base, success: true });
+          } catch (error) {
+            results.push({ ...base, temporary_password: "", success: false, error: publicError(error) });
+          }
+        }
+
+        const successCount = results.filter((x) => x.success).length;
+        const failedCount = results.length - successCount;
+        return reply({
+          success: true,
+          action,
+          results,
+          success_count: successCount,
+          failed_count: failedCount,
+        });
+      }
+
+      if (!callerIsAdmin) {
+        return reply({ success: false, error: "Chỉ Admin đang hoạt động mới được quản lý tài khoản." }, 403);
+      }
 
       if (action === "create") {
         const users = Array.isArray(body.users) ? body.users.slice(0, 100) : [];
@@ -184,7 +319,7 @@ export default {
 
         const role: Role = target.role === "admin" ? "admin" : requestedRole;
         const mssv = role === "student" ? clean(body.mssv) : "";
-        const targetIsTeacher = ["teacher", "lecturer", "giangvien"].includes(String(target.role));
+        const targetIsTeacher = teacherRoles.has(clean(target.role));
         const promotingToAdmin = target.role !== "admin" && role === "admin";
 
         if (!full_name) return reply({ success: false, error: "Thiếu họ và tên." });
@@ -299,6 +434,9 @@ export default {
       }
 
       if (action === "unban") {
+        if (target.role === "admin" && targetId !== callerId) {
+          return reply({ success: false, error: "Không được thay đổi trạng thái tài khoản Admin khác." }, 403);
+        }
         const { error: authError } = await ctx.supabaseAdmin.auth.admin.updateUserById(targetId, {
           ban_duration: "none",
         });
