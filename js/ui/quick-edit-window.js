@@ -1,6 +1,6 @@
-/* AI-CLO PTITHCM V12.6.14 — unified quick-edit presentation and assessment source save.
-   Assessment "Sửa nhanh" now corrects the source question first, then lets the Builder
-   keep the same corrected content in its working snapshot. */
+/* AI-CLO PTITHCM V12.6.15 — unified quick-edit presentation, source save and AI question setup.
+   Assessment "Sửa nhanh" corrects the source question. "AI sinh câu hỏi" opens a scoped
+   request window before generation and keeps provider/model details only in the result preview. */
 (()=>{
 'use strict';
 
@@ -13,6 +13,9 @@ const MODE_CLASSES=[
 ];
 const OPTION_KEYS=['A','B','C','D'];
 let sourceToken=0;
+let assessmentBuilderCtx=null;
+let pendingAiGeneration=null;
+let activeAiButton=null;
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,ch=>({
  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
@@ -218,17 +221,160 @@ function openAssessmentQuickWindow(ctx,title,html,bind){
  return true;
 }
 
+function resetAiButton(button){
+ if(!button)return;
+ if(button.isConnected){
+  button.disabled=false;
+  button.textContent='✦ AI sinh câu hỏi';
+  button.title='AI sinh một câu mới đúng Chương · Chủ đề · CLO của vị trí hiện tại';
+ }
+ if(activeAiButton===button)activeAiButton=null;
+}
+function enhanceAiButtons(root=document){
+ root.querySelectorAll?.('[data-v122-ai]').forEach(button=>{
+  if(!button.disabled)button.textContent='✦ AI sinh câu hỏi';
+  button.title='AI sinh một câu mới đúng Chương · Chủ đề · CLO của vị trí hiện tại';
+ });
+}
+function readAiScopeFromButton(button){
+ const card=button?.closest?.('.ub-question-card,.v122-question-card');
+ const badges=[...(card?.querySelectorAll?.('.ub-question-head .badge')||[])];
+ const clo=card?.querySelector?.('.ub-question-head .badge.red')?.textContent?.trim()||'—';
+ const regular=badges.filter(x=>!x.classList.contains('red'));
+ return {
+  question:card?.querySelector?.('.ub-question-head b')?.textContent?.trim()||'Câu hỏi',
+  chapter:regular[0]?.textContent?.trim()||'—',
+  topic:regular[1]?.textContent?.trim()||'—',
+  clo
+ };
+}
+function aiSetupMarkup(scope){
+ return `<div class="v126-fixed-window assessment-ai-question-setup">
+  <p class="hint">AI sẽ sinh một câu mới đúng phạm vi của câu đang thay. Chương, Chủ đề và CLO được khóa theo ma trận hiện tại.</p>
+  <div class="v126-fixed-scope">
+   <label class="field">Chương<input value="${esc(scope.chapter)}" readonly></label>
+   <label class="field">Chủ đề<input value="${esc(scope.topic)}" readonly></label>
+   <label class="field">CLO<input value="${esc(scope.clo)}" readonly></label>
+  </div>
+  <label class="field wide">Yêu cầu thêm cho AI<textarea id="v126ReplaceAiRequirements" rows="5" placeholder="Ví dụ: bài tính ngắn, số liệu đẹp, không dùng L'Hôpital, mức độ tương đương câu hiện tại..."></textarea></label>
+  <p class="hint">Câu mới chỉ được lưu vào <b>Ngân hàng luyện tập – kiểm tra</b> và nhận mã câu riêng khi bạn xem trước rồi bấm <b>Dùng câu này</b>.</p>
+  <div class="form-actions"><button type="button" class="secondary" id="v126ReplaceAiCancel">Hủy</button><button type="button" class="ai-btn" id="v126ReplaceAiGenerate">✦ Sinh câu hỏi</button></div>
+ </div>`;
+}
+function openAiQuestionSetup(ctx,button,originalHandler){
+ if(typeof ctx?.modal!=='function'||typeof originalHandler!=='function')return false;
+ const scope=readAiScopeFromButton(button);
+ ctx.modal(`AI-CLO | AI sinh câu hỏi · ${scope.question}`,aiSetupMarkup(scope));
+ const dialog=document.querySelector('#modal');
+ if(!dialog)return false;
+ if(window.AICLO_APP_WINDOW?.open){
+  window.AICLO_APP_WINDOW.open(dialog,{className:'assessment-required-question-modal',width:760,height:540});
+ }
+ resetAiButton(button);
+ const cancel=document.querySelector('#v126ReplaceAiCancel');
+ const generate=document.querySelector('#v126ReplaceAiGenerate');
+ cancel?.addEventListener('click',()=>ctx.closeModal?.());
+ generate?.addEventListener('click',()=>{
+  const requirements=document.querySelector('#v126ReplaceAiRequirements')?.value.trim()||'';
+  pendingAiGeneration={requirements,button};
+  activeAiButton=button;
+  ctx.closeModal?.();
+  queueMicrotask(()=>originalHandler.call(button));
+ });
+ dialog.addEventListener('close',()=>{
+  if(activeAiButton!==button)resetAiButton(button);
+ },{once:true});
+ return true;
+}
+function normalizeAiTitle(title){
+ return String(title||'').replace(/do Gemini đề xuất/gi,'do AI đề xuất').replace(/câu Gemini/gi,'câu AI');
+}
+function normalizeAiNotice(message){
+ return String(message||'').replace(/câu Gemini/gi,'câu AI').replace(/Gemini sinh câu/gi,'AI sinh câu hỏi');
+}
+function makeAssessmentDbProxy(ctx){
+ const realDb=ctx?.db;
+ const realFunctions=realDb?.functions;
+ if(!realDb||!realFunctions?.invoke)return realDb;
+ const invoke=realFunctions.invoke.bind(realFunctions);
+ const functionsProxy=new Proxy(realFunctions,{
+  get(target,prop){
+   if(prop==='invoke')return (name,options={})=>{
+    if(name==='generate-one-question'&&pendingAiGeneration){
+     const request=pendingAiGeneration;
+     pendingAiGeneration=null;
+     const body={...(options?.body||{}),additional_requirements:request.requirements||''};
+     return invoke(name,{...(options||{}),body});
+    }
+    return invoke(name,options);
+   };
+   const value=Reflect.get(target,prop,target);
+   return typeof value==='function'?value.bind(target):value;
+  }
+ });
+ return new Proxy(realDb,{
+  get(target,prop){
+   if(prop==='functions')return functionsProxy;
+   const value=Reflect.get(target,prop,target);
+   return typeof value==='function'?value.bind(target):value;
+  }
+ });
+}
+function wrapAssessmentModal(ctx){
+ const original=ctx?.modal;
+ if(typeof original!=='function')return original;
+ return (title,html,...rest)=>{
+  const isAiPreview=String(html||'').includes('v122-ai-preview');
+  const result=original(normalizeAiTitle(title),html,...rest);
+  if(isAiPreview){
+   const dialog=document.querySelector('#modal');
+   const button=activeAiButton;
+   if(dialog&&window.AICLO_APP_WINDOW?.open){
+    window.AICLO_APP_WINDOW.open(dialog,{className:'assessment-required-question-modal',width:780,height:680});
+   }
+   dialog?.addEventListener('close',()=>resetAiButton(button),{once:true});
+  }
+  return result;
+ };
+}
+
+/* Intercept the per-question AI button before Builder's onclick starts the network request. */
+window.addEventListener('click',event=>{
+ const button=event.target.closest?.('[data-v122-ai]');
+ if(!button||button.disabled||!assessmentBuilderCtx)return;
+ const originalHandler=button.onclick;
+ if(typeof originalHandler!=='function')return;
+ event.preventDefault();
+ event.stopImmediatePropagation();
+ openAiQuestionSetup(assessmentBuilderCtx,button,originalHandler);
+},true);
+
+function installAiButtonEnhancer(){
+ const run=()=>enhanceAiButtons(document);
+ run();
+ const host=document.querySelector('#content');
+ if(host)new MutationObserver(run).observe(host,{childList:true,subtree:true,characterData:true});
+}
+
 function installAssessmentAdapter(){
  const modules=window.AICLO_ASSESSMENT_MODULES;
  const base=modules?.createOnlineBuilderModule;
  if(typeof base!=='function'||base.__aicloUnifiedQuickEdit)return;
  const wrapped=function(ctx){
   const originalOpenDrawer=ctx?.openDrawer;
-  const nextCtx={...ctx,openDrawer:(title,html,bind,opts)=>{
-   const isQuick=/^Sửa nhanh\b/i.test(String(title||''))&&String(html||'').includes('ub-quick-edit');
-   if(isQuick&&openAssessmentQuickWindow(ctx,title,html,bind))return;
-   return typeof originalOpenDrawer==='function'?originalOpenDrawer(title,html,bind,opts):undefined;
-  }};
+  const originalNotify=ctx?.notify;
+  const nextCtx={
+   ...ctx,
+   db:makeAssessmentDbProxy(ctx),
+   modal:wrapAssessmentModal(ctx),
+   notify:(message,bad)=>typeof originalNotify==='function'?originalNotify(normalizeAiNotice(message),bad):undefined,
+   openDrawer:(title,html,bind,opts)=>{
+    const isQuick=/^Sửa nhanh\b/i.test(String(title||''))&&String(html||'').includes('ub-quick-edit');
+    if(isQuick&&openAssessmentQuickWindow(ctx,title,html,bind))return;
+    return typeof originalOpenDrawer==='function'?originalOpenDrawer(title,html,bind,opts):undefined;
+   }
+  };
+  assessmentBuilderCtx=nextCtx;
   return base(nextCtx);
  };
  wrapped.__aicloUnifiedQuickEdit=true;
@@ -236,5 +382,6 @@ function installAssessmentAdapter(){
 }
 
 installAssessmentAdapter();
-window.AICLO_QUICK_EDIT_WINDOW=Object.freeze({version:'12.6.14'});
+document.addEventListener('DOMContentLoaded',installAiButtonEnhancer,{once:true});
+window.AICLO_QUICK_EDIT_WINDOW=Object.freeze({version:'12.6.15'});
 })();
