@@ -4,6 +4,7 @@
 const V='12.6.21';
 const teacherRoles=['teacher','lecturer','giangvien'];
 const isTeacher=r=>teacherRoles.includes(r);
+let installed=false;
 
 function navItems(){
  const r=role();
@@ -45,14 +46,10 @@ function setupAppAi(){
 function refreshShell(){
  const nav=$('#nav');if(!nav)return;
  nav.innerHTML=navItems().filter(x=>x[3]).map(([view,icon,label])=>`<button data-view="${view}" class="${state.view===view?'active':''}"><span class="nav-icon">${icon}</span><span${view==='users'?' id="usersNavLabel"':''}>${esc(label)}</span></button>`).join('');
- const course=activeSubject(),aside=$('.app>aside');
- aside?.classList.toggle('course-space',state.space==='course');
+ const course=activeSubject(),aside=$('.app>aside');aside?.classList.toggle('course-space',state.space==='course');
  let context=$('#courseContext'),systemReturn=$('#courseSystemReturn');
  if(state.space==='course'&&course){
-  if(!systemReturn){
-   systemReturn=document.createElement('button');systemReturn.id='courseSystemReturn';systemReturn.className='course-system-return';systemReturn.type='button';systemReturn.innerHTML='<span>←</span><b>Về hệ thống</b>';
-   $('.app>aside>.logo')?.after(systemReturn);
-  }
+  if(!systemReturn){systemReturn=document.createElement('button');systemReturn.id='courseSystemReturn';systemReturn.className='course-system-return';systemReturn.type='button';systemReturn.innerHTML='<span>←</span><b>Về hệ thống</b>';$('.app>aside>.logo')?.after(systemReturn)}
   systemReturn.onclick=()=>window.AICLO_NAVIGATION?.enterSystem?.('dashboard');
   if(!context){context=document.createElement('div');context.id='courseContext';context.className='course-context';systemReturn.after(context)}
   context.innerHTML=`<b>${esc(course.name)}</b><span>${esc(course.semester||'')} · ${esc(course.academic_year||'')}</span>`;
@@ -64,17 +61,17 @@ function refreshShell(){
  setContextBadge();setupAppAi();window.AICLO_PROFILE?.makeMiniUserClickable?.();
 }
 
-const openUserProfile=p=>window.AICLO_PROFILE?.openUserProfile?.(p);
-window.AICLO_V108={version:V,openUserProfile,openNoticeDetail:window.AICLO_NOTIFICATION_DETAIL?.openNoticeDetail};
-window.v95RefreshShell=refreshShell;
-
-const domainRender=window.render;
-window.render=async function(){
- await domainRender();
+function installCanonicalShell(){
+ if(installed)return;installed=true;
+ const domainRender=window.render;
+ window.v95RefreshShell=refreshShell;
+ window.render=async function(){await domainRender();refreshShell();window.AICLO_PROFILE?.enhanceUserLists?.()};
+ const openUserProfile=p=>window.AICLO_PROFILE?.openUserProfile?.(p);
+ window.AICLO_V108={version:V,openUserProfile,openNoticeDetail:window.AICLO_NOTIFICATION_DETAIL?.openNoticeDetail};
+ window.AICLO_SHELL=Object.freeze({version:V,refresh:refreshShell,setContextBadge,setupAppAi});
+ document.documentElement.dataset.aicloVersion=V;
  refreshShell();
- window.AICLO_PROFILE?.enhanceUserLists?.();
-};
+}
 
-window.AICLO_SHELL=Object.freeze({version:V,refresh:refreshShell,setContextBadge,setupAppAi});
-document.addEventListener('DOMContentLoaded',()=>{document.documentElement.dataset.aicloVersion=V;refreshShell()});
+document.addEventListener('DOMContentLoaded',()=>setTimeout(installCanonicalShell,0));
 })();
