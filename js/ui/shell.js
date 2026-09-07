@@ -1,7 +1,7 @@
-/* AI-CLO PTITHCM V12.6.21 — canonical app shell/navigation runtime owner. */
+/* AI-CLO PTITHCM V12.6.22 — canonical app shell/navigation runtime owner. */
 (() => {
 'use strict';
-const V='12.6.21';
+const V='12.6.22';
 const teacherRoles=['teacher','lecturer','giangvien'];
 const isTeacher=r=>teacherRoles.includes(r);
 let installed=false;
@@ -26,6 +26,14 @@ function navItems(){
  ];
 }
 
+function syncSpaceState(){
+ const app=$('#app');
+ if(!app)return;
+ const space=state.space==='course'?'course':'system';
+ app.dataset.space=space;
+ document.documentElement.dataset.aicloSpace=space;
+}
+
 function setContextBadge(){
  const heading=$('.page-heading');if(!heading)return;
  let badge=$('#v108ContextBadge');
@@ -44,6 +52,7 @@ function setupAppAi(){
 }
 
 function refreshShell(){
+ syncSpaceState();
  const nav=$('#nav');if(!nav)return;
  nav.innerHTML=navItems().filter(x=>x[3]).map(([view,icon,label])=>`<button data-view="${view}" class="${state.view===view?'active':''}"><span class="nav-icon">${icon}</span><span${view==='users'?' id="usersNavLabel"':''}>${esc(label)}</span></button>`).join('');
  const course=activeSubject(),aside=$('.app>aside');aside?.classList.toggle('course-space',state.space==='course');
@@ -65,13 +74,21 @@ function installCanonicalShell(){
  if(installed)return;installed=true;
  const domainRender=window.render;
  window.v95RefreshShell=refreshShell;
- window.render=async function(){await domainRender();refreshShell();window.AICLO_PROFILE?.enhanceUserLists?.()};
+ window.render=async function(){
+  refreshShell();
+  await domainRender();
+  refreshShell();
+  window.AICLO_PROFILE?.enhanceUserLists?.();
+ };
  const openUserProfile=p=>window.AICLO_PROFILE?.openUserProfile?.(p);
  window.AICLO_V108={version:V,openUserProfile,openNoticeDetail:window.AICLO_NOTIFICATION_DETAIL?.openNoticeDetail};
- window.AICLO_SHELL=Object.freeze({version:V,refresh:refreshShell,setContextBadge,setupAppAi});
+ window.AICLO_SHELL=Object.freeze({version:V,refresh:refreshShell,setContextBadge,setupAppAi,syncSpaceState});
  document.documentElement.dataset.aicloVersion=V;
  refreshShell();
 }
 
-document.addEventListener('DOMContentLoaded',()=>setTimeout(installCanonicalShell,0));
+/* shell.js is deferred and loaded after compatibility layers. Install immediately,
+ * before DOMContentLoaded/boot can reveal the app, so mobile never paints the
+ * course header geometry while the active space is actually system. */
+installCanonicalShell();
 })();
