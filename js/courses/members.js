@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.6.19 — canonical course members owner. */
+/* AI-CLO PTITHCM V12.6.20 — canonical course members owner. */
 (() => {
 'use strict';
 
@@ -7,6 +7,8 @@ const teacherRoles=['teacher','lecturer','giangvien'];
 const roleLabel=r=>r==='admin'?'Admin':teacherRoles.includes(r)?'Giảng viên':'Sinh viên';
 const memberTime=value=>{if(!value)return'Chưa từng đăng nhập';const seconds=Math.max(0,(Date.now()-new Date(value).getTime())/1000);if(seconds<90)return'Vừa xong';if(seconds<3600)return`${Math.floor(seconds/60)} phút trước`;if(seconds<86400)return`${Math.floor(seconds/3600)} giờ trước`;if(seconds<172800)return'Hôm qua';if(seconds<2592000)return`${Math.floor(seconds/86400)} ngày trước`;return new Date(value).toLocaleString('vi-VN')};
 const memberTabKey=()=>`aiclo:v12619:members:${state.subjectId}`;
+const profileButton=p=>`<button type="button" class="link-btn" data-aiclo-profile="${p.id}">${esc(p.full_name||'Chưa đặt tên')}</button>`;
+const bindProfiles=root=>window.AICLO_PROFILE?.bindProfileLinks?.(root);
 
 async function openClassMembershipManager(members,memberType='students'){
  const subject=activeSubject();
@@ -59,7 +61,7 @@ function renderStudents(body,members,profiles){
  const list=profiles.filter(p=>p.role==='student');
  const total=list.length,locked=list.filter(p=>p.is_active===false).length;
  body.innerHTML=`<div class="stats v1053-class-stats"><div class="stat"><small>Tổng sinh viên</small><b>${total}</b></div><div class="stat"><small>Đang hoạt động</small><b>${total-locked}</b></div><div class="stat"><small>Đang bị khóa</small><b>${locked}</b></div></div><div class="toolbar v1053-class-toolbar"><input id="classMemberSearch" placeholder="Tìm sinh viên…"><select id="classMemberStatus"><option value="all">Tất cả trạng thái</option><option value="active">Đang hoạt động</option><option value="locked">Đã khóa</option></select><button id="manageCurrentClass" class="primary">+ Thêm / bớt sinh viên</button></div><div class="panel table-wrap v1053-class-table"><table><thead><tr><th>Họ tên</th><th>Email / MSSV</th><th>Đăng nhập gần nhất</th><th>Trạng thái</th><th></th></tr></thead><tbody id="classMemberRows"></tbody></table></div>`;
- const draw=()=>{const s=$('#classMemberSearch').value.toLowerCase(),sf=$('#classMemberStatus').value,rows=list.filter(p=>[p.full_name,p.email,p.mssv].some(v=>String(v||'').toLowerCase().includes(s))).filter(p=>sf==='all'||(sf==='active'?p.is_active!==false:p.is_active===false));$('#classMemberRows').innerHTML=rows.map(p=>`<tr class="${p.is_active===false?'account-locked':''}"><td><b>${esc(p.full_name||'Chưa đặt tên')}</b></td><td>${esc(p.email||'—')}<br><small>${esc(p.mssv||'')}</small></td><td>${esc(memberTime(p.last_login_at))}</td><td><span class="badge ${p.is_active===false?'red':'green'}">${p.is_active===false?'Đã khóa':'Hoạt động'}</span></td><td class="row-actions"><button class="danger" data-remove-class-member="${membership.get(p.id)?.id||''}">Gỡ</button></td></tr>`).join('')||'<tr><td colspan="5" class="empty">Không có sinh viên phù hợp.</td></tr>'};
+ const draw=()=>{const s=$('#classMemberSearch').value.toLowerCase(),sf=$('#classMemberStatus').value,rows=list.filter(p=>[p.full_name,p.email,p.mssv].some(v=>String(v||'').toLowerCase().includes(s))).filter(p=>sf==='all'||(sf==='active'?p.is_active!==false:p.is_active===false));$('#classMemberRows').innerHTML=rows.map(p=>`<tr class="${p.is_active===false?'account-locked':''}"><td>${profileButton(p)}</td><td>${esc(p.email||'—')}<br><small>${esc(p.mssv||'')}</small></td><td>${esc(memberTime(p.last_login_at))}</td><td><span class="badge ${p.is_active===false?'red':'green'}">${p.is_active===false?'Đã khóa':'Hoạt động'}</span></td><td class="row-actions"><button class="danger" data-remove-class-member="${membership.get(p.id)?.id||''}">Gỡ</button></td></tr>`).join('')||'<tr><td colspan="5" class="empty">Không có sinh viên phù hợp.</td></tr>';bindProfiles($('#classMemberRows'))};
  draw();$('#classMemberSearch').oninput=draw;$('#classMemberStatus').onchange=draw;$('#manageCurrentClass').onclick=()=>openClassMembershipManager(members,'students');
  $('#classMemberRows').onclick=async e=>{const b=e.target.closest('[data-remove-class-member]');if(!b||!b.dataset.removeClassMember)return;if(!await confirmAction('Gỡ khỏi lớp','Gỡ tài khoản này khỏi học phần hiện tại? Tài khoản hệ thống vẫn được giữ nguyên.',{confirmLabel:'Gỡ khỏi lớp',danger:true}))return;let {error}=await db.from('subject_members').delete().eq('id',b.dataset.removeClassMember);if(error)return err(error);toast('Đã gỡ thành viên khỏi lớp');render()};
 }
@@ -70,7 +72,7 @@ function renderTeachers(body,members,profiles){
  const list=profiles.filter(p=>teacherIds.has(p.id)&&teacherRoles.includes(p.role));
  const active=list.filter(p=>p.is_active!==false).length;
  body.innerHTML=`<div class="stats v1053-class-stats"><div class="stat"><small>Tổng giảng viên</small><b>${list.length}</b></div><div class="stat"><small>Đang hoạt động</small><b>${active}</b></div><div class="stat"><small>Đang bị khóa</small><b>${list.length-active}</b></div></div><div class="toolbar v1053-class-toolbar"><input id="courseTeacherSearch" placeholder="Tìm giảng viên…"><select id="courseTeacherStatus"><option value="all">Tất cả trạng thái</option><option value="active">Đang hoạt động</option><option value="locked">Đã khóa</option></select>${role()==='admin'?'<button id="manageCourseTeachers" class="primary">+ Thêm / bớt giảng viên</button>':''}</div><div class="panel table-wrap"><table><thead><tr><th>Họ tên</th><th>Email</th><th>Đăng nhập gần nhất</th><th>Trạng thái</th></tr></thead><tbody id="courseTeacherRows"></tbody></table></div>`;
- const draw=()=>{const s=$('#courseTeacherSearch').value.trim().toLowerCase(),sf=$('#courseTeacherStatus').value,rows=list.filter(p=>!s||`${p.full_name||''} ${p.email||''}`.toLowerCase().includes(s)).filter(p=>sf==='all'||(sf==='active'?p.is_active!==false:p.is_active===false));$('#courseTeacherRows').innerHTML=rows.map(p=>`<tr><td><b>${esc(p.full_name||'Chưa đặt tên')}</b></td><td>${esc(p.email||'—')}</td><td>${esc(memberTime(p.last_login_at))}</td><td><span class="badge ${p.is_active===false?'red':'green'}">${p.is_active===false?'Đã khóa':'Hoạt động'}</span></td></tr>`).join('')||'<tr><td colspan="4" class="empty">Không có giảng viên phù hợp.</td></tr>'};
+ const draw=()=>{const s=$('#courseTeacherSearch').value.trim().toLowerCase(),sf=$('#courseTeacherStatus').value,rows=list.filter(p=>!s||`${p.full_name||''} ${p.email||''}`.toLowerCase().includes(s)).filter(p=>sf==='all'||(sf==='active'?p.is_active!==false:p.is_active===false));$('#courseTeacherRows').innerHTML=rows.map(p=>`<tr><td>${profileButton(p)}</td><td>${esc(p.email||'—')}</td><td>${esc(memberTime(p.last_login_at))}</td><td><span class="badge ${p.is_active===false?'red':'green'}">${p.is_active===false?'Đã khóa':'Hoạt động'}</span></td></tr>`).join('')||'<tr><td colspan="4" class="empty">Không có giảng viên phù hợp.</td></tr>';bindProfiles($('#courseTeacherRows'))};
  draw();$('#courseTeacherSearch').oninput=draw;$('#courseTeacherStatus').onchange=draw;if($('#manageCourseTeachers'))$('#manageCourseTeachers').onclick=()=>openClassMembershipManager(members,'teachers');
 }
 
@@ -90,5 +92,5 @@ async function renderCourseMembers(c){
 }
 
 window.users=renderCourseMembers;
-window.AICLO_COURSE_MEMBERS=Object.freeze({version:'12.6.19',render:renderCourseMembers,openManager:openClassMembershipManager});
+window.AICLO_COURSE_MEMBERS=Object.freeze({version:'12.6.20',render:renderCourseMembers,openManager:openClassMembershipManager});
 })();
