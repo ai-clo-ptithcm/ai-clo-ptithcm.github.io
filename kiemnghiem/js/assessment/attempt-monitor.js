@@ -5,6 +5,7 @@
   const POLL_MS = 500;
   const LEAVE_GRACE_MS = 1200;
   const SUPPRESS_MS = 900;
+  const LAUNCH_TIMEOUT_MS = 15000;
   const STORAGE_PREFIX = "aiclo:attempt-monitor:";
 
   let activeAttemptId = null;
@@ -13,7 +14,9 @@
   let incidentOpen = false;
   let suppressUntil = 0;
   let requestedFullscreen = false;
-  let overlay = null;
+  let launchPending = false;
+  let launchTimer = null;
+  let panel = null;
 
   const page = () => document.querySelector(".student-attempt-page[data-attempt-id]");
   const storageKey = (attemptId) => `${STORAGE_PREFIX}${attemptId}`;
@@ -53,15 +56,17 @@
     return `${Math.floor(sec / 60)} phút ${sec % 60} giây`;
   }
 
-  function ensureOverlay() {
-    if (overlay?.isConnected) return overlay;
-    overlay = document.createElement("aside");
-    overlay.id = "attemptMonitorOverlay";
-    overlay.className = "attempt-monitor";
-    overlay.hidden = true;
-    overlay.setAttribute("aria-live", "polite");
-    overlay.innerHTML = `
-      <div class="attempt-monitor-main">
+  function ensurePanel() {
+    if (panel?.isConnected) return panel;
+    const sidebar = document.querySelector("#app > aside");
+    if (!sidebar) return null;
+    panel = document.createElement("section");
+    panel.id = "attemptMonitorPanel";
+    panel.className = "attempt-monitor";
+    panel.hidden = true;
+    panel.setAttribute("aria-live", "polite");
+    panel.innerHTML = `
+      <div class="attempt-monitor-head">
         <span class="attempt-monitor-dot" aria-hidden="true"></span>
         <div><b>Giám sát phiên làm bài</b><small id="attemptMonitorText">Đang theo dõi việc rời màn hình trên thiết bị này.</small></div>
       </div>
@@ -69,16 +74,19 @@
         <span><small>Rời màn hình</small><b id="attemptMonitorCount">0</b></span>
         <span><small>Tổng thời gian</small><b id="attemptMonitorAway">0 giây</b></span>
       </div>
-      <button id="attemptMonitorFullscreen" type="button" class="secondary compact">Bật toàn màn hình</button>
+      <button id="attemptMonitorFullscreen" type="button" class="secondary compact">Bật lại toàn màn hình</button>
     `;
-    document.body.appendChild(overlay);
-    overlay.querySelector("#attemptMonitorFullscreen")?.addEventListener("click", requestFullscreen);
-    return overlay;
+    const foot = sidebar.querySelector(".aside-foot");
+    if (foot) sidebar.insertBefore(panel, foot);
+    else sidebar.appendChild(panel);
+    panel.querySelector("#attemptMonitorFullscreen")?.addEventListener("click", () => requestFullscreen());
+    return panel;
   }
 
-  function renderOverlay(message = "") {
+  function renderPanel(message = "") {
     if (!activeAttemptId) return;
-    const box = ensureOverlay();
+    const box = ensurePanel();
+    if (!box) return;
     const state = readState(activeAttemptId);
     box.hidden = false;
     box.classList.toggle("warning", !!message);
@@ -90,31 +98,44 @@
       text.textContent =
         message ||
         (document.fullscreenElement
-          ? "Đang ở chế độ toàn màn hình. Hệ thống sẽ cảnh báo khi rời màn hình."
-          : "Nên bật toàn màn hình. Hệ thống sẽ cảnh báo khi bạn rời tab hoặc cửa sổ.");
+          ? "Đang toàn màn hình. Hệ thống sẽ cảnh báo khi bạn rời tab hoặc cửa sổ."
+          : "Bạn đang ngoài chế độ toàn màn hình. Có thể bật lại bên dưới.");
     if (count) count.textContent = String(state.violations || 0);
     if (away) {
       const liveAway = awayStartedAt ? Date.now() - awayStartedAt : 0;
       away.textContent = formatAway((state.totalAwayMs || 0) + liveAway);
     }
     if (fullscreen) {
-      fullscreen.textContent = document.fullscreenElement ? "Đang toàn màn hình" : "Bật toàn màn hình";
+      fullscreen.hidden = !!document.fullscreenElement;
       fullscreen.disabled = !!document.fullscreenElement;
     }
   }
 
   function activate(attemptId) {
     if (!attemptId) return;
+    launchPending = false;
+    if (launchTimer) {
+      clearTimeout(launchTimer);
+      launchTimer = null;
+    }
     if (String(activeAttemptId) === String(attemptId)) {
-      renderOverlay();
+      renderPanel();
       return;
     }
     activeAttemptId = String(attemptId);
     missingSince = 0;
     awayStartedAt = null;
     incidentOpen = false;
-    requestedFullscreen = false;
-    renderOverlay();
+    if (document.fullscreenElement) requestedFullscreen = true;
+    renderPanel();
+  }
+
+  async function exitRequestedFullscreen() {
+    if (!requestedFullscreen || !document.fullscreenElement || !document.exitFullscreen) return;
+    suppressUntil = Date.now() + SUPPRESS_MS;
+    try {
+      await document.exitFullscreen();
+    } catch {}
   }
 
   async function deactivate() {
@@ -124,13 +145,8 @@
     missingSince = 0;
     incidentOpen = false;
     awayStartedAt = null;
-    if (overlay) overlay.hidden = true;
-    if (requestedFullscreen && document.fullscreenElement && document.exitFullscreen) {
-      suppressUntil = Date.now() + SUPPRESS_MS;
-      try {
-        await document.exitFullscreen();
-      } catch {}
-    }
+    if (panel) panel.hidden = true;
+    await exitRequestedFullscreen();
     requestedFullscreen = false;
   }
 
@@ -142,7 +158,7 @@
     state.violations += 1;
     state.events.push({ type: reason, at: new Date().toISOString() });
     writeState(activeAttemptId, state);
-    renderOverlay(`Cảnh báo: bạn vừa rời màn hình làm bài (${state.violations} lần).`);
+    renderPanel(`Cảnh báo: bạn vừa rời màn hình (${state.violations} lần).`);
   }
 
   function endAway() {
@@ -157,25 +173,62 @@
     writeState(activeAttemptId, state);
     incidentOpen = false;
     awayStartedAt = null;
-    renderOverlay();
+    renderPanel();
   }
 
-  async function requestFullscreen() {
-    if (!activeAttemptId || document.fullscreenElement) return;
+  async function requestFullscreen({ launch = false } = {}) {
+    if (document.fullscreenElement) {
+      requestedFullscreen = true;
+      return true;
+    }
     const target = document.documentElement;
     if (!target.requestFullscreen) {
-      renderOverlay("Trình duyệt này không hỗ trợ chế độ toàn màn hình từ trang web.");
-      return;
+      if (activeAttemptId) renderPanel("Trình duyệt này không hỗ trợ toàn màn hình từ trang web.");
+      return false;
     }
     suppressUntil = Date.now() + SUPPRESS_MS;
     try {
       await target.requestFullscreen();
       requestedFullscreen = true;
-      renderOverlay();
+      if (launch) launchPending = true;
+      if (activeAttemptId) renderPanel();
+      return true;
     } catch {
-      renderOverlay("Không thể bật toàn màn hình. Bạn có thể tiếp tục làm bài nhưng hệ thống vẫn theo dõi việc rời màn hình.");
+      if (activeAttemptId) renderPanel("Không thể bật toàn màn hình. Hệ thống vẫn tiếp tục theo dõi việc rời màn hình.");
+      return false;
     }
   }
+
+  function prepareAttemptLaunch() {
+    launchPending = true;
+    requestFullscreen({ launch: true });
+    if (launchTimer) clearTimeout(launchTimer);
+    launchTimer = window.setTimeout(async () => {
+      launchTimer = null;
+      if (!launchPending || activeAttemptId || page()) return;
+      launchPending = false;
+      await exitRequestedFullscreen();
+      requestedFullscreen = false;
+    }, LAUNCH_TIMEOUT_MS);
+  }
+
+  document.addEventListener("click", (event) => {
+    const launch = event.target?.closest?.("[data-v122-start], [data-v122-resume]");
+    if (launch) {
+      prepareAttemptLaunch();
+      return;
+    }
+    if (launchPending && event.target?.closest?.("#confirmCancel")) {
+      launchPending = false;
+      if (launchTimer) {
+        clearTimeout(launchTimer);
+        launchTimer = null;
+      }
+      exitRequestedFullscreen().finally(() => {
+        requestedFullscreen = false;
+      });
+    }
+  });
 
   document.addEventListener("visibilitychange", () => {
     if (!activeAttemptId) return;
@@ -204,7 +257,7 @@
         if (document.hasFocus() && !document.hidden) endAway();
       }, 250);
     }
-    renderOverlay();
+    renderPanel();
   });
 
   window.setInterval(() => {
@@ -212,7 +265,7 @@
     if (current) {
       missingSince = 0;
       activate(current.dataset.attemptId || "unknown");
-      renderOverlay();
+      renderPanel();
       return;
     }
     if (!activeAttemptId) return;
@@ -224,9 +277,10 @@
   }, POLL_MS);
 
   window.AICLO_ATTEMPT_MONITOR = Object.freeze({
-    version: "frontend-only-1",
+    version: "frontend-only-2",
     activeAttemptId: () => activeAttemptId,
     snapshot: () => (activeAttemptId ? readState(activeAttemptId) : null),
     requestFullscreen,
+    prepareAttemptLaunch,
   });
 })();
