@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.5.0 — student assessment list, detail and attempt workspaces. */
+/* AI-CLO PTITHCM V12.6.5 — student assessment list, detail and attempt workspaces. */
 
 .student-exam-list-page,
 .student-exam-detail-v125,
@@ -99,4 +99,54 @@
   .student-attempt-page .exam-timer{width:100%;box-sizing:border-box;text-align:center}
   .student-attempt-page .preview-nav{grid-template-columns:1fr}
   .student-attempt-page .preview-nav #v122LiveSubmit{grid-column:auto}
+}
+
+/* V12.6.5 — compact live-test presentation. Keep assessment logic and autosave untouched. */
+.student-attempt-page{gap:10px}
+.student-attempt-page-head{grid-template-columns:auto minmax(0,1fr);gap:10px;padding:0;align-items:center}
+.student-attempt-page-head>button{width:auto!important;min-height:34px;padding:7px 11px!important;font-size:0;line-height:1;white-space:nowrap}
+.student-attempt-page-head>button::after{content:"← Quay lại";font-size:13px;font-weight:700;line-height:1.2}
+.student-attempt-title{display:flex;align-items:baseline;gap:8px;min-width:0}
+.student-attempt-title small{font-size:10px;white-space:nowrap;letter-spacing:.06em}
+.student-attempt-title h3{font-size:clamp(17px,1.7vw,21px);line-height:1.2;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.student-attempt-card{padding:14px 18px}
+.student-attempt-page .live-exam{gap:11px}
+.student-attempt-page .live-top{padding:0 0 9px}
+.student-attempt-page .live-top>div:first-child{gap:0}
+.student-attempt-page .live-top .badge{display:none!important}
+.student-attempt-page .live-context{min-height:16px;margin-top:-4px;align-items:center}
+.student-attempt-page .live-context span:not(:last-child){display:none!important}
+.student-attempt-page .live-context span:last-child{margin-left:auto;padding:0;background:none!important;font-size:11px}
+.student-attempt-page .preview-question{font-size:17px;font-weight:400;line-height:1.5;margin:0}
+.student-attempt-page .live-options{gap:7px}
+.student-attempt-page .live-options label{padding:9px 11px;min-height:46px}
+.student-attempt-page .live-options label>b{font-size:0}
+.student-attempt-page .live-options label>b::after{font-size:15px;font-weight:800}
+.student-attempt-page .live-options label:nth-child(1)>b::after{content:"A"}
+.student-attempt-page .live-options label:nth-child(2)>b::after{content:"B"}
+.student-attempt-page .live-options label:nth-child(3)>b::after{content:"C"}
+.student-attempt-page .live-options label:nth-child(4)>b::after{content:"D"}
+.student-attempt-page .question-jump{padding-top:9px;row-gap:6px}
+.student-attempt-page .question-jump button{width:30px;height:30px}
+.student-attempt-page .preview-nav{padding-top:10px}
+.student-attempt-page .exam-timer{font-size:19px;padding:7px 11px}
+
+@media(max-width:760px){
+  .student-attempt-page-head{grid-template-columns:auto minmax(0,1fr);align-items:center}
+  .student-attempt-page-head>button{width:auto!important}
+  .student-attempt-title{display:grid;gap:1px}
+  .student-attempt-title h3{white-space:normal;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
+  .student-attempt-card{padding:12px}
+  .student-attempt-page .live-exam{gap:10px}
+  .student-attempt-page .live-context span:last-child{width:auto;margin-left:auto}
+  .student-attempt-page .preview-question{font-size:16px;line-height:1.45}
+  .student-attempt-page .live-options label{padding:9px 10px;min-height:44px}
+}
+
+@media(max-width:430px){
+  .student-attempt-page-head{grid-template-columns:1fr;gap:6px}
+  .student-attempt-page-head>button{justify-self:start}
+  .student-attempt-title{display:flex;gap:7px;align-items:baseline}
+  .student-attempt-page .live-top{flex-direction:row;align-items:center}
+  .student-attempt-page .exam-timer{width:auto;text-align:center}
 }
