@@ -184,14 +184,19 @@ Canonical owner:
 
 Hành vi hiện tại:
 
-- khi `.student-attempt-page` đang hoạt động, monitor tự kích hoạt;
+- khi sinh viên bấm **Làm bài** hoặc **Tiếp tục**, monitor yêu cầu Fullscreen ngay trong chính click của người dùng để đáp ứng giới hạn user-gesture của trình duyệt;
+- nếu Fullscreen bị trình duyệt từ chối, bài vẫn được mở và monitor vẫn hoạt động;
+- khi `.student-attempt-page` xuất hiện, monitor kích hoạt theo `attempt_id`;
+- card **Giám sát phiên làm bài** được gắn vào sidebar, ngay trước `.aside-foot`, không còn overlay nổi ở vùng nội dung;
+- card hiển thị trạng thái, số lần rời màn hình, tổng thời gian rời màn hình;
+- khi đã thoát Fullscreen, card hiện nút **Bật lại toàn màn hình**;
 - phát hiện `visibilitychange` khi tab bị ẩn;
 - phát hiện `window blur/focus`;
-- phát hiện `fullscreenchange` khi sinh viên thoát Fullscreen sau khi đã bật;
+- phát hiện `fullscreenchange` khi sinh viên thoát Fullscreen sau khi monitor đã bật;
 - đếm số lần rời màn hình theo từng `attempt_id`;
 - cộng tổng thời gian rời màn hình;
-- hiển thị overlay **Giám sát phiên làm bài** và nút **Bật toàn màn hình**;
-- lưu tạm trạng thái monitor trong `sessionStorage` theo `attempt_id`.
+- lưu tạm trạng thái monitor trong `sessionStorage` theo `attempt_id`;
+- khi rời màn hình làm bài, monitor tự ẩn card và thoát Fullscreen do monitor đã yêu cầu.
 
 Giới hạn bắt buộc:
 
@@ -228,15 +233,16 @@ Nếu lỗi tại bất kỳ bước nào thì dừng ở commit gần nhất.
 
 ### Smoke test riêng cho monitor
 
-1. Dùng tài khoản sinh viên Demo mở một bài đang làm.
-2. Xác nhận overlay **Giám sát phiên làm bài** xuất hiện.
-3. Bấm **Bật toàn màn hình**.
+1. Dùng tài khoản sinh viên Demo mở trang chi tiết một bài kiểm tra.
+2. Bấm **Làm bài** hoặc **Tiếp tục** và xác nhận trình duyệt tự vào Fullscreen ngay từ thao tác này.
+3. Khi màn hình làm bài xuất hiện, xác nhận card **Giám sát phiên làm bài** nằm trong sidebar, không còn panel nổi ở dưới nội dung.
 4. Chuyển tab rồi quay lại: số lần rời màn hình tăng đúng 1 lần cho một incident.
 5. Alt+Tab/chuyển cửa sổ rồi quay lại: cảnh báo hoạt động, không đếm lặp cùng incident.
-6. Thoát Fullscreen: có cảnh báo.
-7. Chuyển qua nhiều câu: overlay không mất trạng thái.
-8. Rời trang làm bài: overlay tự tắt và Fullscreen do monitor bật được thoát hợp lý.
-9. Xác nhận đáp án/timer/nộp bài vẫn hoạt động bình thường.
+6. Thoát Fullscreen: có cảnh báo và card hiện nút **Bật lại toàn màn hình**.
+7. Bấm **Bật lại toàn màn hình**: Fullscreen mở lại.
+8. Chuyển qua nhiều câu: card không mất trạng thái.
+9. Rời trang làm bài hoặc nộp bài: card tự ẩn và Fullscreen do monitor bật được thoát hợp lý.
+10. Xác nhận đáp án/timer/tự lưu/nộp bài vẫn hoạt động bình thường.
 
 ## 10. Quy ước dữ liệu kiểm nghiệm
 
@@ -268,6 +274,7 @@ Chỉ khi người dùng nói rõ **“xuất bản”**:
 - Backup trước khi tạo `/kiemnghiem`: `backup-before-kiemnghiem-v12.6.13-20260907`.
 - Backup trước khi refresh tài liệu staging hiện tại: `backup-before-kiemnghiem-md-refresh-20260907`.
 - Backup trước khi thêm monitor frontend-only: `backup-before-kiemnghiem-attempt-monitor-20260907`.
+- Backup trước khi chuyển monitor vào sidebar và tự bật Fullscreen: `backup-before-kiemnghiem-attempt-monitor-sidebar-20260907`.
 
 ## 13. Điều ChatGPT phải nhớ khi mở chat mới
 
@@ -277,7 +284,8 @@ Nếu người dùng nói “tiếp tục kiểm nghiệm”, “tiếp tục b�
 - chỉ sửa trong `/kiemnghiem`;
 - không đụng root Production;
 - coi A–D là **đã phục hồi**, không làm lại từ đầu;
-- `student-attempt.js` sở hữu luồng làm bài; `attempt-monitor.js` chỉ sở hữu giám sát frontend-only;
+- `student-attempt.js` sở hữu luồng làm bài; `attempt-monitor.js` chỉ sở hữu giám sát frontend-only + Fullscreen của phiên thi;
+- monitor UI nằm trong sidebar, không dùng overlay nổi;
 - không tự ý thêm lưu log monitor lên Supabase;
 - ưu tiên canonical owner và sửa trực tiếp owner;
 - tránh wrapper/observer/capture/DOM patch hậu kỳ;
