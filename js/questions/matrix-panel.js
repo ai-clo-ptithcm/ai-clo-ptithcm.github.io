@@ -1,9 +1,9 @@
-/* AI-CLO PTITHCM V11.6.3
+/* AI-CLO PTITHCM V12.6.43
    Question bank matrix + compact action layout helpers.
    - Chapter / Topic rows × CLO columns.
    - Bulk import is moved from the bank list into the Add question workspace.
    - Gemini/Academy provenance stays visible after filtering and pagination.
-   - Hovering question content shows the full question in a floating preview.
+   - Question hover preview is owned exclusively by js/questions/hover-preview.js.
    - No schema changes. */
 (()=>{
 'use strict';
@@ -13,7 +13,7 @@ const currentBank=()=>window.AICLO_V105?.activeBank?.()||'practice';
 const inBank=(scope,bank)=>window.v105QuestionInBank?window.v105QuestionInBank(scope,bank):(scope===bank||scope==='both');
 const bankLabel=bank=>bank==='secure_exam'?'Đề thi - bảo mật':'Luyện tập - kiểm tra';
 let questionMetaSubject=null,questionMetaPromise=null,questionMetaLoadedAt=0;
-let hoverCard=null,hoverTarget=null,enhanceQueued=false;
+let enhanceQueued=false;
 
 function matrixKey(chapterId,topicId,cloId){return `${chapterId||'__none__'}|${topicId||'__none__'}|${cloId||'__none__'}`}
 
@@ -160,7 +160,7 @@ async function loadQuestionMeta(force=false){
  if(fresh&&!force)return questionMetaPromise;
  questionMetaSubject=sid;questionMetaLoadedAt=Date.now();
  questionMetaPromise=(async()=>{
-  const query=contentFilter(db.from('questions').select('id,origin_type,is_official,content'),sid);
+  const query=contentFilter(db.from('questions').select('id,origin_type,is_official'),sid);
   const {data,error}=await query;
   if(error)throw error;
   return new Map((data||[]).map(x=>[String(x.id),x]));
@@ -169,7 +169,7 @@ async function loadQuestionMeta(force=false){
 }
 
 function originBadgeHtml(meta){
- if(meta?.origin_type==='gemini')return '<br><span class="badge question-origin gemini question-origin-list">✦ Gemini hỗ trợ</span>';
+ if(meta?.origin_type==='gemini')return '<br><span class="badge question-origin gemini question-origin-list">✦ AI hỗ trợ</span>';
  if(meta?.origin_type==='academy')return `<br><span class="badge question-origin academy question-origin-list">🏛 Câu hỏi Học viện</span><br><span class="badge ${meta.is_official?'green':'red'} question-origin-list-state">${meta.is_official?'Đã xác nhận':'Chờ xác nhận'}</span>`;
  return '';
 }
@@ -192,64 +192,6 @@ async function decorateQuestionOrigins(){
  }
 }
 
-function ensureHoverCard(){
- if(hoverCard&&document.body.contains(hoverCard))return hoverCard;
- hoverCard=document.createElement('div');
- hoverCard.id='questionFullHover';hoverCard.className='qbank-question-hover';hoverCard.hidden=true;hoverCard.setAttribute('aria-hidden','true');
- document.body.appendChild(hoverCard);
- return hoverCard;
-}
-
-function hideQuestionHover(){
- if(!hoverCard)return;
- hoverTarget=null;hoverCard.hidden=true;hoverCard.setAttribute('aria-hidden','true');
-}
-
-function positionQuestionHover(target){
- const card=ensureHoverCard(),rect=target.getBoundingClientRect(),pad=14,gap=9;
- const width=Math.min(560,Math.max(320,window.innerWidth-pad*2));
- card.style.width=`${width}px`;card.style.left='0px';card.style.top='0px';card.hidden=false;card.style.visibility='hidden';
- const height=Math.min(card.scrollHeight,window.innerHeight*0.56);
- let left=Math.min(Math.max(pad,rect.left),window.innerWidth-width-pad);
- let top=rect.bottom+gap;
- if(top+height>window.innerHeight-pad)top=Math.max(pad,rect.top-height-gap);
- card.style.left=`${Math.round(left)}px`;card.style.top=`${Math.round(top)}px`;card.style.visibility='visible';
-}
-
-async function showQuestionHover(target){
- if(window.matchMedia?.('(hover: none)').matches)return;
- hoverTarget=target;
- const id=target.dataset.detail;
- let content='';
- try{const map=await loadQuestionMeta();content=map.get(String(id||''))?.content||''}catch{}
- if(hoverTarget!==target)return;
- content=content||String(target.textContent||'').trim();
- const card=ensureHoverCard();
- card.innerHTML='<small>NỘI DUNG ĐẦY ĐỦ</small><div class="qbank-question-hover-content"></div>';
- card.querySelector('.qbank-question-hover-content').textContent=content;
- card.setAttribute('aria-hidden','false');
- positionQuestionHover(target);
- try{renderMath(card)}catch{}
- requestAnimationFrame(()=>{if(hoverTarget===target)positionQuestionHover(target)});
-}
-
-function bindQuestionHover(host){
- if(host.dataset.aicloQuestionHover==='1')return;
- host.dataset.aicloQuestionHover='1';
- host.addEventListener('pointerover',event=>{
-  const target=event.target.closest?.('.question-summary');
-  if(!target||!host.contains(target)||target.contains(event.relatedTarget))return;
-  showQuestionHover(target);
- });
- host.addEventListener('pointerout',event=>{
-  const target=event.target.closest?.('.question-summary');
-  if(!target||target.contains(event.relatedTarget))return;
-  if(hoverTarget===target)hideQuestionHover();
- });
- window.addEventListener('scroll',hideQuestionHover,true);
- window.addEventListener('resize',hideQuestionHover);
-}
-
 function enhance(){
  ensureBulkImportInsideQuestionForm();
  if(!document.querySelector('.v105-bank-tabs')||!document.querySelector('.bank-actions'))return;
@@ -267,7 +209,6 @@ window.AICLO_OPEN_QUESTION_BANK_MATRIX=openQuestionBankMatrix;
 
 document.addEventListener('DOMContentLoaded',()=>{
  const host=document.querySelector('#content');
- if(host)bindQuestionHover(host);
  enhance();
  if(!host)return;
  const observer=new MutationObserver(queueEnhance);
