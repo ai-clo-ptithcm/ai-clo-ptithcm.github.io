@@ -1,8 +1,8 @@
-/* AI-CLO PTITHCM V12.6.28-kiemnghiem — canonical per-view subpage/workspace persistence.
+/* AI-CLO PTITHCM V12.6.29-kiemnghiem — canonical per-view subpage/workspace persistence.
    Navigation owns top-level history; this layer only preserves/restores the child screen inside each view. */
 (()=>{
 'use strict';
-const VERSION='12.6.28-kiemnghiem';
+const VERSION='12.6.29-kiemnghiem';
 const TTL=24*60*60*1000;
 const SCROLL_IDLE_MS=400;
 let restoring=false,scrollTimer=null,pendingStudentId='';
@@ -54,7 +54,10 @@ function clear(target=context()){
 function liveWorkspace(){return document.querySelector('.assessment-builder-v122,.assessment-detail-v122,.assessment-export-center,.assessment-final-builder-v122,.assessment-final-detail-v122,.question-workspace,.academic-profile-page')}
 function stashLive(){
  const host=document.querySelector('#content');if(!host||!liveWorkspace()||document.querySelector('.student-attempt-page')||document.querySelector('#sideDrawer:not(.hidden)'))return false;
- const key=liveKey(context()),fragment=document.createDocumentFragment();while(host.firstChild)fragment.append(host.firstChild);liveCache.set(key,{fragment,scrollY:Math.max(0,Math.round(window.scrollY||0))});return true
+ const key=liveKey(context()),scrollY=Math.max(0,Math.round(window.scrollY||0)),fragment=document.createDocumentFragment();
+ while(host.firstChild)fragment.append(host.firstChild);
+ liveCache.set(key,{fragment,scrollY});
+ return true
 }
 function restoreLive(target=context()){
  const key=liveKey(target),saved=liveCache.get(key),host=document.querySelector('#content');if(!saved||!host)return false;
