@@ -1,5 +1,6 @@
-/* AI-CLO PTITHCM V11 — navigation, course context and live V9.5 compatibility. */
+/* AI-CLO PTITHCM V12.6.28-kiemnghiem — canonical navigation, course context and view history. */
 state.space=localStorage.getItem('aiclo_space')==='course'?'course':'system';
+state.view=localStorage.getItem('aiclo_view')||state.view||'dashboard';
 state.structureEditing=false;
 Object.assign(titles,{systemDashboard:['Tổng quan hệ thống','Theo dõi các học phần và hoạt động chung'],courseDashboard:['Tổng quan môn học','Theo dõi dữ liệu của học phần hiện tại']});
 
@@ -25,26 +26,45 @@ function v95RefreshShell(){
  const course=activeSubject(),aside=$('.app>aside');aside?.classList.toggle('course-space',state.space==='course');
  let context=$('#courseContext'),systemReturn=$('#courseSystemReturn');
  if(state.space==='course'&&course){
-  if(!systemReturn){systemReturn=document.createElement('button');systemReturn.id='courseSystemReturn';systemReturn.className='course-system-return';systemReturn.type='button';systemReturn.innerHTML='<span>←</span><b>Về hệ thống</b>';$('.app>aside>.logo')?.after(systemReturn);systemReturn.onclick=()=>v95EnterSystem('dashboard')}
+  if(!systemReturn){systemReturn=document.createElement('button');systemReturn.id='courseSystemReturn';systemReturn.className='course-system-return';systemReturn.type='button';systemReturn.innerHTML='<span>←</span><b>Về hệ thống</b>';$('.app>aside>.logo')?.after(systemReturn)}
+  systemReturn.onclick=()=>v95EnterSystem('dashboard');
   if(!context){context=document.createElement('div');context.id='courseContext';context.className='course-context';systemReturn.after(context)}
   context.innerHTML=`<b>${esc(course.name)}</b><span>${esc(course.semester)} · ${esc(course.academic_year)}</span>`
  }else{context?.remove();systemReturn?.remove()}
  $('#systemHomeBtn')?.classList.toggle('hidden',state.space!=='course');$('.subject-pick')?.classList.toggle('hidden',state.space!=='course');
  const pick=$('.subject-pick');if(pick&&course){let value=$('.subject-value',pick);if(!value){value=document.createElement('span');value.className='subject-value';pick.append(value)}value.innerHTML=`<b>${esc(course.name)}</b><small>${esc(course.semester)}</small>`}
 }
-function v95EnterSystem(view='dashboard'){state.space='system';state.view=view;localStorage.setItem('aiclo_space','system');v95RefreshShell();navigate(view)}
-function v95EnterCourse(subjectId,view='dashboard'){if(subjectId){state.subjectId=subjectId;localStorage.setItem('aiclo_subject',subjectId);fillSubjectSelect()}state.space='course';state.view=view;localStorage.setItem('aiclo_space','course');v95RefreshShell();return navigate(view)}
+function v95NormalizeTarget(view,space,subjectId){
+ let v=view||'dashboard',s=space==='course'?'course':'system',sid=subjectId||null;
+ if(v==='notifications')s='system';
+ if(s==='system'&&!v95SystemViews.has(v))v='dashboard';
+ if(s==='course'&&!v95CourseViews.has(v))v='dashboard';
+ if(v==='users'&&!canTeach()&&role()!=='admin')v='dashboard';
+ return {space:s,view:v,subjectId:sid};
+}
+async function v95NavigateTo(view,{space=state.space,subjectId=state.subjectId||null}={}){
+ const target=v95NormalizeTarget(view,space,subjectId);
+ window.AICLO_SUBPAGE_STATE?.beforeNavigate?.(target);
+ if(!v95GoingBack&&v95LastLocation&&(v95LastLocation.space!==target.space||v95LastLocation.view!==target.view||v95LastLocation.subjectId!==target.subjectId))v95NavHistory.push({...v95LastLocation});
+ v95GoingBack=false;
+ closeDrawer();
+ state.space=target.space;state.view=target.view;state.subjectId=target.subjectId||state.subjectId||'';
+ localStorage.setItem('aiclo_space',target.space);localStorage.setItem('aiclo_view',target.view);
+ if(target.subjectId)localStorage.setItem('aiclo_subject',target.subjectId);
+ fillSubjectSelect();v95RefreshShell();$('aside')?.classList.remove('open');
+ let t,s;
+ if(state.space==='system'){const globalTitles={dashboard:['Tổng quan hệ thống','Các môn học và hoạt động chung'],subjects:['Môn học','Danh sách các môn bạn được phép truy cập'],questionBanks:['Ngân hàng câu hỏi','Quản trị các ngân hàng câu hỏi độc lập'],notifications:titles.notifications||['Thông báo','Thông báo của toàn hệ thống'],activity:titles.activity||['Nhật ký','Hoạt động gần đây'],users:['Người dùng','Quản lý tài khoản và phân quyền']};[t,s]=globalTitles[target.view]||globalTitles.dashboard}else{const courseTitles={dashboard:['Tổng quan môn học','Theo dõi dữ liệu của học phần hiện tại'],structure:titles.structure,questions:titles.questions,exams:titles.exams,results:titles.results,users:['Danh sách lớp','Sinh viên thuộc học phần hiện tại']};[t,s]=courseTitles[target.view]||courseTitles.dashboard}
+ $('#pageTitle').textContent=t;$('#pageSub').textContent=s;
+ const restoredLive=!!window.AICLO_SUBPAGE_STATE?.restoreLive?.(target);
+ const result=restoredLive?undefined:await render();
+ v95LastLocation={space:state.space,view:state.view,subjectId:state.subjectId||null};
+ if(!restoredLive)await window.AICLO_SUBPAGE_STATE?.afterNavigate?.(target);
+ return result;
+}
+function v95EnterSystem(view='dashboard'){return v95NavigateTo(view,{space:'system',subjectId:state.subjectId||null})}
+function v95EnterCourse(subjectId,view='dashboard'){return v95NavigateTo(view,{space:'course',subjectId:subjectId||state.subjectId||null})}
 window.v95EnterCourse=v95EnterCourse;
-
-navigate=function(v){
- if(v==='notifications'){state.space='system';localStorage.setItem('aiclo_space','system')}
- if(state.space==='system'&&!v95SystemViews.has(v))v='dashboard';if(state.space==='course'&&!v95CourseViews.has(v))v='dashboard';if(v==='users'&&!canTeach()&&role()!=='admin')v='dashboard';
- const target={space:state.space,view:v,subjectId:state.subjectId||null};
- if(!v95GoingBack&&v95LastLocation&&(v95LastLocation.space!==target.space||v95LastLocation.view!==target.view||v95LastLocation.subjectId!==target.subjectId))v95NavHistory.push(v95LastLocation);
- v95GoingBack=false;closeDrawer();state.view=v;v95RefreshShell();$('aside')?.classList.remove('open');let t,s;
- if(state.space==='system'){const globalTitles={dashboard:['Tổng quan hệ thống','Các môn học và hoạt động chung'],subjects:['Môn học','Danh sách các môn bạn được phép truy cập'],questionBanks:['Ngân hàng câu hỏi','Quản trị các ngân hàng câu hỏi độc lập'],notifications:titles.notifications||['Thông báo','Thông báo của toàn hệ thống'],activity:titles.activity||['Nhật ký','Hoạt động gần đây'],users:['Người dùng','Quản lý tài khoản và phân quyền']};[t,s]=globalTitles[v]||globalTitles.dashboard}else{const courseTitles={dashboard:['Tổng quan môn học','Theo dõi dữ liệu của học phần hiện tại'],structure:titles.structure,questions:titles.questions,exams:titles.exams,results:titles.results,users:['Danh sách lớp','Sinh viên thuộc học phần hiện tại']};[t,s]=courseTitles[v]||courseTitles.dashboard}
- $('#pageTitle').textContent=t;$('#pageSub').textContent=s;return render();
-};
+navigate=function(v){return v95NavigateTo(v)};
 
 function v95CourseStatus(s){const today=new Date().toISOString().slice(0,10);if(s.starts_on&&today<s.starts_on)return['Sắp bắt đầu',''];if(s.ends_on&&today>s.ends_on)return['Đã kết thúc',''];return['Đang diễn ra','green']}
 function v95CourseCards(list){return list.map(s=>{const status=v95CourseStatus(s);return `<article class="course-card"><div><span class="course-role">${esc(v95RoleLabel())}</span><span class="badge ${status[1]}">${status[0]}</span><h3>${esc(s.name)}</h3><p>${esc(s.semester)} · ${esc(s.academic_year)}</p><small>Ngân hàng: ${esc(s.question_banks?.name||'Chưa gán')}</small><small>Thời gian: ${esc(s.starts_on||'Chưa đặt')} → ${esc(s.ends_on||'Chưa đặt')}</small></div><div class="course-card-actions"><button class="primary" data-open-course="${s.id}">Vào môn học <b>→</b></button>${role()==='admin'?`<button class="secondary" data-course-settings="${s.id}">Cài đặt</button>`:''}</div></article>`}).join('')||'<div class="empty"><b>Chưa có môn học</b><span>Quản trị viên cần phân công bạn vào một môn học.</span></div>'}
@@ -64,9 +84,19 @@ if(window.AICLO_ASSESSMENT?.teacherClassList){const v95ClassList=window.AICLO_AS
 
 let v95RenderQueue=Promise.resolve(),v95LastRenderKey='';
 async function v95RenderNow(){let c=$('#content'),key=`${state.user?.id||''}:${state.space||''}:${state.subjectId||''}:${state.view||''}`,sameScreen=key===v95LastRenderKey&&c.children.length>0;if(!sameScreen)c.innerHTML='<div class="panel">Đang tải dữ liệu…</div>';else c.classList.add('refreshing-silently');try{let fn=state.view==='dashboard'?dashboard:state.view==='subjects'?subjects:state.view==='questionBanks'?window.systemQuestionBanks:state.view==='structure'?structure:state.view==='questions'?questions:state.view==='exams'?exams:state.view==='results'?results:state.view==='notifications'?notifications:state.view==='activity'?activity:state.view==='users'?users:dashboard;if(typeof fn!=='function')throw new Error('Chức năng Ngân hàng câu hỏi chưa tải xong.');await fn(c);v95LastRenderKey=key;v95RefreshShell()}catch(ex){if(!sameScreen)c.innerHTML=`<div class="panel"><b>Không thể tải dữ liệu</b><p>${esc(ex.message)}</p></div>`;else toast(ex?.message||'Không thể làm mới dữ liệu',true);err(ex)}finally{c.classList.remove('refreshing-silently')}}
-function v95GoBack(){const previous=v95NavHistory.pop();if(!previous)return v95EnterSystem('dashboard');v95GoingBack=true;state.space=previous.space;state.subjectId=previous.subjectId;localStorage.setItem('aiclo_space',previous.space);if(previous.subjectId)localStorage.setItem('aiclo_subject',previous.subjectId);fillSubjectSelect();v95RefreshShell();navigate(previous.view)}
+async function v95GoBack(){
+ if(await window.AICLO_SUBPAGE_STATE?.back?.())return;
+ const previous=v95NavHistory.pop();
+ if(!previous)return v95EnterSystem('dashboard');
+ v95GoingBack=true;
+ return v95NavigateTo(previous.view,{space:previous.space,subjectId:previous.subjectId});
+}
 const v95RenderNowWithLocation=v95RenderNow;
 v95RenderNow=async function(){await v95RenderNowWithLocation();v95LastLocation={space:state.space,view:state.view,subjectId:state.subjectId||null}}
 render=function(){v95RenderQueue=v95RenderQueue.then(v95RenderNow,v95RenderNow);return v95RenderQueue};
-window.AICLO_NAVIGATION=Object.freeze({enterSystem:v95EnterSystem,enterCourse:v95EnterCourse,refresh:v95RefreshShell,questionAnalysis:v95QuestionAnalysis,composeMessage:v95ComposeMessage});
-document.addEventListener('DOMContentLoaded',()=>{$('#systemHomeBtn').onclick=v95GoBack;v95RefreshShell()});
+window.AICLO_NAVIGATION=Object.freeze({enterSystem:v95EnterSystem,enterCourse:v95EnterCourse,goBack:v95GoBack,refresh:v95RefreshShell,questionAnalysis:v95QuestionAnalysis,composeMessage:v95ComposeMessage});
+document.addEventListener('DOMContentLoaded',()=>{
+ $('#systemHomeBtn').onclick=v95GoBack;
+ const subjectSelect=$('#subjectSelect');if(subjectSelect)subjectSelect.onchange=e=>v95NavigateTo(state.view,{space:state.space,subjectId:e.target.value});
+ v95RefreshShell();
+});
