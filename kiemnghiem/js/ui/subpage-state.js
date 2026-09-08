@@ -14,6 +14,7 @@ const bucketKey=()=>`aiclo:v126:subpages:${userId()}`;
 const legacyKeys=()=>[`aiclo:v1182:subpage:${userId()}`,`aiclo:v1181:subpage:${userId()}`];
 const context=()=>({space:state?.space||'system',view:state?.view||'dashboard',subjectId:state?.subjectId||null});
 const contextKey=x=>`${x?.space||'system'}|${x?.subjectId||''}|${x?.view||'dashboard'}`;
+const liveKey=x=>`${userId()}|${contextKey(x)}`;
 const normalizeSnapshot=x=>x?{...x,subjectId:x.subjectId||null}:null;
 function blankBucket(){return {version:1,items:{}}}
 function saveBucket(bucket){
@@ -48,15 +49,15 @@ function remember(kind,payload={}){
  return writeSnapshot({...context(),kind,...payload,scrollY:Math.max(0,Math.round(window.scrollY||0))})
 }
 function clear(target=context()){
- const bucket=readBucket(),key=contextKey(target);liveCache.delete(key);if(!(key in bucket.items))return false;delete bucket.items[key];return saveBucket(bucket)
+ const bucket=readBucket(),key=contextKey(target);liveCache.delete(liveKey(target));if(!(key in bucket.items))return false;delete bucket.items[key];return saveBucket(bucket)
 }
 function liveWorkspace(){return document.querySelector('.assessment-builder-v122,.assessment-detail-v122,.assessment-export-center,.assessment-final-builder-v122,.assessment-final-detail-v122,.question-workspace,.academic-profile-page')}
 function stashLive(){
  const host=document.querySelector('#content');if(!host||!liveWorkspace()||document.querySelector('.student-attempt-page')||document.querySelector('#sideDrawer:not(.hidden)'))return false;
- const key=contextKey(context()),fragment=document.createDocumentFragment();while(host.firstChild)fragment.append(host.firstChild);liveCache.set(key,{fragment,scrollY:Math.max(0,Math.round(window.scrollY||0))});return true
+ const key=liveKey(context()),fragment=document.createDocumentFragment();while(host.firstChild)fragment.append(host.firstChild);liveCache.set(key,{fragment,scrollY:Math.max(0,Math.round(window.scrollY||0))});return true
 }
 function restoreLive(target=context()){
- const key=contextKey(target),saved=liveCache.get(key),host=document.querySelector('#content');if(!saved||!host)return false;
+ const key=liveKey(target),saved=liveCache.get(key),host=document.querySelector('#content');if(!saved||!host)return false;
  host.replaceChildren(...saved.fragment.childNodes);liveCache.delete(key);const y=saved.scrollY||0;requestAnimationFrame(()=>requestAnimationFrame(()=>window.scrollTo({top:y,left:0,behavior:'auto'})));return true
 }
 
