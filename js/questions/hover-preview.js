@@ -1,13 +1,26 @@
-/* AI-CLO PTITHCM V12.6.41 — lazy hover preview for question-bank rows. */
+/* AI-CLO PTITHCM V12.6.43 — single-owner lazy hover preview for question-bank rows. */
 (() => {
 'use strict';
 
 const HOVER_DELAY = 320;
 const cache = new Map();
+const controller = new AbortController();
+const signal = controller.signal;
 let timer = null;
 let activeButton = null;
 let preview = null;
 let requestToken = 0;
+
+/* If a newer copy is ever loaded in the same document, retire the previous owner first. */
+try{ window.AICLO_QUESTION_HOVER_PREVIEW?.destroy?.(); }catch{}
+
+document.querySelectorAll('#questionHoverPreview').forEach(node=>node.remove());
+
+function stripNativeTooltip(button){
+  button?.removeAttribute('title');
+  button?.querySelectorAll?.('[title]').forEach(node=>node.removeAttribute('title'));
+  button?.closest?.('.q-content-cell')?.removeAttribute('title');
+}
 
 function hidePreview(){
   clearTimeout(timer);
@@ -18,13 +31,18 @@ function hidePreview(){
 }
 
 function ensurePreview(){
-  if(preview && document.body.contains(preview)) return preview;
+  const existing=[...document.querySelectorAll('#questionHoverPreview')];
+  if(preview && document.body.contains(preview)){
+    existing.filter(node=>node!==preview).forEach(node=>node.remove());
+    return preview;
+  }
+  existing.forEach(node=>node.remove());
   preview = document.createElement('aside');
   preview.id = 'questionHoverPreview';
   preview.className = 'question-hover-preview';
   preview.setAttribute('role','tooltip');
   preview.hidden = true;
-  preview.addEventListener('pointerleave', hidePreview);
+  preview.addEventListener('pointerleave', hidePreview, {signal});
   document.body.appendChild(preview);
   return preview;
 }
@@ -77,6 +95,7 @@ async function loadQuestion(id){
 }
 
 function schedulePreview(button){
+  stripNativeTooltip(button);
   clearTimeout(timer);
   activeButton = button;
   const id = button?.dataset?.detail;
@@ -94,24 +113,32 @@ function isHoverCapable(){
   return window.matchMedia?.('(hover: hover) and (pointer: fine)').matches !== false;
 }
 
-document.addEventListener('pointerover', event => {
+function onPointerOver(event){
   if(!isHoverCapable()) return;
   const button = event.target.closest?.('#qrows .question-summary[data-detail]');
   if(!button || button.contains(event.relatedTarget)) return;
   schedulePreview(button);
-}, true);
-
-document.addEventListener('pointerout', event => {
+}
+function onPointerOut(event){
   const button = event.target.closest?.('#qrows .question-summary[data-detail]');
   if(!button || button.contains(event.relatedTarget)) return;
   if(event.relatedTarget && preview?.contains(event.relatedTarget)) return;
   hidePreview();
-}, true);
+}
+function onKeydown(event){ if(event.key === 'Escape') hidePreview(); }
+function destroy(){
+  hidePreview();
+  controller.abort();
+  preview?.remove();
+  preview=null;
+}
 
-document.addEventListener('scroll', hidePreview, true);
-window.addEventListener('resize', hidePreview);
-document.addEventListener('keydown', event => { if(event.key === 'Escape') hidePreview(); });
-document.addEventListener('click', hidePreview, true);
+document.addEventListener('pointerover', onPointerOver, {capture:true,signal});
+document.addEventListener('pointerout', onPointerOut, {capture:true,signal});
+document.addEventListener('scroll', hidePreview, {capture:true,signal});
+window.addEventListener('resize', hidePreview, {signal});
+document.addEventListener('keydown', onKeydown, {signal});
+document.addEventListener('click', hidePreview, {capture:true,signal});
 
-window.AICLO_QUESTION_HOVER_PREVIEW = Object.freeze({clear:()=>cache.clear(), hide:hidePreview});
+window.AICLO_QUESTION_HOVER_PREVIEW = Object.freeze({version:'12.6.43',clear:()=>cache.clear(),hide:hidePreview,destroy});
 })();
