@@ -52,7 +52,7 @@ function clear(target=context()){
 }
 function liveWorkspace(){return document.querySelector('.assessment-builder-v122,.assessment-detail-v122,.assessment-export-center,.assessment-final-builder-v122,.assessment-final-detail-v122,.question-workspace,.academic-profile-page')}
 function stashLive(){
- const host=document.querySelector('#content');if(!host||!liveWorkspace()||document.querySelector('.student-attempt-page'))return false;
+ const host=document.querySelector('#content');if(!host||!liveWorkspace()||document.querySelector('.student-attempt-page')||document.querySelector('#sideDrawer:not(.hidden)'))return false;
  const key=contextKey(context()),fragment=document.createDocumentFragment();while(host.firstChild)fragment.append(host.firstChild);liveCache.set(key,{fragment,scrollY:Math.max(0,Math.round(window.scrollY||0))});return true
 }
 function restoreLive(target=context()){
