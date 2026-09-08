@@ -5,4 +5,20 @@
 .attempt-monitor-dot{width:9px;height:9px;margin-top:4px;border-radius:50%;background:#48bf83;box-shadow:0 0 0 4px rgba(72,191,131,.13);flex:0 0 auto}.attempt-monitor.warning .attempt-monitor-dot{background:#ff6678;box-shadow:0 0 0 4px rgba(255,102,120,.13)}
 .attempt-monitor-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}.attempt-monitor-stats span{display:grid;gap:2px;padding:7px 8px;border:1px solid rgba(255,255,255,.09);border-radius:10px;background:rgba(255,255,255,.04)}.attempt-monitor-stats small{font-size:10px;color:#9ea9ba}.attempt-monitor-stats b{font-size:12px;color:#fff;white-space:nowrap}
 #app>aside .attempt-monitor button{width:100%;min-height:34px;border-color:rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:#fff;font-size:11px}#app>aside .attempt-monitor button:hover{background:rgba(255,255,255,.13)}
-@media(max-width:760px){#app>aside .attempt-monitor{margin:8px 10px 10px}.attempt-monitor-head small{font-size:10.5px}.attempt-monitor-stats span{padding:6px 7px}}
+
+/* Fullscreen is owned by the attempt monitor and targets the visible app, not the whole document. */
+#app:fullscreen{width:100vw!important;height:100vh!important;max-width:none!important;overflow:auto;background:var(--bg,#f4f6f9)}
+#app:fullscreen>main{min-height:100vh}
+.student-attempt-page-head:has(.attempt-fullscreen-button){grid-template-columns:auto minmax(0,1fr) auto!important}
+.student-attempt-page-head .attempt-fullscreen-button{justify-self:end;width:auto!important;min-height:30px;padding:6px 10px!important;white-space:nowrap;font-size:12px}
+.student-attempt-page-head .attempt-fullscreen-button:disabled{opacity:1;cursor:default;background:#eef8f2;color:#087a55;border-color:#b9dfca}
+
+@media(max-width:760px){
+ #app>aside .attempt-monitor{margin:8px 10px 10px}.attempt-monitor-head small{font-size:10.5px}.attempt-monitor-stats span{padding:6px 7px}
+ .student-attempt-page-head:has(.attempt-fullscreen-button){grid-template-columns:auto minmax(0,1fr) auto!important}
+ .student-attempt-page-head .attempt-fullscreen-button{font-size:11px;padding-inline:8px!important}
+}
+@media(max-width:520px){
+ .student-attempt-page-head:has(.attempt-fullscreen-button){grid-template-columns:auto minmax(0,1fr)!important}
+ .student-attempt-page-head .attempt-fullscreen-button{grid-column:1/-1;justify-self:stretch;width:100%!important}
+}
