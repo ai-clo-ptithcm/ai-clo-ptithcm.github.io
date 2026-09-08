@@ -2,7 +2,7 @@
 
 > Tài liệu này ghi các **quy tắc bắt buộc** khi tiếp tục phát triển AI-CLO PTITHCM. Bản đồ kiến trúc xem tại `ARCHITECTURE-AI-CLO.md`; các quyết định UI/nghiệp vụ ưu tiên xem tại `PROJECT-NOTES-AI-CLO.md`.
 
-Cập nhật: **06/09/2026 — checkpoint V12.4.24**
+Cập nhật: **08/09/2026 — checkpoint V12.6.43**
 
 ## 1. Nguồn mã và môi trường chạy
 
@@ -12,6 +12,7 @@ Cập nhật: **06/09/2026 — checkpoint V12.4.24**
 - Frontend chạy trên GitHub Pages.
 - Nhánh chuẩn để đọc code hiện hành: `main`.
 - Trước khi sửa phải đọc code mới nhất trên `main`, không suy đoán từ ZIP/chat/version cũ.
+- Khi người dùng chỉ đang trao đổi/góp ý thì không tự ý sửa runtime. Chỉ triển khai khi yêu cầu đã rõ và người dùng xác nhận thực hiện.
 
 ### Supabase
 
@@ -37,7 +38,7 @@ GitHub lưu source backend để đọc/chỉnh; Supabase là nơi backend chạ
 - Sửa source Function trên GitHub **không đồng nghĩa Function trên Supabase đã redeploy**.
 - Khi sửa Function phải nói rõ Function nào cần redeploy.
 - Frontend-only phải nói rõ **không cần thao tác Supabase**.
-- Logic Gemini/model fallback nếu Function cần phải nằm trong chính Function hoặc theo cấu trúc vẫn deploy độc lập được.
+- Logic AI/model fallback nếu Function cần phải nằm trong chính Function hoặc theo cấu trúc vẫn deploy độc lập được.
 
 ## 3. Database / SQL / migration
 
@@ -50,7 +51,17 @@ GitHub lưu source backend để đọc/chỉnh; Supabase là nơi backend chạ
 - Trước khi viết SQL mới phải kiểm migration mới nhất và schema hiện tại.
 - Không tạo constraint/RPC trùng hoặc làm yếu RLS.
 - Nếu migration mới thay thế migration cũ, phải ghi rõ migration nào không cần chạy nữa.
-- Assessment backend checkpoint hiện tại: `assessment_schema_version = 12.3.1` cho đến khi có migration chính thức mới.
+- Assessment backend version function hiện vẫn là `assessment_schema_version = 12.3.1` cho đến khi có migration chính thức thay version này.
+- Migration additive/hardening có thể không đổi `assessment_schema_version`; phải ghi rõ điều đó trong file SQL và tài liệu.
+
+Các migration Live hiện hành:
+
+```text
+supabase/migrations/assessment-v12.6.34-live-monitoring.sql
+supabase/migrations/assessment-v12.6.35-ios-live-sync.sql
+```
+
+Hai migration này **không đổi `assessment_schema_version`**.
 
 ## 4. RLS và bảo mật
 
@@ -60,17 +71,25 @@ GitHub lưu source backend để đọc/chỉnh; Supabase là nơi backend chạ
 - RPC `security definer` phải kiểm quyền người gọi bên trong function.
 - Ngân hàng đề thi bảo mật không được dùng sai mục đích cho bài luyện tập/online.
 - Review bài, đáp án đúng, AI feedback và dữ liệu kết quả phải tuân permission của bài và vai trò.
-- Query/feedback phải scope đúng `subject_id`, `exam_id`, `attempt_id`, student liên quan.
+- Query/feedback phải scope đúng `subject_id`, `question_bank_id`, `exam_id`, `attempt_id`, student liên quan.
+- Teacher Live **không được nhận phương án A/B/C/D đang chọn** của attempt đang làm.
+- Telemetry fullscreen/tab/window là **tín hiệu giám sát**, không được mô tả như bằng chứng chống gian lận tuyệt đối.
 
-## 5. Kiến trúc frontend chung
+## 5. Kiến trúc frontend chung — single owner
 
 - Ưu tiên chia JS theo domain/chức năng.
-- Một domain quan trọng chỉ nên có **một owner runtime rõ ràng**.
+- Một behavior/domain quan trọng chỉ nên có **một owner runtime rõ ràng**.
 - Child module nhận dependency qua context/API thay vì global ngầm khi có thể.
 - Hạn chế gán global; nếu cần compatibility API thì owner chịu trách nhiệm công khai.
 - Không monkey patch nếu có thể sửa đúng owner.
 - Không tạo nhiều lớp vá JS/CSS chồng lên nhau.
+- Không tạo hai event-listener/module cùng sở hữu một tương tác người dùng.
 - Khi refactor phải bảo toàn behavior trước khi tối ưu thêm.
+
+Ví dụ đã chốt ở Question Bank:
+
+- `js/questions/hover-preview.js` là **owner duy nhất** của hover xem nhanh câu hỏi.
+- `js/questions/matrix-panel.js` không được thêm lại hover “NỘI DUNG ĐẦY ĐỦ”.
 
 Bản đồ thư mục và owner xem `ARCHITECTURE-AI-CLO.md`.
 
@@ -87,7 +106,16 @@ js/
    ├─ online-builder.js
    ├─ final-exam.js
    ├─ student-attempt.js
+   ├─ live-monitor.js
    └─ results.js
+```
+
+Module hỗ trợ:
+
+```text
+js/assessment/attempt-monitor.js
+js/assessment/export-dropdown.js
+js/exams/online-export.js
 ```
 
 Quy tắc:
@@ -97,9 +125,10 @@ Quy tắc:
 - Child modules đăng ký factory qua `window.AICLO_ASSESSMENT_MODULES`.
 - Dependency truyền qua context/API.
 - Không monkey patch Assessment.
-- Không thêm `MutationObserver` vào Assessment child modules.
+- Không thêm `MutationObserver` vào Assessment child modules để thay owner hiện có.
 - Utility xuất đề online ở `js/exams/online-export.js`.
 - Load order phải giữ child modules trước owner khi kiến trúc hiện tại yêu cầu.
+- Trang Chi tiết bài kiểm tra phải mở đầy đủ chức năng ngay từ luồng danh sách; không được phụ thuộc F5/reload mới gắn action như LIVE.
 
 ## 7. Persistence / giữ màn hình
 
@@ -118,7 +147,7 @@ Phụ trách:
 - system/course/view context;
 - entity/mode;
 - scroll position;
-- restore sau reload/discard/pageshow;
+- restore sau **reload/discard thật sự**;
 - registry chung của module.
 
 ### `form-persistence.js`
@@ -130,12 +159,31 @@ Phụ trách:
 - checkbox/radio;
 - matrix/form state.
 
-### Quy tắc
+### Contract browser-tab bắt buộc
+
+> **Đổi sang browser tab khác rồi quay lại không phải navigation. Nếu DOM hiện tại còn sống thì phải giữ nguyên, không render lại.**
+
+Do đó:
+
+- không gọi `render()` chỉ vì `visibilitychange`, `pageshow`, `focus` hoặc auth event phát lại khi tab active;
+- không render trang mẹ rồi vài phần mười giây sau mới restore trang con;
+- giữ nguyên DOM, scroll, form, workspace, menu/panel đang sống nếu browser không reload/discard;
+- reload/F5/discard thật sự mới dùng `AICLO_SUBPAGE_STATE` để restore;
+- không xóa subpage state chỉ vì `visibilitychange`, `pagehide` hoặc browser tab switch.
+
+### Contract sidebar bắt buộc
+
+> **Click sidebar là navigation chủ động.**
+
+- Khi nhấn menu sidebar, mở **trang mẹ** của menu đó.
+- Không tự restore trang con cũ ngay sau click sidebar.
+- Ví dụ đang Chi tiết bài kiểm tra → nhấn `Đánh giá` → Danh sách bài kiểm tra.
+
+### Quy tắc chung
 
 - Không tạo navigation persistence mới cho từng module nếu có thể đăng ký vào `AICLO_SUBPAGE_STATE`.
 - UI persistence không thay thế dữ liệu chính thức ở Supabase.
 - Chỉ xóa subpage state khi người dùng chủ động rời workflow hoặc workflow save/complete đã rời trang con.
-- Không xóa chỉ vì `visibilitychange`, `pagehide` hoặc browser tab switch.
 
 ## 8. Student Attempt
 
@@ -148,9 +196,75 @@ Phụ trách:
 - Sau submit thành công phải xóa local attempt draft.
 - Student Attempt là full-width subpage trong `#content`.
 
+### Hết giờ / stale open attempt
+
+- Không chỉ dựa `submitted_at is null` để kết luận attempt còn mở.
+- Frontend phải dùng `get_exam_attempt_payload.remaining_seconds` hoặc RPC server tương đương để reconcile.
+- Nếu server xác nhận hết giờ, finalize theo backend hiện hành rồi refresh attempt list.
+- Không dùng đồng hồ client làm nguồn quyết định quyền tạo lượt mới.
+- Backend `start_exam_attempt` là guard cuối cùng cho max attempts và stale expired attempt.
+
 Local attempt recovery không được biến thành navigation persistence thứ ba.
 
-## 9. CSS ownership V12.4.24
+## 9. AI-CLO | LIVE / monitoring
+
+### UI contract
+
+- LIVE là **subpage trong `app.html`**, không tạo HTML riêng.
+- Nút entry hiển thị đúng nhãn **AI-CLO | LIVE**.
+- Nút nằm **cùng hàng với tên bài kiểm tra, canh phải** trên teacher/Admin Detail.
+- Không đặt LIVE vào action bar chuẩn nếu yêu cầu UI này chưa thay đổi.
+- Quay lại từ LIVE trở về đúng Chi tiết bài kiểm tra.
+
+### Data contract
+
+Teacher được xem:
+
+- answered count / total;
+- current question number;
+- server remaining time;
+- last heartbeat;
+- fullscreen state;
+- page visibility/away reason;
+- violations/total away time;
+- status warning/disconnected/expired/submitted;
+- answered-number map, không có selected option value.
+
+Teacher **không được xem A/B/C/D đang chọn**.
+
+### Backend contract
+
+`assessment-v12.6.34-live-monitoring.sql` tạo:
+
+- `attempt_live_state` — snapshot/presence mỗi attempt;
+- `attempt_monitor_events` — event history;
+- RPC student update/start/finish monitor event;
+- RPC teacher đọc Live snapshot/event history.
+
+Runtime access cho telemetry phải qua RPC có permission guard; không mở table rộng cho authenticated.
+
+`attempt_live_state.attempt_id` và `attempt_monitor_events.attempt_id` dùng `ON DELETE CASCADE` tới `exam_attempts`. Vì vậy contract hiện tại là:
+
+> **Xóa một lượt làm = xóa cả Live state và monitor history của lượt đó.**
+
+### iOS/mobile sync
+
+Safari/iOS có thể freeze JS/network rất nhanh khi app đi nền. Do đó:
+
+- event phải có `client_event_id` ổn định;
+- khi quay lại phải sync/bù event;
+- backend de-duplicate theo `(attempt_id, client_event_id)`;
+- không tăng violations/total away hai lần cho cùng incident;
+- heartbeat phải gửi lại sớm khi app active trở lại.
+
+### Fullscreen limitation
+
+- Web Fullscreen API cần thao tác người dùng và không phải kiosk mode.
+- Không được ép người dùng cài trình duyệt khác trong scope hiện tại.
+- Trình duyệt/OS có thể cho Esc, app switch, multi-monitor, thiết bị khác; hệ thống chỉ ghi nhận các tín hiệu API/browser cho phép.
+- Trình duyệt không hỗ trợ fullscreen đầy đủ không được mặc định coi là vi phạm chỉ vì thiếu capability.
+
+## 10. CSS ownership
 
 ### Core/UI
 
@@ -168,7 +282,7 @@ Local attempt recovery không được biến thành navigation persistence th�
 
 - `css/courses/`: course catalog, class/member, Chương · Chủ đề · CLO.
 - `css/questions/`: Question Bank, workspace, duplicate scan, matrix, quick edit, tools.
-- `css/exams/`: Assessment/final/detail/attempt/export/builder.
+- `css/exams/`: Assessment/final/detail/attempt/export/builder/LIVE.
 - `css/system/`: Dashboard, Notifications, Activity, Profile, system Question Banks.
 - `css/students/`: student profile.
 - `css/results/`: result-specific UI.
@@ -180,22 +294,26 @@ Local attempt recovery không được biến thành navigation persistence th�
 - Không đưa logo/brand ra khỏi `app-brand.css`.
 - Không đưa selector module vào `layout-system.css`.
 - Domain CSS phải tự cung cấp first-paint layout để JS tagging không gây flicker.
-- `questions/bank.css` là owner canonical của Question Bank table/card/tab/scope; không thêm lại tầng V10.5/V10.5.3 override.
+- `css/questions/bank.css` là owner canonical của Question Bank table/card/tab/scope và layout bảng.
+- `css/questions/bank-layout.css` chỉ sở hữu enhancement toolbar/filter/chips/selection.
+- `css/exams/live-monitor.css` sở hữu layout/chrome responsive của teacher Live.
+- `css/exams/attempt-monitor.css` sở hữu cảnh báo/monitor UI phía sinh viên.
 - `app.html` không load `css/public.css`.
 - `css/legacy/` là archive only, không load runtime.
 - Không gom source CSS thủ công chỉ để giảm số file. Nếu cần giảm request, ưu tiên build-time bundle.
 
-## 10. UI interaction contract
+## 11. UI interaction contract
 
 - **Chi tiết/xem nhanh** → Drawer/panel khi phù hợp.
 - **Sửa nhanh** → AI-CLO app-window.
 - **Sửa đầy đủ/chỉnh cấu trúc lớn** → full-width subpage/workspace.
 - Boolean bật/tắt → toggle switch khi phù hợp.
 - Mobile không được có horizontal overflow ở shell/form chính.
-- Bảng rất rộng có thể dùng scroll ngang có chủ đích hoặc card mode theo nghiệp vụ.
+- Bảng rất rộng phải scroll ngang **bên trong vùng bảng** hoặc chuyển card mode; không được kéo toàn app viewport tràn ngang.
 - Khi sửa desktop phải kiểm lại mobile.
+- Dropdown/popover phải đóng khi click ngoài; `Esc` đóng khi phù hợp và phải giữ focus/accessibility hợp lý.
 
-## 11. Question Bank
+## 12. Question Bank
 
 Tách rõ:
 
@@ -207,9 +325,56 @@ Quy tắc:
 - Online assessment không dùng câu chỉ thuộc bank bảo mật.
 - Thi cuối kỳ dùng nguồn bảo mật theo workflow đã chốt.
 - `display_code` phải ổn định và hiển thị đúng nơi nghiệp vụ cần.
+- Mã câu do hệ thống sinh; người dùng không cần nhập mã trong Excel bulk import.
+- UI có thể đệm 0 để hiển thị, ví dụ `000307`, nhưng ý nghĩa nghiệp vụ vẫn là sequence/số tự nhiên.
 - Không để CSS/class nghiệp vụ của Question Bank, duplicate scan và Assessment dùng lẫn nhau.
 
-## 12. Assessment product rules
+### Provenance label
+
+- Backend giữ giá trị kỹ thuật hiện có, ví dụ `origin_type = 'gemini'`.
+- User-facing wording phải dùng **AI**, hiện tại là `✦ AI hỗ trợ`.
+- Không đổi schema/data chỉ để đổi nhãn hiển thị.
+- Danh sách và Chi tiết phải nhất quán cùng label.
+
+### Hover preview
+
+- Owner duy nhất: `js/questions/hover-preview.js`.
+- Desktop hover nội dung → câu đầy đủ + A/B/C/D.
+- Không đánh dấu đáp án đúng trong hover list.
+- Lazy-load option khi cần, cache hợp lý.
+- Mobile không phụ thuộc hover.
+- `matrix-panel.js` không được gắn listener hover câu hỏi.
+
+### Bulk import / Excel mẫu
+
+Hai mode tạo câu:
+
+```text
+Tạo một câu | Tải hàng loạt
+```
+
+Workbook mẫu hiện dùng:
+
+```text
+Cau_hoi
+Vi_du
+Chuong_Chu_de
+CLO
+Danh_muc
+Huong_dan
+```
+
+Importer phải ưu tiên sheet `Cau_hoi`. Dòng ví dụ phải nằm riêng ở `Vi_du` để tránh import nhầm.
+
+Cột canonical:
+
+```text
+Chương | Chủ đề | CLO | Nội dung | A | B | C | D | Đáp án | Lời giải | Ngân hàng | Trạng thái
+```
+
+Không thêm cột Mã câu nếu hệ thống vẫn tự sinh mã.
+
+## 13. Assessment product rules
 
 Framework chung:
 
@@ -228,7 +393,7 @@ Quy tắc quan trọng:
 - Giảm `max_attempts` không xóa/sửa lượt lịch sử; chỉ chặn lượt mới khi đã đạt giới hạn mới.
 - Thi cuối kỳ không phát hành cho sinh viên làm online.
 
-## 13. CLO / kết quả
+## 14. CLO / kết quả
 
 - CLO không hard-code chỉ CLO1/2/3 nếu UI có thể hỗ trợ dynamic CLO.
 - Bảng/Excel nên dùng cột CLO theo dữ liệu thực tế khi phù hợp.
@@ -236,7 +401,7 @@ Quy tắc quan trọng:
 - Không trộn AI feedback/kết quả giữa học phần.
 - Scope query đúng subject/exam/student.
 
-## 14. AI / Gemini
+## 15. AI / Gemini
 
 - AI chỉ gọi khi người dùng chủ động yêu cầu, trừ nơi đã chốt khác.
 - Không gọi Gemini tự động mỗi lần render trang.
@@ -244,16 +409,19 @@ Quy tắc quan trọng:
 - Khi model/quota/fallback thay đổi phải đọc Function hiện tại trên GitHub trước.
 - AI feedback phải kiểm permission/backend guard.
 - Edge Function AI tiếp tục self-contained.
+- User-facing wording ưu tiên **AI**; metadata kỹ thuật/backend có thể giữ tên model/provider hiện hữu nếu cần tương thích.
 
-## 15. Excel / Office export
+## 16. Excel / Office export
 
 - Với Excel nghiệp vụ cần trình bày đẹp, ưu tiên ExcelJS.
 - Office libs phải lazy-load nếu không cần lúc initial page load.
 - File chính thức cần border/alignment/header/width/print setup hợp lý.
+- Dropdown export phải có dismiss behavior rõ ràng.
+- Excel Live/history không được làm lộ lựa chọn đáp án đang làm nếu product contract không cho phép.
 - Excel đáp án+CLO phục vụ `/cham-thi-clo` phải giữ cấu trúc canonical đã thống nhất.
 - `/cham-thi-clo` là công cụ public riêng, không trộn nghiệp vụ với Assessment online.
 
-## 16. Math / LaTeX
+## 17. Math / LaTeX
 
 - Nội dung toán trên web dùng MathJax/renderMath chung.
 - Không tạo MathJax loader riêng ở từng module.
@@ -261,7 +429,7 @@ Quy tắc quan trọng:
 - Export TeX giữ source LaTeX càng nguyên vẹn càng tốt.
 - Thay exporter phải static-check và nên compile thử với dữ liệu thật trước khi tuyên bố ổn định.
 
-## 17. Hiệu năng
+## 18. Hiệu năng
 
 - Tránh reload toàn trang khi chỉ đổi view nội bộ.
 - Ưu tiên cache/query cache nơi an toàn.
@@ -269,11 +437,12 @@ Quy tắc quan trọng:
 - Hạn chế MutationObserver rộng toàn document.
 - Observer nếu cần phải debounce/coalesce.
 - Không polling dày nếu event-driven xử lý được.
+- Teacher Live hiện dùng refresh khoảng **5 giây**, không dùng 500 ms server polling.
 - Không ghi storage liên tục khi state không thay đổi.
 - Không restore/render đè workspace đang sống chỉ vì tab browser thay đổi visibility.
 - Hiện CSS source không lớn; nếu tối ưu request thì bundle ở build/deploy, không phá source ownership.
 
-## 18. Git / quy trình thay đổi
+## 19. Git / quy trình thay đổi
 
 Trước thay đổi có ý nghĩa:
 
@@ -281,7 +450,7 @@ Trước thay đổi có ý nghĩa:
 2. Đọc `ARCHITECTURE-AI-CLO.md` và file owner liên quan.
 3. Đọc code mới nhất trên `main`.
 4. Tạo backup branch.
-5. Làm trên work branch.
+5. Làm trên work branch khi thay đổi có rủi ro/ý nghĩa lớn.
 6. So diff.
 7. Smoke/static-check phù hợp.
 8. Fast-forward `main` khi sạch.
@@ -290,19 +459,21 @@ Trước thay đổi có ý nghĩa:
 
 Không force push trừ trường hợp thật sự cần và đã hiểu hậu quả.
 
-## 19. Tài liệu — nguồn ưu tiên
+Các file probe/noop/sentinel tạo nhầm phải được xóa ngay; không để file rác tồn tại trong tree.
+
+## 20. Tài liệu — nguồn ưu tiên
 
 Thứ tự đọc:
 
 1. `PROJECT-NOTES-AI-CLO.md` — quyết định kỹ thuật/UI/nghiệp vụ ưu tiên.
 2. `ARCHITECTURE-AI-CLO.md` — bản đồ kiến trúc hiện hành.
 3. `TECHNICAL-AGREEMENTS.md` — quy tắc bắt buộc.
-4. `PROJECT-STATUS-2026-09-06.md` — trạng thái hiện tại.
-5. `PROJECT-PROGRESS-2026-09-06.md` — tiến trình chi tiết.
+4. `PROJECT-STATUS-2026-09-08.md` — trạng thái hiện tại.
+5. `PROJECT-PROGRESS-2026-09-08.md` — tiến trình chi tiết.
 6. Code `main`.
 
 Nếu code và tài liệu xung đột, xác minh code `main`, xác định tài liệu lỗi thời rồi cập nhật lại tài liệu.
 
 ---
 
-Checkpoint quy tắc này tương ứng **V12.4.24**, sau khi hoàn tất đợt CSS ownership/refactor lớn. Giai đoạn kế tiếp ưu tiên smoke test UI/nghiệp vụ thực tế hơn là tiếp tục tách CSS chỉ để làm sạch mã.
+Checkpoint quy tắc này tương ứng **V12.6.43**. Các điểm bắt buộc mới của 08/09/2026 là: browser tab switch phải đóng băng DOM đang sống; sidebar click về trang mẹ; LIVE không lộ A/B/C/D và không được coi là secure browser; iOS monitor phải sync/de-duplicate incident; Question Bank hover chỉ có một owner; provenance `gemini` ở backend hiển thị `AI hỗ trợ` ở UI.
