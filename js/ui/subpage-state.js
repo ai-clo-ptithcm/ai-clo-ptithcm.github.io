@@ -1,14 +1,17 @@
-/* AI-CLO PTITHCM V12.3.6 — shared subpage/workspace persistence.
+/* AI-CLO PTITHCM V12.6.36 — shared subpage/workspace persistence.
    One state contract for every full-page child workspace.
-   Module-specific draft stores remain the source of form data; this layer restores WHERE the user was. */
+   Module-specific draft stores remain the source of form data; this layer restores WHERE the user was.
+   Browser tab switches are treated as a freeze: keep the existing DOM and do not render on resume. */
 (()=>{
 'use strict';
-const VERSION='12.3.6';
+const VERSION='12.6.36';
 const TTL=24*60*60*1000;
 const SCROLL_IDLE_MS=400;
 const DETECT_IDLE_MS=90;
+const RESUME_FREEZE_MS=4000;
 let restoring=false,queued=false,observer=null,pendingStudentId='',navigationInstalled=false;
 let detectTimer=null,scrollTimer=null,cacheKey='',cacheValue=null,cacheSignature='';
+let browserTabHidden=false,resumeFreezeUntil=0,resumeFreezeUserId='';
 const registry=new Map();
 const userId=()=>state?.user?.id||'guest';
 const storageKey=()=>`aiclo:v1182:subpage:${userId()}`;
@@ -96,7 +99,17 @@ register('final-workspace',{
  isActive:()=>!!document.querySelector('.question-workspace')&&!!finalWorkspace(),
  async restore(){try{await window.AICLO_FEATURES?.ensureView?.('exams')}catch{}if(typeof window.render==='function')await window.render();return !!(await waitFor(()=>document.querySelector('.question-workspace'),3200))}
 });
-function installEnterApp(){const base=window.enterApp;if(typeof base!=='function'||base.__aicloSubpageState)return;const wrapped=function(...args){applyStartupLocation();const r=base.apply(this,args);Promise.resolve(r).finally(()=>queueRestore('enter-app'));return r};wrapped.__aicloSubpageState=true;wrapped.__aicloBase=base;window.enterApp=wrapped}
+function shouldFreezeResume(){
+ const app=document.querySelector('#app');
+ return browserTabHidden&&Date.now()<=resumeFreezeUntil&&resumeFreezeUserId===userId()&&!!state?.user&&!!state?.profile&&!!app&&!app.classList.contains('hidden');
+}
+function installEnterApp(){const base=window.enterApp;if(typeof base!=='function'||base.__aicloSubpageState)return;const wrapped=function(...args){
+ if(shouldFreezeResume()){
+  browserTabHidden=false;resumeFreezeUntil=0;resumeFreezeUserId='';
+  return;
+ }
+ applyStartupLocation();const r=base.apply(this,args);Promise.resolve(r).finally(()=>queueRestore('enter-app'));return r
+};wrapped.__aicloSubpageState=true;wrapped.__aicloBase=base;window.enterApp=wrapped}
 function installNavigation(){if(navigationInstalled)return;navigationInstalled=true;const base=window.navigate;if(typeof base!=='function'||base.__aicloSubpageNavigation)return;const wrapped=function(view,...args){if(!restoring){const x=read();if(x&&view!==state.view)clear()}return base.call(this,view,...args)};wrapped.__aicloSubpageNavigation=true;wrapped.__aicloBase=base;window.navigate=wrapped}
 function explicitLeaveTarget(el){return el?.closest?.('#nav [data-view],#systemHomeBtn,#courseSystemReturn,#logoutBtn,[data-open-course],#examDetailBack,#academicProfileBack,#questionBack,#finalAssessmentListBack,[data-aiclo-subpage-back]')}
 function isBuilderBack(el){const b=el?.closest?.('.ub-workspace button,.assessment-builder-v122 button');if(!b)return false;return /quay lại|danh sách|hủy/i.test(String(b.textContent||''))}
@@ -107,9 +120,22 @@ document.addEventListener('click',e=>{
  if(explicitLeaveTarget(e.target)||isBuilderBack(e.target))clear();
 },true);
 document.addEventListener('change',e=>{if(e.target?.matches?.('#subjectSelect'))clear()},true);
-document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTimeout(detectTimer);detect();savePosition()}else queueRestore('visible')});
+document.addEventListener('visibilitychange',()=>{
+ if(document.hidden){
+  browserTabHidden=true;resumeFreezeUserId=userId();resumeFreezeUntil=0;
+  clearTimeout(detectTimer);detect();savePosition();
+  return;
+ }
+ if(browserTabHidden){
+  const token=Date.now()+RESUME_FREEZE_MS;resumeFreezeUntil=token;
+  setTimeout(()=>{if(resumeFreezeUntil===token&&Date.now()>=token){browserTabHidden=false;resumeFreezeUntil=0;resumeFreezeUserId=''}},RESUME_FREEZE_MS+50);
+ }
+ /* Intentional freeze: returning to the same browser tab must not restore or render anything. */
+});
 window.addEventListener('pagehide',()=>{clearTimeout(detectTimer);detect();savePosition()});
-window.addEventListener('pageshow',()=>queueRestore('pageshow'));
+window.addEventListener('pageshow',()=>{
+ /* bfcache/browser resume keeps its DOM; hard reload/startup is handled by init(). */
+});
 window.addEventListener('scroll',()=>{clearTimeout(scrollTimer);scrollTimer=setTimeout(()=>{scrollTimer=null;savePosition()},SCROLL_IDLE_MS)},{passive:true});
 function init(){
  installEnterApp();installNavigation();
