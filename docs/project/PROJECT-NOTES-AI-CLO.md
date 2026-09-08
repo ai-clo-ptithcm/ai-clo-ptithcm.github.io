@@ -1,421 +1,491 @@
 # AI-CLO PTITHCM — Ghi nhớ kỹ thuật và quyết định thiết kế
 
-> File này là **nguồn ghi nhớ kỹ thuật ưu tiên** để tiếp tục phát triển dự án trong các phiên sau. Khi bắt đầu chỉnh sửa AI-CLO, hãy đọc file này trước các changelog phiên bản nếu cần hiểu các quyết định đã chốt.
+> File này là **nguồn ghi nhớ kỹ thuật/UI/nghiệp vụ ưu tiên** để tiếp tục phát triển dự án trong các phiên sau. Khi bắt đầu chỉnh sửa AI-CLO, đọc file này trước; sau đó đọc `ARCHITECTURE-AI-CLO.md` để tìm đúng owner và `TECHNICAL-AGREEMENTS.md` để kiểm quy tắc bắt buộc.
 
-Cập nhật gần nhất: **07/09/2026 — V12.6.4**
+Cập nhật gần nhất: **08/09/2026 — V12.6.43**
 
-Bản đồ kiến trúc hiện hành nằm tại `docs/project/ARCHITECTURE-AI-CLO.md`. Khi cần tìm đúng owner/file trước khi sửa, đọc file kiến trúc này ngay sau PROJECT-NOTES.
-
-## 1. Nguyên tắc phát triển
+## 1. Nguyên tắc phát triển đã chốt
 
 - Ưu tiên **framework dùng chung**, tránh sửa chắp vá từng trang.
-- Tái sử dụng component, CSS, app-window, toolbar, panel, state manager hiện có trước khi tạo style/hàm mới.
+- Một behavior quan trọng chỉ có **một runtime owner**.
+- Tái sử dụng component, CSS, app-window, toolbar, panel, state manager hiện có trước khi tạo lớp mới.
+- Không monkey patch/wrapper nếu có thể sửa đúng owner.
 - Không thay schema Supabase nếu chưa thật sự cần; ưu tiên tương thích dữ liệu cũ.
-- Không xóa engine legacy quan trọng nếu UI mới vẫn cần dữ liệu/khả năng xuất của nó. Có thể ngừng routing UI vào legacy trước, rồi loại bỏ sau khi framework mới ổn định.
-- Supabase Edge Function Gemini phải **self-contained**, không phụ thuộc `_shared`, vì deploy từng function trực tiếp trên Supabase Dashboard.
-- AI chỉ gọi khi người dùng chủ động yêu cầu.
+- Supabase Edge Function phải **self-contained**, không phụ thuộc `_shared`, vì deploy từng function trực tiếp từ Dashboard.
+- AI chỉ gọi khi người dùng chủ động yêu cầu, trừ nơi được chốt khác.
+- User-facing wording ưu tiên **AI**; metadata kỹ thuật có thể giữ `gemini` nếu cần tương thích.
+- Khi đang trao đổi/góp ý/thiết kế: **không tự ý sửa repo**. Chỉ triển khai khi người dùng yêu cầu rõ; trước thay đổi runtime/backend có ý nghĩa phải tạo backup branch.
 
 ## 2. Chuẩn giao diện toàn web
 
-### Popup / window
+### Popup / window / drawer
 
-Mọi popup chỉnh sửa dùng **AI-CLO app-window** thống nhất:
+- **Chi tiết / xem nhanh** → Drawer/panel khi phù hợp.
+- **Sửa nhanh** → AI-CLO app-window thống nhất.
+- **Sửa đầy đủ / cấu trúc lớn** → full-width subpage/workspace.
+- Boolean bật/tắt → toggle switch kiểu iPhone khi phù hợp.
+- Desktop app-window có header đỏ, padding/footer thống nhất, drag/resize nếu component hỗ trợ.
+- Mobile app-window chuyển gần full-screen.
+- Không dùng Drawer legacy để chỉnh cấu trúc bài kiểm tra.
 
-- header đỏ;
-- cùng nút đóng;
-- cùng padding/footer;
-- desktop có thể kéo/thay đổi kích thước nếu component hỗ trợ;
-- mobile chuyển dạng gần full-screen;
-- boolean dùng **toggle switch kiểu iPhone**, không dùng checkbox vuông nếu đó là thiết lập bật/tắt.
+### Responsive
 
-Drawer chỉ dùng cho **xem nhanh/chi tiết** khi phù hợp. Không dùng drawer legacy để chỉnh cấu trúc bài kiểm tra.
+- Mobile không được kéo toàn shell/form tràn ngang.
+- Bảng thật sự rộng phải scroll **bên trong vùng bảng** hoặc chuyển card mode.
+- Nhóm KPI/action desktop ưu tiên một hàng khi đủ chiều rộng; chỉ xuống hàng ở breakpoint hợp lý.
+- Khi sửa desktop phải kiểm lại mobile.
 
-### Quy ước Sửa nhanh / Chi tiết
+### Dropdown / popover
 
-Đây là quy định UI/UX chung, áp dụng cho toàn hệ thống:
+- Click bên ngoài → đóng.
+- `Esc` → đóng khi phù hợp; trả focus về trigger nếu đó là menu/dialog interaction.
+- Chọn action → đóng UI trước rồi thực hiện action.
 
-- **Chi tiết / xem thông tin** → dùng **panel/drawer**. Panel không dùng để chỉnh sửa nhanh.
-- **Sửa nhanh** → dùng **AI-CLO app-window** thống nhất, không mở drawer/panel.
-- **Sửa đầy đủ / chỉnh cấu trúc lớn** → dùng trang con/full-width workspace phù hợp, không ép vào panel nhỏ.
-- Trên desktop, cửa sổ Sửa nhanh dùng cùng chuẩn app-window: header đỏ, cùng kích thước cơ sở, kéo/resize được khi phù hợp.
-- Trên mobile, Sửa nhanh chuyển sang dạng gần full-screen để đủ chỗ cho nội dung và công thức.
+## 3. CSS ownership cần giữ
 
-Ba ngữ cảnh Sửa nhanh câu hỏi phải **cùng giao diện và cách thao tác**, nhưng giữ riêng semantics lưu dữ liệu:
+### Core/UI
 
-1. **Ngân hàng câu hỏi — Sửa nhanh câu nguồn**
-   - Sửa trực tiếp câu hỏi trong ngân hàng.
-   - Thay đổi được lưu vào lịch sử chỉnh sửa câu hỏi.
-   - Giao diện phải ghi rõ rằng thao tác này cập nhật ngân hàng câu hỏi.
+- `css/app.css` — token màu, typography/control base, field/input/button, form primitives.
+- `css/app-brand.css` — **sole owner** logo/brand login + sidebar.
+- `css/ui/application.css` — app geometry/layout, content sizing, boot guard.
+- `css/ui/primitives.css` — stats, panel, toolbar, table, badge, empty, toast, progress.
+- `css/ui/shell.css` — sidebar/header/footer shell chrome + Drawer.
+- `css/ui/dialogs.css` — native dialog/modal/confirm chrome.
+- `css/ui/app-window.css` — AI-CLO app-window chrome/drag/resize/mobile.
+- `css/ui/layout-system.css` — generic-only `.aiclo-kpi-grid`, `.aiclo-action-grid`, `.aiclo-filter-bar`.
+- `css/ui/mobile-overrides.css` — shared mobile guards/fallback còn cần thiết.
 
-2. **Kiểm tra câu hỏi trùng — Sửa nhanh trong ngữ cảnh kiểm tra trùng**
-   - Vẫn sửa **chính câu hỏi nguồn** trong ngân hàng, không tạo bản sao riêng.
-   - Sau khi lưu, quay lại đúng cặp đang xem và đánh dấu cặp đó **cần kiểm tra lại**.
-   - Giao diện phải ghi rõ rằng thao tác cập nhật ngân hàng và kết quả trùng cần được thẩm định lại.
+Không tạo lại `css/ui/final-layer.css`. `app.html` không load `css/public.css`. `css/legacy/` là archive only.
 
-3. **Đánh giá / Builder — Sửa nhanh câu trong bản nháp**
-   - Chỉ sửa câu đang dùng trong **bản nháp bài kiểm tra/đánh giá**.
-   - **Không thay đổi ngân hàng câu hỏi**.
-   - Với online builder, tiếp tục dùng `draftOverrides`/draft state hiện hành; không đổi semantics lưu chỉ để đồng nhất giao diện.
-   - Giao diện phải ghi rõ “Chỉ áp dụng cho bài kiểm tra này; ngân hàng câu hỏi không thay đổi”.
+### Domain
 
-Các cửa sổ Sửa nhanh ưu tiên cùng bố cục:
+- `css/courses/structure.css` — Chương · Chủ đề · CLO.
+- `css/courses/catalog.css` — course catalog/cards.
+- `css/courses/class-list.css` — thành viên/lớp.
+- `css/system/dashboard.css` — Dashboard.
+- `css/system/notifications.css` — Notification UI.
+- `css/system/activity.css` — Activity log.
+- `css/system/profile.css` — Profile/account.
+- `css/system/question-banks.css` — quản trị Question Bank cấp hệ thống.
+- `css/questions/bank.css` — canonical Question Bank tabs/scope/table/card + table geometry/hover chrome.
+- `css/questions/bank-layout.css` — toolbar/filter/chips/selection enhancements.
+- `css/questions/analysis.css`, `tools.css`, `workspace.css`, `duplicate-scan.css`, `matrix-panel.css`, `quick-edit.css` — đúng domain tương ứng.
+- `css/exams/assessment-shared.css` — shared Assessment controls/workspace/matrix.
+- `css/exams/student-attempt.css` — sole owner student exam list/detail/history/attempt workspace.
+- `css/exams/detail-enhancements.css` — teacher/Admin exam Detail + attempt table.
+- `css/exams/live-monitor.css` — teacher **AI-CLO | LIVE**.
+- `css/exams/attempt-monitor.css` — student monitoring/warning/fullscreen controls.
+- `css/exams/unified-builder.css` — unified builder.
+- `css/students/profile.css` — student profile.
+- `css/results/ai-state.css` — result AI state.
 
-- Nội dung câu hỏi;
-- phương án A/B/C/D;
-- đáp án đúng;
-- lời giải/giải thích nếu nghiệp vụ hỗ trợ;
-- Hủy + Lưu/Áp dụng ở cuối.
+Không để Question Bank, duplicate scan và Assessment dùng lẫn class nghiệp vụ để tránh cascade ngoài ý muốn.
 
-Ownership kỹ thuật:
+## 4. Framework chung cho 4 loại bài
 
-- `css/ui/app-window.css` chỉ sở hữu **window chrome**: vị trí, kích thước, header, drag, resize, responsive.
-- `css/ui/dialogs.css` sở hữu **native dialog/modal/confirmation chrome** (`dialog`, backdrop, `modal-head`, `confirm-dialog` và confirm actions). Không đặt các rule này trở lại `css/app.css`.
-- `css/app-brand.css` là **owner duy nhất của brand/logo trong app runtime**: `.logo` base, logo đăng nhập và logo sidebar. Không đặt typography/màu/kích thước logo trở lại `css/app.css` hoặc `css/login-app.css`.
-- `css/ui/application.css` là owner duy nhất của **app layout/kích thước dùng chung**: `.app`, `.app>main`, `.app .content`, desktop shell geometry, content padding/overflow và boot visibility guard; không chứa component primitive hay CSS nghiệp vụ.
-- `css/ui/primitives.css` sở hữu **UI primitives dùng chung**: `stats/stat`, `grid2`, `panel/panel-head`, `toolbar`, `table/table-wrap`, `badge`, `row-actions`, `empty`, `toast` và progress `bar`, kèm responsive trực tiếp của các primitive này.
-- `css/ui/layout-system.css` chỉ sở hữu **framework layout generic** `.aiclo-kpi-grid`, `.aiclo-action-grid`, `.aiclo-filter-bar`; không chứa selector domain/module trực tiếp. `js/ui/layout-system.js` chỉ gắn các class generic sau render. Domain/module CSS phải tự cung cấp first-paint layout khớp contract này, không dựa vào late alias.
-- `css/ui/shell.css` sở hữu **shell chrome**: sidebar/header controls và **Drawer xem chi tiết** (`drawer-backdrop`, `side-drawer`, `drawer-head`, `drawer-body`, responsive drawer).
-- `css/login-app.css` sở hữu **giao diện Auth/Login đang chạy**, gồm login card và UI “Quên mật khẩu / liên hệ Quản trị viên”. `css/login-fit.css` chỉ sở hữu **viewport/height fit** của màn đăng nhập; brand/logo thuộc `css/app-brand.css`.
-- `css/courses/structure.css` sở hữu **CSS nghiệp vụ Chương · Chủ đề · CLO**: danh sách chương/chủ đề, action edit/delete, safe-delete/dependency và compatibility `structure-v95`; không đặt các rule này trở lại `css/app.css` hoặc `css/ui/application.css`.
-- `css/courses/catalog.css` sở hữu **danh sách Môn học dạng card** ở không gian hệ thống (`course-grid`, `course-card`, `course-toolbar`, `course-card-actions` và metadata card liên quan).
-- `css/system/dashboard.css` sở hữu **Dashboard hệ thống/học phần V10.9** (`v109-dashboard`, hero, KPI `v109-stats`, course cards và quick actions), gồm first-paint KPI breakpoint khớp layout framework.
-- `css/system/profile.css` sở hữu cả **profile V10.8** và **profile/tài khoản V10.9 đang chạy** (`v109-profile`, `v109-security`, `v109-account-form`, password control).
-- `css/questions/analysis.css` sở hữu **thống kê/phân tích câu hỏi**; `css/question-exam.css` sở hữu metadata/list/detail của Ngân hàng câu hỏi như `question-clo`; `css/courses/class-list.css` sở hữu action/trạng thái và UI thành viên của học phần (`class-stats`, `last-login-cell`, `message-student`, `v109-member-tabs`, member summary/table compatibility).
-- `css/system/notifications.css` sở hữu **notification UI**: badge chưa đọc, task cards trên dashboard, `v109-notices`/“Thông báo gần đây”, Trung tâm thông báo và trang chi tiết; `css/system/activity.css` chỉ sở hữu **Nhật ký hoạt động** (`activity-filter`). Không tạo lại stylesheet trộn `activity-notifications.css`.
-- `css/questions/bank.css` là owner canonical cho **tab ngân hàng, scope chooser, fallback toolbar, bảng desktop và card mobile**. Các lớp V10.5/V10.5.3 phải được hợp nhất trong file này thay vì thêm tầng override/`!important`; `css/questions/bank-layout.css` chỉ sở hữu enhancement toolbar/filter drawer/chips. Không tạo lại late override riêng cho Question Bank.
-- `css/system/question-banks.css` sở hữu **quản trị Ngân hàng câu hỏi cấp hệ thống** do `js/system/question-banks.js` render (`v112/v113/v114`); không đưa các selector này về global UI.
-- `css/exams/assessment-shared.css` sở hữu **Assessment runtime dùng chung**, gồm preview/result/live controls, `v109-tabs`, `v109-workspace-head`, `v109-assessment-workspace` và `online-matrix-*`; không sở hữu list/detail sinh viên nữa.
-- `css/exams/student-attempt.css` là owner duy nhất cho **danh sách bài kiểm tra sinh viên + trang con Chi tiết bài + lịch sử lượt làm + workspace làm bài**. Không đưa lại `student-exam-grid/card` vào `assessment-shared.css`.
-- `css/exams/detail-enhancements.css` sở hữu toàn bộ **trang Chi tiết bài kiểm tra/attempt table phía giảng viên**, cả layout lẫn chrome và first-paint KPI/action/filter breakpoints khớp generic layout contract; `css/exams/final-workflow.css` sở hữu compatibility của danh sách đề cuối kỳ như `v102-final-list`.
-- `css/students/profile.css` sở hữu **Hồ sơ học tập sinh viên**, gồm `academic-profile-summary` và breakpoint first-paint khớp generic KPI contract.
-- `css/ui/final-layer.css` đã **được loại khỏi runtime và xóa ở V12.4.22**. Không tạo lại “late compatibility layer”; rule còn sống phải về đúng owner domain/UI.
-- `app.html` **không load `css/public.css`**. Landing/public hiện dùng stylesheet riêng (`landing-v11.css`, `public-nav-static.css`); `public.css` chỉ được giữ như tài sản lịch sử nếu còn cần đối chiếu, không được để rule public/generic rò vào app runtime.
-- `css/legacy/auth-v8.css` và `css/legacy/question-v95.css` là **archive only, không load runtime**. V9.5 question tool grid/mobile table cũ không được đưa trở lại `application.css` khi UI hiện hành đã dùng V9.6/V10.5.
-- `css/app.css` chỉ giữ **global base/control/form primitives**: token màu, typography/control cơ bản, field/input/button states và `form-grid/form-actions/option-grid`. Không đặt logo/brand, app layout, panel/table/badge/toast, dialog/confirm/Drawer hay CSS nghiệp vụ trở lại file này.
-- CSS/module nghiệp vụ chỉ sở hữu **nội dung bên trong editor** và khác biệt theo ngữ cảnh.
-- Không để class nghiệp vụ của Ngân hàng, Kiểm tra trùng và Assessment dùng lẫn nhau để tránh cascade/logic ảnh hưởng chéo.
-- Khi tái sử dụng cùng `#modal`, phải xóa class ngữ cảnh cũ trước khi gắn class ngữ cảnh mới.
-
-### Card thống kê / KPI
-
-Toàn web cần thống nhất một chuẩn `dense stats grid`:
-
-- desktop rộng: nhóm **5–6 card ưu tiên nằm trên 1 hàng**;
-- generic KPI contract dùng breakpoint **>1000 / ≤1000 / ≤700 / ≤430** tương ứng số cột theo nội dung / tối đa 3 / tối đa 2 / 1; domain owner phải cho first paint tương thích contract này nếu được layout adapter tag;
-- chỉ xuống hàng khi thực sự thiếu chiều rộng;
-- tablet: 2–3 cột tùy không gian;
-- mobile: 2 cột hoặc 1 cột;
-- không để màn hình desktop khoảng 1400–1500 px tự xuống 2 hàng chỉ vì breakpoint cũ.
-
-### Action toolbar
-
-Nhóm 4–6 nút thao tác trên trang chi tiết nên ưu tiên **một hàng trên desktop**, cùng chiều cao/khoảng cách, rồi mới responsive xuống hàng ở tablet/mobile.
-
-## 3. Framework chung cho 4 loại bài
-
-Bốn loại bài dùng cùng một framework builder:
+Bốn loại bài dùng cùng framework:
 
 1. **Mục 1 — Thông tin bài**
 2. **Mục 2 — Cấu trúc / Ma trận**
 3. **Mục 3 — Danh sách câu hỏi đã rút**
-4. **Mục 4 — Xuất** chỉ có với Ôn tập thi và Thi cuối kỳ
+4. **Mục 4 — Xuất** chỉ với loại bài phù hợp
 
-Cuối trang có thanh hành động theo trạng thái.
-
-### 3.1. Kiểm tra thường
+### 4.1. Kiểm tra thường
 
 - Nguồn câu: **Ngân hàng luyện tập – kiểm tra**.
-- Mục 1 **không chọn Chương**.
-- Mục 2 có nút **Chọn phạm vi**.
-- Chọn các Chương cần kiểm tra, sau đó chỉ hiện các Mục thuộc Chương đã chọn.
-- Ma trận: **CLO cho mỗi mục** (`Mục × CLO`).
-- Giải thích ngắn cho giảng viên: “Phân bố số câu CLO riêng cho từng mục.”
-- Có thể phát hành cho sinh viên làm trên web.
+- Mục 1 không chọn Chương.
+- Mục 2 chọn phạm vi Chương/Mục.
+- Ma trận: **Mục × CLO**.
+- Có thể phát hành cho sinh viên làm online.
 
-### 3.2. Đánh giá CLO
+### 4.2. Đánh giá CLO
 
 - Nguồn câu: **Ngân hàng luyện tập – kiểm tra**.
-- Mục 1 **không chọn Chương**.
-- Mục 2 chọn phạm vi Chương.
-- Trong mỗi Chương có thể chọn các Mục con được phép dùng; **không mặc định trộn toàn bộ Mục trong Chương**.
+- Mục 2 chọn phạm vi Chương và các Mục con được dùng.
 - Ma trận: hàng = Chương, cột = CLO.
-- Chế độ: **CLO chung các mục được chọn**, nhưng **tách riêng theo từng Chương**.
-- Mỗi ô hiển thị dạng `[số câu cần] (n)` với `n` là số câu khả dụng trong đúng Chương + CLO + tập Mục đã chọn.
-- Đổi câu phải giữ **Chương + CLO**, có thể đổi sang Mục khác trong tập Mục đã chọn của Chương đó.
-- Gemini sinh câu thay thế cũng phải giữ ngữ cảnh Chương + CLO.
-- Có thể phát hành cho sinh viên làm trên web.
+- CLO chung các Mục được chọn nhưng **tách theo từng Chương**.
+- Đổi câu giữ Chương + CLO; có thể đổi Mục trong tập Mục đã chọn của Chương đó.
+- Có thể phát hành online.
 
-### 3.3. Ôn tập thi
+### 4.3. Ôn tập thi
 
-- Nguồn câu: **Ngân hàng luyện tập – kiểm tra**.
-- Cấu trúc/giao diện gần giống Thi cuối kỳ nhưng **không được dùng Ngân hàng đề thi – bảo mật**.
-- Mục 2: sau khi chọn phạm vi Chương và các Mục, giảng viên chọn 1 trong 2 chế độ:
-  - **CLO cho mỗi mục**;
-  - **CLO chung các mục được chọn**.
-- Với chế độ CLO chung, vẫn **tách theo từng Chương**, không gộp toàn bộ Chương thành một pool duy nhất.
-- Mục 1 có tùy chọn bật/tắt xem đáp án/lời giải sau khi nộp.
-- Có thể phát hành cho sinh viên làm trên web.
-- Mục 4: **Xuất TeX**. Không xuất BM07/BM08 hành chính chính thức.
+- Nguồn: **Luyện tập – kiểm tra**, không dùng secure bank.
+- Có hai mode cấu trúc: CLO cho mỗi Mục / CLO chung các Mục đã chọn, vẫn tách Chương.
+- Có thể bật xem đáp án/lời giải sau nộp.
+- Có thể phát hành online.
+- Xuất TeX; không dùng BM07/BM08 hành chính chính thức.
 
-### 3.4. Thi cuối kỳ
+### 4.4. Thi cuối kỳ
 
 - **Chỉ** dùng **Ngân hàng đề thi – bảo mật**.
-- Không cho người dùng chọn nguồn luyện tập/cả hai.
-- Mục 2: sau khi chọn phạm vi Chương và các Mục, giảng viên chọn 1 trong 2 chế độ:
-  - **CLO cho mỗi mục**;
-  - **CLO chung các mục được chọn**.
-- Với chế độ CLO chung, vẫn **tách theo từng Chương**.
-- Không phát hành cho sinh viên và không cho làm trên web.
-- Trạng thái: **Bản nháp → Khóa ↔ Mở khóa**.
-- Khi Khóa: khóa cấu trúc/đổi câu; vẫn xem và xuất.
-- Mục 4: dùng engine xuất đã kiểm nghiệm cho **BM07 · BM08 · TeX** và các đầu ra liên quan.
+- Không phát hành cho sinh viên làm online.
+- Trạng thái: Bản nháp → Khóa ↔ Mở khóa.
+- Khi khóa: không sửa cấu trúc/đổi câu; vẫn xem/xuất.
+- Xuất bằng engine đã kiểm nghiệm cho BM07 · BM08 · TeX và đầu ra liên quan.
 
-## 4. Quy tắc chung Mục 1 / Mục 2 / Mục 3
+## 5. Quy tắc Mục 1 / Mục 2 / Mục 3
 
-### Mục 1 — Thông tin
+### Mục 1
 
-- Hiển thị thông tin gọn theo kiểu **liệt kê 2 cột như văn bản**, không chia thành nhiều card xám nhỏ.
-- Có **Tổng số câu**.
-- Khi mở Mục 1, hiển thị đầy đủ thông tin read-only gọn; nút Chỉnh sửa mở AI-CLO app-window.
-- Mục 1 không chứa chọn Chương; phạm vi nội dung nằm hoàn toàn ở Mục 2.
+- Hiển thị gọn kiểu văn bản/2 cột, không biến mọi field thành card xám.
+- Có Tổng số câu.
+- Read-only gọn; nút Chỉnh sửa mở app-window.
+- Không chứa chọn Chương; phạm vi nội dung nằm ở Mục 2.
 
-### Mục 2 — Cấu trúc
+### Mục 2
 
-- Có **Chọn phạm vi**.
-- Có giải thích ngắn trực tiếp dưới tiêu đề và tooltip `ⓘ`.
-- Tổng phân bổ ma trận phải bằng `total_questions` trước khi rút.
-- Nếu ô yêu cầu vượt số câu có sẵn thì cảnh báo và không rút.
+- Có Chọn phạm vi.
+- Có giải thích ngắn + tooltip nếu cần.
+- Tổng ma trận phải bằng `total_questions` trước khi rút.
+- Nếu yêu cầu vượt số câu có sẵn → cảnh báo và không rút.
 
-### Mục 3 — Danh sách câu
+### Mục 3
 
-- Hiển thị câu số, CLO, Chương, Mục, nội dung/phương án.
-- Có **Đổi câu** và **Gemini sinh câu** trước khi bị khóa.
-- Đổi câu phải giữ đúng cell cấu trúc ban đầu của bài.
+- Với mode có câu cụ thể: hiển thị câu số, CLO, Chương/Mục, nội dung/phương án.
+- Có Đổi câu và AI sinh câu trước khi bị khóa.
+- Đổi câu phải giữ đúng cell cấu trúc/ngữ cảnh ban đầu.
 
-## 5. Lưu nháp và trạng thái
+## 6. Bốn cách rút câu online
 
-- Với builder online, thông tin Mục 1 cần được bảo vệ ngay từ lúc nhập/chỉnh.
-- Khi **Rút câu hỏi**, phải tạo/cập nhật **bản nháp** trong danh sách bài kiểm tra để có thể quay lại sửa sau.
-- Sau khi có draft trên Supabase, DB là nguồn dữ liệu bền vững; local/session chỉ hỗ trợ workspace chưa đồng bộ hoặc UI state.
-- Không tạo nháp với `total_questions = 0`; phải luôn thỏa check constraint hiện có.
+1. `common_fixed` — **Đề chung cố định**: hiển thị/chốt toàn bộ câu cụ thể.
+2. `student_fixed` — **Đề riêng theo sinh viên**: Builder không hiện câu cụ thể; mỗi sinh viên có một bộ riêng và giữ bộ đó.
+3. `attempt_random` — **Rút lại mỗi lần làm**: Builder không hiện câu cụ thể; mỗi attempt rút theo ma trận.
+4. `mixed_fixed_random` — **Cố định và rút ngẫu nhiên**: chọn câu cố định trước; phần còn lại rút random.
 
-### Trạng thái bài online
-
-Dùng ý nghĩa rõ cho sinh viên:
-
-- **Bản nháp** — sinh viên không thấy/làm.
-- **Sắp mở** — đã phát hành nhưng chưa đến giờ mở.
-- **Đang mở** — có thể bắt đầu lượt mới.
-- **Tạm đóng** — giảng viên tạm ngưng, không cho bắt đầu lượt mới.
-- **Đã hết hạn** — qua `closes_at`.
-- **Đã hết lượt** — sinh viên đã dùng đủ `max_attempts`.
-
-Trang chi tiết giảng viên cần có nút **Phát hành / Tạm đóng / Mở lại** tương ứng.
-
-## 6. Quy tắc `max_attempts`
-
-**`max_attempts` luôn được phép chỉnh sửa dù đã có sinh viên làm.**
-
-- Tăng giới hạn → sinh viên có thêm lượt nếu chưa đạt giới hạn mới.
-- Giảm giới hạn xuống thấp hơn số lượt lịch sử của sinh viên → **không xóa, không sửa, không báo lỗi** các lượt cũ.
-- Chỉ chặn tạo lượt mới khi `số lượt hiện có >= max_attempts mới`.
-- Quy tắc áp dụng cho Kiểm tra thường, Đánh giá CLO, Ôn tập thi.
-- Thi cuối kỳ không phát hành nên không dùng nghiệp vụ lượt làm sinh viên.
-
-## 7. Trang Chi tiết bài kiểm tra
-
-### Giảng viên / Admin
-
-Desktop cần bố trí gọn:
-
-- **5 card KPI trên 1 hàng**: Đã nộp · Đang làm · GPA trung bình · GPA dưới 4 · Thời lượng.
-- **5 nút trên 1 hàng**: AI phân tích · Sửa cấu trúc · Làm thử · Phát hành/Tạm đóng/Mở lại · Xóa bài.
-- Toolbar danh sách lượt làm: **Tìm kiếm · Trạng thái · Sắp xếp · Xuất báo cáo** trên 1 hàng ở desktop.
-- “Sửa cấu trúc” không mở UI legacy; phải vào đúng builder framework mới theo `exam_type`.
-- **Admin** có quyền xóa bài kiểm tra ở mọi trạng thái bằng RPC `admin_delete_exam`; nếu bài đã có lượt làm, phải cảnh báo rõ rằng điểm/câu trả lời/lượt làm liên quan cũng bị xóa.
-- **Admin** có quyền xóa từng lượt làm sinh viên bằng RPC `admin_delete_attempt`. Giảng viên không hiện nút xóa lượt.
-- Migration `supabase/migrations/v12.5-admin-assessment-delete.sql` harden `admin_delete_attempt`: sau khi xóa bất kỳ lượt lịch sử nào, đánh số lại các lượt còn lại trong cùng transaction để không va unique constraint khi sinh viên làm tiếp.
-
-### Sinh viên — V12.5.0
-
-- Trang **Bài kiểm tra** hiển thị theo **danh sách gọn**, không dùng card grid cũ.
-- Nhấn cả dòng hoặc nút **Chi tiết →** mở **trang con full-width** của bài kiểm tra, không mở Drawer.
-- Trang con hiển thị thông tin bài và **danh sách tất cả lượt làm của chính sinh viên**.
-- Lượt chưa nộp có nút **Tiếp tục**; lượt đã nộp có nút **Xem câu hỏi**.
-- Chỉ **Xem câu hỏi / kết quả lượt đã nộp** mở Drawer/panel; Drawer không thay thế trang con phía sau.
-- Khi đang làm bài, nút Quay lại trở về **Chi tiết bài kiểm tra**; sau khi nộp, Drawer kết quả cũng nằm trên đúng trang Chi tiết bài.
-
-## 8. Subpage State Manager — V11.8.2
-
-Đây là quy tắc bắt buộc cho mọi trang con mới.
-
-File chính:
-
-- `js/ui/subpage-state.js`
-- `js/ui/subpage-bootstrap.js`
-
-Mục tiêu: nếu người dùng đang ở một trang con, chuyển sang tab Chrome khác rồi quay lại, tab bị discard, `pageshow`, hoặc `#content` bị render lại thì **không được mất trang hiện tại**.
-
-State chung lưu tối thiểu:
-
-- `space`
-- `view`
-- `subjectId`
-- `kind` / loại subpage
-- `entityType`
-- `entityId`
-- `mode`
-- `scrollY`
-- `updated_at`
-
-Các trang đã/đang nối vào cơ chế này:
-
-- Chi tiết bài kiểm tra phía giảng viên;
-- **Chi tiết bài kiểm tra phía sinh viên (`assessment-student-detail`)**;
-- **workspace đang làm bài (`assessment-attempt`)**;
-- Drawer kết quả/xem câu hỏi của lượt làm (`assessment-attempt-result`) giữ parent `assessment-student-detail` khi mở từ trang sinh viên;
-- unified builder 4 loại bài;
-- Hồ sơ sinh viên;
-- workspace Ngân hàng câu hỏi (tạo/sửa câu, AI, duplicate scan, AI review);
-- workspace đề thi cuối kỳ.
-
-### Nguyên tắc mở rộng
-
-Không tạo thêm một cơ chế `sessionStorage` điều hướng riêng cho trang mới. Trang mới phải **đăng ký với `AICLO_SUBPAGE_STATE`** bằng cơ chế registry/detect/restore của lớp chung.
-
-Module-specific draft store vẫn được phép tồn tại để lưu **nội dung form/draft**, nhưng việc **đang đứng ở trang nào** phải do Subpage State Manager quản lý.
-
-### Khi nào xóa state
-
-Chỉ xóa subpage state khi người dùng **chủ động**:
-
-- bấm Quay lại;
-- đổi menu;
-- đổi học phần;
-- Về hệ thống;
-- đăng xuất;
-- hoàn tất/lưu thành công và workflow đã rời trang con.
-
-Không xóa state chỉ vì `visibilitychange`, `pagehide`, hoặc render lại `#content`.
-
-## 9. Các file/mốc cần nhớ
-
-### Tài liệu bắt buộc đọc
-
-- `docs/project/PROJECT-NOTES-AI-CLO.md` — quyết định kỹ thuật/UI/nghiệp vụ ưu tiên.
-- `docs/project/ARCHITECTURE-AI-CLO.md` — bản đồ kiến trúc hiện hành và owner theo domain.
-- `docs/project/TECHNICAL-AGREEMENTS.md` — quy tắc kỹ thuật bắt buộc.
-- `docs/project/PROJECT-STATUS-2026-09-07.md` — snapshot trạng thái hiện tại.
-- `docs/project/PROJECT-PROGRESS-2026-09-07.md` — tiến trình chi tiết trong ngày.
-- `docs/releases/V12.6-SHARED-BANK-ASSESSMENT.md` — release note cho mốc V12.6 ngân hàng dùng chung + Assessment.
-
-### File runtime quan trọng
-
-- `js/assessment.js` — owner/router Assessment và registry persistence cho detail/builder/student-detail/attempt/result.
-- `js/assessment/online-lifecycle.js` — lifecycle bài online phía giảng viên/Admin, gồm status, danh sách lượt, preview/export và quyền xóa Admin.
-- `js/assessment/student-attempt.js` — owner danh sách bài sinh viên, trang Chi tiết bài, lịch sử lượt làm, workspace làm bài và Drawer kết quả.
-- `css/exams/student-attempt.css` — owner UI sinh viên tương ứng.
-- `js/exams/unified-builder.js` — framework chung 4 loại bài.
-- `css/exams/unified-builder.css` — giao diện builder chung.
-- `js/exams/unified-list-adapter.js` — adapter danh sách/trang chi tiết cho framework mới.
-- `js/exams/assessment-window.js` — chuẩn hóa popup về AI-CLO app-window.
-- `js/ui/subpage-state.js` — quản lý trang con chung, hiện V11.8.2.
-- `js/ui/subpage-bootstrap.js` — khôi phục context trước render đầu tiên.
-- `js/exams/detail-enhancements.js` — chi tiết bài kiểm tra, sort/scroll/layout hiện hành; nên dần phụ thuộc lớp chung thay vì tự giữ lifecycle riêng.
-- `js/questions/workspace.js` — cơ chế workspace câu hỏi cũ nhưng ổn định; khi refactor tiếp cần tích hợp registry chung, không phá lưu nháp câu hỏi.
-- `js/exams/final-workflow.js` — engine cuối kỳ/biểu mẫu đã kiểm nghiệm; không xóa vội.
-- `js/core/question-bank-ownership.js` — compatibility bridge V12.6.2 cho các module legacy còn lọc nội dung bằng `subject_id`; tự route đọc Chương/CLO/Câu hỏi sang `question_bank_id` của học phần hiện tại.
-
-### Backend liên quan V12.5–V12.6
-
-- RPC đã có từ V9.2: `admin_delete_exam(uuid)`, `admin_delete_attempt(uuid)` — chỉ Admin.
-- V12.5.0 **không đổi bảng/schema Assessment và không đổi `assessment_schema_version = 12.3.1`**.
-- Cần chạy `supabase/migrations/v12.5-admin-assessment-delete.sql` để harden việc xóa lượt giữa và đánh số lại lịch sử an toàn.
-- V12.6.1 thêm mode online `mixed_fixed_random` = **Cố định và rút ngẫu nhiên**. Giảng viên phải chọn ≥1 câu cố định trước; câu cố định tiêu thụ quota của đúng ô ma trận; phần còn lại rút ngẫu nhiên và không hiển thị danh sách câu random cụ thể trong builder.
-- `student_fixed` và `attempt_random` là random thuần: Builder chỉ hiển thị cấu trúc/ma trận, không hiển thị câu cụ thể sau khi rút.
-- `supabase/migrations/assessment-v12.6-mixed-fixed-random.sql` là migration backend cho V12.6.1.
-- V12.6.2 chốt ownership dùng chung: **Câu hỏi / Chương / CLO thuộc Ngân hàng câu hỏi; Bài kiểm tra / lượt làm / kết quả thuộc Học phần**.
-- V12.6.3 xử lý tương thích khóa ngoại legacy của `questions`: `questions.subject_id` phải khớp `subject_id` nguồn của Chương/CLO, trong khi ownership thật là `question_bank_id`. Migration: `supabase/migrations/v12.6.3-question-bank-legacy-subject.sql`.
-- V12.6.4 sửa backend Assessment để `replace_exam_design()` và `save_final_exam_package()` xác thực nguồn câu bằng `question_bank_id` của học phần thay vì `q.subject_id = exam.subject_id`. Migration: `supabase/migrations/assessment-v12.6.4-question-bank-scope.sql`.
-- `populate_attempt_questions()` không cần đổi ở V12.6.4 vì chỉ làm việc với `exam_question_pool` đã được đóng băng và xác thực trước đó.
-
-## 10. Việc cần tiếp tục kiểm tra
-
-Đợt CSS ownership/refactor lớn đã hoàn tất ở V12.4.24. Không tiếp tục chia/tách CSS chỉ vì muốn giảm số file nếu chưa có lỗi/điểm nghẽn rõ ràng.
-
-Ưu tiên tiếp theo:
-
-- chạy và xác nhận các migration V12.6.3 + V12.6.4 trên Supabase;
-- smoke lớp mới dùng chung Ngân hàng Giải tích 1: đọc Chương/Mục/CLO, thêm câu thủ công, câu Gemini, import câu, tạo bài kiểm tra, tạo đề cuối kỳ;
-- kiểm tra 4 mode online: `common_fixed`, `student_fixed`, `attempt_random`, `mixed_fixed_random`;
-- kiểm tra `mixed_fixed_random`: bắt buộc ≥1 câu cố định → rút phần còn lại → lưu → sinh viên bắt đầu lượt làm;
-- smoke desktop/mobile shell;
-- login/Auth;
-- Question Bank desktop/mobile, filter, card/table, quick edit;
-- Assessment Detail/Builder/Attempt;
-- **Admin xóa bài/xóa lượt với dữ liệu thật sau khi chạy migration V12.5.0**;
-- **Student list → detail → attempt → result Drawer → quay lại detail**;
-- kiểm tra Chrome tab-switch/reload/discard cho từng trang con;
-- teacher/student qua Supabase/RLS;
-- đổi học phần không lẫn state/feedback;
-- Excel đáp án+CLO với `/cham-thi-clo`;
-- compile TeX với dữ liệu thật;
-- nếu profiling cho thấy số request CSS là bottleneck thì cân nhắc **build-time bundle**, không nhập thủ công source CSS lại thành file lớn.
-
-Khi thêm bất kỳ trang con mới nào: **đăng ký restore với lớp chung ngay từ đầu**.
-
-## 11. Nguyên tắc làm việc với repo
-
-Trước khi sửa lớn ở các phiên sau:
-
-1. Đọc `PROJECT-NOTES-AI-CLO.md` trước.
-2. Đọc `ARCHITECTURE-AI-CLO.md` để xác định đúng owner/file.
-3. Đọc `TECHNICAL-AGREEMENTS.md` và release note liên quan nếu cần.
-4. Quét code mới nhất trên GitHub `main` trước khi quyết định thay đổi.
-5. Không giả định UI/state cũ còn đúng nếu repo đã có phiên bản mới.
-6. Ưu tiên thay đổi theo framework chung, không tạo “bản vá riêng” cho một trang nếu vấn đề có tính toàn hệ thống.
-7. **Quy ước thao tác GitHub với người dùng:** khi đang trao đổi/góp ý/thiết kế thì không sửa repo. Chỉ khi người dùng xác nhận rõ kiểu “OK, bắt đầu / bắt đầu viết / làm nhé” mới được triển khai. Trước khi viết runtime/backend lên `main`, tạo branch backup từ HEAD hiện tại; sau đó mới commit lên `main` và rà diff.
-
-## 12. Ghi nhớ chung V12.6 — Ngân hàng dùng chung + Assessment
-
-Đây là mốc kiến trúc bắt buộc phải giữ khi phát triển tiếp.
-
-### Ownership dữ liệu
-
-- **Ngân hàng câu hỏi (`question_bank_id`)** sở hữu: Chương, Mục, CLO, câu hỏi.
-- **Học phần/lớp (`subject_id`)** sở hữu: bài kiểm tra, cấu hình phát hành, lượt làm, kết quả CLO.
-- Nhiều học phần/lớp có thể trỏ cùng một `question_bank_id`; ví dụ nhiều lớp Giải tích 1 dùng chung Chương/Mục/CLO và toàn bộ câu hỏi.
-- Không được quay lại giả định “câu hỏi thuộc lớp hiện tại” chỉ vì legacy schema còn trường `questions.subject_id`.
-- `questions.subject_id` hiện là trường tương thích FK legacy; khi ghi câu mới trong ngân hàng dùng chung, giá trị này phải khớp học phần nguồn của Chương/CLO, còn ownership thực dùng `question_bank_id`.
-
-### 4 cách rút câu online
-
-1. `common_fixed` — **Đề chung cố định**: hiển thị và chốt toàn bộ câu cụ thể.
-2. `student_fixed` — **Đề riêng theo sinh viên**: không hiện câu cụ thể trong Builder; mỗi sinh viên rút một bộ riêng và giữ bộ đó.
-3. `attempt_random` — **Rút lại mỗi lần làm**: không hiện câu cụ thể trong Builder; mỗi lượt làm rút lại theo ma trận.
-4. `mixed_fixed_random` — **Cố định và rút ngẫu nhiên**: chọn câu cố định trước; câu cố định trừ quota của đúng ô ma trận; sau đó “Rút phần còn lại”. Builder chỉ hiện câu cố định + thống kê số câu random, không liệt kê câu random cụ thể.
-
-### Quy tắc của `mixed_fixed_random`
+### `mixed_fixed_random`
 
 - Phải có ít nhất 1 câu cố định.
-- Thứ tự thao tác: **lập ma trận → chọn câu cố định → rút phần còn lại → lưu**.
-- Nếu đổi ma trận/phạm vi hoặc thêm-bớt câu cố định sau khi đã rút, trạng thái “đã rút phần còn lại” phải bị vô hiệu và giảng viên phải rút lại.
-- Backend phải đưa câu cố định vào trước, tính quota còn thiếu từng cell rồi mới rút random.
-- Không dùng thiết kế “fixed slot Câu 1/Câu 2/...”; prototype đó đã bỏ.
+- Thứ tự: **lập ma trận → chọn câu cố định → rút phần còn lại → lưu**.
+- Câu cố định tiêu thụ quota đúng cell.
+- Builder chỉ hiện câu cố định + thống kê phần random; không liệt kê random cụ thể.
+- Nếu đổi ma trận/phạm vi hoặc thay câu cố định sau khi rút → trạng thái phần random phải invalid và rút lại.
+- Không dùng thiết kế fixed slot Câu 1/Câu 2/...; prototype đó đã bỏ.
 
-### Migration phải nhớ
+Migration: `supabase/migrations/assessment-v12.6-mixed-fixed-random.sql`.
 
-- `supabase/migrations/assessment-v12.6-mixed-fixed-random.sql` — V12.6.1, thêm mode hỗn hợp và populate attempt tương ứng.
-- `supabase/migrations/v12.6.3-question-bank-legacy-subject.sql` — chuẩn hóa `questions.subject_id` legacy để không vi phạm FK ghép Chương/CLO khi học phần dùng ngân hàng chung.
-- `supabase/migrations/assessment-v12.6.4-question-bank-scope.sql` — backend Assessment xác thực pool online và bộ câu cuối kỳ bằng `question_bank_id` thay vì `subject_id`.
+## 7. Ownership dữ liệu Question Bank / Subject
 
-### Tài liệu hiện hành
+### Question Bank (`question_bank_id`) sở hữu
 
-Khi tiếp tục từ mốc này, đọc theo thứ tự:
+- Chương
+- Mục
+- CLO
+- Câu hỏi
+
+### Subject/Học phần (`subject_id`) sở hữu
+
+- Bài kiểm tra
+- phát hành
+- lượt làm
+- câu trả lời/draft answer
+- kết quả CLO/GPA
+- final package
+
+Nhiều học phần/lớp có thể dùng chung một Question Bank.
+
+Không quay lại giả định “câu hỏi thuộc lớp hiện tại” chỉ vì legacy schema còn `questions.subject_id`. Trường này đang phục vụ compatibility/FK legacy; ownership thật là `question_bank_id`.
+
+Bridge frontend: `js/core/question-bank-ownership.js`.
+
+Migration:
+
+- `v12.6.3-question-bank-legacy-subject.sql` — chuẩn hóa trường legacy khi ghi câu.
+- `assessment-v12.6.4-question-bank-scope.sql` — Assessment/Final Exam xác thực pool theo `question_bank_id`.
+
+## 8. Lưu nháp và trạng thái bài online
+
+- Rút câu tạo/cập nhật draft chính thức.
+- Không tạo draft có `total_questions = 0`.
+- Sau khi draft có trên Supabase, DB là nguồn bền vững; local/session chỉ hỗ trợ UI/workspace chưa sync.
+
+Trạng thái sinh viên:
+
+- Bản nháp
+- Sắp mở
+- Đang mở
+- Tạm đóng
+- Đã hết hạn
+- Đã hết lượt
+
+Teacher Detail có thao tác Phát hành / Tạm đóng / Mở lại tương ứng.
+
+## 9. Quy tắc `max_attempts`
+
+`max_attempts` được phép chỉnh dù đã có sinh viên làm.
+
+- Tăng → sinh viên có thêm lượt nếu chưa đạt giới hạn mới.
+- Giảm thấp hơn lịch sử → **không xóa, không sửa** lượt cũ.
+- Chỉ chặn lượt mới khi số lượt hiện có >= giới hạn mới.
+- Thi cuối kỳ không phát hành nên không dùng nghiệp vụ attempt online.
+
+## 10. Trang Chi tiết bài kiểm tra
+
+### Teacher / Admin
+
+- KPI/action/filter toolbar ưu tiên một hàng trên desktop khi đủ chỗ.
+- Sửa cấu trúc đi vào đúng builder framework theo `exam_type`, không mở legacy UI.
+- Admin xóa bài bằng `admin_delete_exam`.
+- Admin xóa attempt bằng `admin_delete_attempt`; teacher không hiện nút xóa attempt.
+- Migration V12.5 harden xóa attempt và đánh số lại lịch sử an toàn.
+
+### AI-CLO | LIVE entry
+
+- Nút **AI-CLO | LIVE** nằm **cùng hàng với tên bài kiểm tra, canh phải**.
+- Không đặt nút này vào action bar tiêu chuẩn.
+- Mở Live thành subpage trong app.
+- Nút phải xuất hiện ngay khi vào Detail từ danh sách, **không phụ thuộc F5**.
+
+### Student
+
+- Bài kiểm tra hiển thị list gọn.
+- Nhấn bài/Chi tiết → full-width Chi tiết bài, không Drawer.
+- Trang Chi tiết hiển thị lịch sử các lượt của chính sinh viên.
+- Lượt mở → Tiếp tục; lượt đã nộp → Xem câu hỏi.
+- Result/question review mới mở Drawer.
+- Khi đang làm, Quay lại về Chi tiết bài kiểm tra.
+
+## 11. Expired unfinished attempt
+
+Không được dùng `submitted_at is null` như điều kiện duy nhất để coi attempt còn mở.
+
+Frontend `student-attempt.js` hiện:
+
+- dùng `get_exam_attempt_payload.remaining_seconds` theo **server time**;
+- nếu hết giờ thì gọi `finalize_exam_attempt`;
+- clear local workspace liên quan rồi refetch;
+- chỉ sau reconcile mới quyết định action Tiếp tục/Bắt đầu lượt mới.
+
+Backend `start_exam_attempt` vẫn tự finalize stale expired attempt trước khi kiểm `max_attempts` và tạo lượt mới.
+
+Không dùng đồng hồ client làm nguồn quyết định quyền attempt.
+
+## 12. Persistence / giữ nguyên màn hình
+
+Shared owners:
+
+```text
+js/ui/subpage-state.js
+js/ui/form-persistence.js
+```
+
+### Browser-tab contract V12.6.36
+
+> **Đổi sang browser tab khác rồi quay lại = đóng băng màn hình đang sống, không render.**
+
+- Nếu DOM còn sống thì không gọi `render()` do `visibilitychange/pageshow/focus`.
+- Không được lóe trang mẹ rồi mới restore child page.
+- Giữ DOM, scroll, form, workspace, menu/panel đang sống.
+- Reload/F5/discard thật sự mới dùng subpage state để restore.
+
+### Sidebar contract
+
+> **Click sidebar = navigation chủ động về trang mẹ.**
+
+Ví dụ: đang Chi tiết bài kiểm tra → click **Đánh giá** → Danh sách bài kiểm tra.
+
+### State manager
+
+State có thể lưu space/view/subjectId/kind/entity/mode/scroll/parent context.
+
+Không tạo một navigation persistence riêng cho từng module nếu đã có thể đăng ký vào `AICLO_SUBPAGE_STATE`.
+
+## 13. AI-CLO | LIVE
+
+### Product contract
+
+Teacher Live xem:
+
+- sinh viên / mã SV;
+- attempt number;
+- answered count / total;
+- current question;
+- remaining time;
+- last activity;
+- fullscreen;
+- violations + away time;
+- active/warning/disconnected/expired/submitted;
+- question-number map và event history.
+
+**Không hiển thị A/B/C/D sinh viên đang chọn trong lúc làm.**
+
+Live có lịch sử Excel phục vụ theo dõi/audit theo dữ liệu backend hiện có.
+
+### Owner
+
+```text
+js/assessment/live-monitor.js
+js/assessment/attempt-monitor.js
+css/exams/live-monitor.css
+css/exams/attempt-monitor.css
+```
+
+Teacher snapshot refresh khoảng **5 giây**; không dùng server polling dày 500 ms.
+
+### Backend V12.6.34
+
+`assessment-v12.6.34-live-monitoring.sql` tạo:
+
+- `attempt_live_state`;
+- `attempt_monitor_events`;
+- RPC student update/start/finish monitor event;
+- RPC teacher đọc snapshot/history.
+
+Table telemetry không mở direct runtime access; permission qua RPC/backend guard.
+
+`attempt_id` ở hai table dùng `ON DELETE CASCADE` tới `exam_attempts`:
+
+> **Xóa một attempt = xóa Live state + monitor history của attempt đó.**
+
+### iOS V12.6.35
+
+Safari/iOS có thể freeze JS/network rất nhanh khi đi nền. Vì vậy:
+
+- event có `client_event_id` ổn định;
+- client có thể giữ incident local;
+- quay lại app → sync/bù event + heartbeat;
+- backend de-duplicate `(attempt_id, client_event_id)`;
+- không tăng violations/away hai lần cho cùng incident.
+
+Migration: `assessment-v12.6.35-ios-live-sync.sql`.
+
+### Fullscreen limitation
+
+- Fullscreen web không phải secure browser/kiosk.
+- Không yêu cầu cài trình duyệt khác trong scope hiện tại.
+- Không thể khóa OS, thiết bị thứ hai hoặc biết nội dung tab khác.
+- Browser không hỗ trợ fullscreen đầy đủ không được tự động coi là vi phạm chỉ vì thiếu capability.
+
+## 14. Question Bank — quyết định mới 08/09
+
+### Provenance
+
+Backend giữ:
+
+```text
+origin_type = 'gemini'
+```
+
+UI hiển thị:
+
+```text
+✦ AI hỗ trợ
+```
+
+Danh sách và Chi tiết phải thống nhất. **Không chỉnh Supabase chỉ để đổi nhãn.**
+
+### Tạo một câu / Tải hàng loạt
+
+Trang Thêm câu hỏi có hai mode đối xứng:
+
+```text
+Tạo một câu | Tải hàng loạt
+```
+
+Excel mẫu:
+
+- `Cau_hoi` — sheet nhập chính;
+- `Vi_du` — ví dụ riêng;
+- `Chuong_Chu_de`;
+- `CLO`;
+- `Danh_muc`;
+- `Huong_dan`.
+
+Importer ưu tiên `Cau_hoi`.
+
+Cột canonical:
+
+```text
+Chương | Chủ đề | CLO | Nội dung | A | B | C | D | Đáp án | Lời giải | Ngân hàng | Trạng thái
+```
+
+Không có cột Mã câu. Hệ thống tự sinh mã theo sequence/số tự nhiên và UI đệm 0, ví dụ `000307`.
+
+### Danh sách / hover
+
+- `css/questions/bank.css` sở hữu table/card/layout canonical.
+- Cột Mã được giữ gọn, Nội dung ăn phần chiều rộng còn lại.
+- Hover desktop hiện câu đầy đủ + A/B/C/D, không đánh dấu đáp án đúng.
+- **Owner duy nhất:** `js/questions/hover-preview.js`.
+- `js/questions/matrix-panel.js` đã bỏ hover legacy “NỘI DUNG ĐẦY ĐỦ” và không được thêm lại listener đó.
+- Mobile không phụ thuộc hover.
+
+## 15. File runtime cần nhớ
+
+### Assessment
+
+- `js/assessment.js`
+- `js/assessment/online-lifecycle.js`
+- `js/assessment/online-builder.js`
+- `js/assessment/student-attempt.js`
+- `js/assessment/live-monitor.js`
+- `js/assessment/attempt-monitor.js`
+- `js/assessment/export-dropdown.js`
+- `js/assessment/final-exam.js`
+- `js/assessment/results.js`
+
+### Question Bank
+
+- `js/core/question-bank-ownership.js`
+- `js/questions/bank.js`
+- `js/questions/bank-layout.js`
+- `js/questions/origin.js`
+- `js/questions/hover-preview.js`
+- `js/questions/matrix-panel.js`
+- `js/questions/workspace.js`
+
+### Shared UI
+
+- `js/ui/subpage-state.js`
+- `js/ui/form-persistence.js`
+- `js/ui/shell.js`
+- `js/ui/navigation.js`
+
+## 16. Migration quan trọng gần đây
+
+```text
+supabase/migrations/v12.5-admin-assessment-delete.sql
+supabase/migrations/assessment-v12.6-mixed-fixed-random.sql
+supabase/migrations/v12.6.3-question-bank-legacy-subject.sql
+supabase/migrations/assessment-v12.6.4-question-bank-scope.sql
+supabase/migrations/assessment-v12.6.34-live-monitoring.sql
+supabase/migrations/assessment-v12.6.35-ios-live-sync.sql
+```
+
+Phải phân biệt migration **đã có source trên GitHub** và migration **đã chạy trên Production Supabase**. Với Live, cần xác nhận production đã chạy V12.6.34 + V12.6.35 trước khi coi backend hoàn tất.
+
+Backend Assessment version function vẫn giữ `12.3.1` nếu các migration additive không đổi version.
+
+## 17. Smoke test ưu tiên tiếp theo
+
+- Teacher: Đánh giá → Chi tiết → LIVE xuất hiện ngay không F5.
+- Student desktop: rời tab → warning + teacher Live cập nhật.
+- Student iPhone: rời Safari/app → quay lại → incident được sync/de-duplicate.
+- Away time dừng sau khi student quay lại.
+- Browser tab switch trên subpage → DOM giữ nguyên, không lóe parent.
+- Sidebar click từ subpage → vào parent page.
+- Xóa attempt → Live state/events cascade theo.
+- Question Bank list/detail cùng `AI hỗ trợ`.
+- Bulk import template mới đọc đúng `Cau_hoi`.
+- Hover Question Bank chỉ một popup câu + A/B/C/D.
+- Desktop/mobile không tràn ngang ngoài vùng được thiết kế.
+- 4 Assessment modes + shared Question Bank/RLS.
+- Excel đáp án+CLO với `/cham-thi-clo`.
+- Compile TeX với dữ liệu thật.
+
+## 18. Tài liệu hiện hành
+
+Đọc theo thứ tự:
 
 1. `docs/project/PROJECT-NOTES-AI-CLO.md`
-2. `docs/project/PROJECT-STATUS-2026-09-07.md`
-3. `docs/project/PROJECT-PROGRESS-2026-09-07.md`
-4. `docs/releases/V12.6-SHARED-BANK-ASSESSMENT.md`
-5. `docs/project/ARCHITECTURE-AI-CLO.md`
-6. `docs/project/TECHNICAL-AGREEMENTS.md`
+2. `docs/project/ARCHITECTURE-AI-CLO.md`
+3. `docs/project/TECHNICAL-AGREEMENTS.md`
+4. `docs/project/PROJECT-STATUS-2026-09-08.md`
+5. `docs/project/PROJECT-PROGRESS-2026-09-08.md`
+6. release note liên quan
+7. code mới nhất trên `main`
+
+Nếu code và docs xung đột: xác minh code `main`, xác định tài liệu nào stale rồi cập nhật docs.
+
+---
+
+**Checkpoint ghi nhớ:** V12.6.43 — shared Question Bank ownership, 4 mode Assessment, stale-attempt server reconciliation, browser-tab freeze, teacher **AI-CLO | LIVE** + iOS deferred sync, Question Bank bulk import/provenance và sole-owner hover preview.
