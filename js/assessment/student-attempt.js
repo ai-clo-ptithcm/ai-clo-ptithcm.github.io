@@ -14,6 +14,37 @@
     let liveTimer = null;
     let listRoot = null;
 
+    function examResultConfig(exam) {
+      const blueprint = exam?.question_blueprint && typeof exam.question_blueprint === "object"
+        ? exam.question_blueprint
+        : {};
+      const rawMax = Number(blueprint.max_score);
+      return {
+        maxScore: Number.isFinite(rawMax) && rawMax > 0 ? rawMax : 10,
+        showCloScores: blueprint.show_clo_scores !== false,
+      };
+    }
+    function scaleExamScore(value, exam) {
+      return (Number(value || 0) * examResultConfig(exam).maxScore) / 10;
+    }
+    function maxScoreText(exam) {
+      const value = examResultConfig(exam).maxScore;
+      return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+    }
+    async function resolveResultExam(examOrId) {
+      const id = typeof examOrId === "string" ? examOrId : examOrId?.id;
+      if (!id) return examOrId || null;
+      if (typeof examOrId === "object" && examOrId?.question_blueprint) return examOrId;
+      try {
+        const { data, error } = await db.from("exams").select("id,title,question_blueprint").eq("id", id).maybeSingle();
+        if (error) throw error;
+        return { ...(typeof examOrId === "object" ? examOrId : {}), ...(data || {}) };
+      } catch (error) {
+        console.warn("Assessment result config", error);
+        return typeof examOrId === "object" ? examOrId : { id };
+      }
+    }
+
     const attemptLocalKey = (id) =>
       `aiclo:v122:attempt:${state.user?.id || "user"}:${id}`;
 
@@ -136,7 +167,7 @@
                 <div class="student-exam-row-main">
                   <div class="student-exam-row-title"><span class="badge ${meta.status.className}">${meta.status.label}</span><div><h4>${escapeHtml(exam.title || "Bài kiểm tra")}</h4><p>${escapeHtml(exam.description || "Không có mô tả.")}</p></div></div>
                 </div>
-                <div class="student-exam-row-meta"><span><b>${Number(exam.total_questions || 0)}</b><small>câu</small></span><span><b>${exam.duration_minutes || "—"}</b><small>phút</small></span><span><b>${meta.done.length}/${meta.max}</b><small>lượt đã nộp</small></span><span><b>${latest?.score == null ? "—" : Number(latest.score).toFixed(2)}</b><small>điểm gần nhất</small></span></div>
+                <div class="student-exam-row-meta"><span><b>${Number(exam.total_questions || 0)}</b><small>câu</small></span><span><b>${exam.duration_minutes || "—"}</b><small>phút</small></span><span><b>${meta.done.length}/${meta.max}</b><small>lượt đã nộp</small></span><span><b>${latest?.score == null ? "—" : `${scaleExamScore(latest.score, exam).toFixed(2)}/${maxScoreText(exam)}`}</b><small>điểm gần nhất</small></span></div>
                 <div class="student-exam-row-end"><small>${escapeHtml(availabilityText(exam, meta))}</small><button type="button" class="secondary compact" data-v125-open-detail="${exam.id}">Chi tiết →</button></div>
               </article>`;
             }).join("") || '<div class="panel empty">Hiện chưa có bài kiểm tra nào.</div>'}
@@ -196,6 +227,8 @@
               <div><small>Số câu</small><b>${Number(exam.total_questions || 0)}</b></div>
               <div><small>Thời gian làm</small><b>${exam.duration_minutes || "—"} phút</b></div>
               <div><small>Số lần được làm</small><b>${meta.max}</b></div>
+              <div><small>Điểm tối đa</small><b>${maxScoreText(exam)}</b></div>
+              <div><small>Điểm CLO</small><b>${examResultConfig(exam).showCloScores ? "Được xem" : "Không hiển thị"}</b></div>
               <div><small>Đã nộp</small><b>${meta.done.length} lượt</b></div>
               <div><small>Mở bài</small><b>${exam.opens_at ? formatDateTime(exam.opens_at) : "Khi phát hành"}</b></div>
               <div><small>Đóng bài</small><b>${exam.closes_at ? formatDateTime(exam.closes_at) : "Không giới hạn"}</b></div>
@@ -209,7 +242,7 @@
                 <div><small>Lần</small><b>${a.attempt_number || 1}</b></div>
                 <div><small>Bắt đầu</small><b>${formatDateTime(a.started_at)}</b></div>
                 <div><small>Nộp bài</small><b>${a.submitted_at ? formatDateTime(a.submitted_at) : "Chưa nộp"}</b></div>
-                <div><small>Điểm</small><b>${a.submitted_at && a.score != null ? Number(a.score).toFixed(2) : "—"}</b></div>
+                <div><small>Điểm</small><b>${a.submitted_at && a.score != null ? `${scaleExamScore(a.score, exam).toFixed(2)}/${maxScoreText(exam)}` : "—"}</b></div>
                 <div><span class="badge ${a.submitted_at ? "green" : ""}">${a.submitted_at ? "Đã nộp" : "Đang làm"}</span></div>
                 <div class="student-attempt-history-actions">${a.submitted_at
                   ? `<button type="button" class="secondary compact" data-v125-view-questions="${a.id}" data-exam-id="${exam.id}">Xem câu hỏi</button>`
@@ -476,7 +509,7 @@
         if (error) throw error;
         clearAttemptLocal(payload.attempt_id);
         if (payload.exam?.id) await openStudentExamDetail(payload.exam.id);
-        showStudentResult(payload.exam, data, payload.exam?.id || null);
+        await showStudentResult(payload.exam, data, payload.exam?.id || null);
       } catch (e) {
         showError(e);
         if (button) {
@@ -516,9 +549,11 @@
       }
     }
 
-    function studentResultHtml(result) {
+    function studentResultHtml(result, exam = null, options = {}) {
       const reviewAllowed = !!result.show_review;
       const answersAllowed = !!result.show_answers;
+      const config = examResultConfig(exam);
+      const showCloScores = options.forceClo === true || config.showCloScores;
       const detail =
         reviewAllowed && result.review?.length
           ? `<h4>Chi tiết bài làm</h4><div class="answer-review">${result.review.map((x, i) => `<details class="${x.is_correct ? "right" : "wrong"}"><summary>Câu ${i + 1} — ${x.is_correct ? "Đúng" : "Chưa đúng"} · ${escapeHtml(x.clo_code || "")}</summary><div>${escapeHtml(x.content || "")}</div><p>Bạn chọn: <b>${escapeHtml(x.selected || "Chưa trả lời")}</b>${answersAllowed ? ` · Đáp án đúng: <b>${escapeHtml(x.correct_answer || "")}</b>` : ""}</p>${answersAllowed && x.explanation ? `<p>${escapeHtml(x.explanation)}</p>` : ""}</details>`).join("")}</div>`
@@ -527,7 +562,10 @@
         result.allow_ai_feedback && result.attempt_id
           ? `<div class="result-ai-actions"><button type="button" class="ai-btn" data-v123-ai-attempt="${escapeHtml(result.attempt_id)}">✦ AI nhận xét bài làm</button></div><div data-v123-ai-output="${escapeHtml(result.attempt_id)}"></div>`
           : "";
-      return `<div class="preview-result result-v122"><div class="result-score"><small>Điểm tổng</small><b>${Number(result.score || 0).toFixed(2)}</b><span>${Number(result.correct || 0)}/${Number(result.total || 0)} câu đúng</span></div><h4>Kết quả theo CLO</h4><div class="clo-results">${(result.clo_scores || []).map((x) => `<div><b>${escapeHtml(x.code || "CLO")}</b><strong>${Number(x.score || 0).toFixed(2)}</strong><span>${x.correct}/${x.total} câu đúng</span></div>`).join("") || "<p>Chưa có dữ liệu CLO.</p>"}</div>${ai}${detail}</div>`;
+      const clo = showCloScores
+        ? `<h4>Kết quả theo CLO</h4><div class="clo-results">${(result.clo_scores || []).map((x) => `<div><b>${escapeHtml(x.code || "CLO")}</b><strong>${scaleExamScore(x.score, exam).toFixed(2)} / ${maxScoreText(exam)}</strong><span>${x.correct}/${x.total} câu đúng</span></div>`).join("") || "<p>Chưa có dữ liệu CLO.</p>"}</div>`
+        : '<p class="hint">Giảng viên không cho phép hiển thị điểm theo CLO của bài kiểm tra này.</p>';
+      return `<div class="preview-result result-v122"><div class="result-score"><small>Điểm tổng</small><b>${scaleExamScore(result.score, exam).toFixed(2)} / ${maxScoreText(exam)}</b><span>${Number(result.correct || 0)}/${Number(result.total || 0)} câu đúng</span></div>${clo}${ai}${detail}</div>`;
     }
 
     document.addEventListener("click", (event) => {
@@ -561,17 +599,18 @@
       });
     }
 
-    function showStudentResult(exam, result, examId = null) {
+    async function showStudentResult(exam, result, examId = null) {
       clearLiveTimer();
       const id = examId || exam?.id || result?.exam_id || null;
+      const resolvedExam = await resolveResultExam(exam || id);
       if (result?.attempt_id) rememberAttemptResult(result.attempt_id, id);
-      const html = studentResultHtml(result);
+      const html = studentResultHtml(result, resolvedExam);
       if (typeof replaceDrawer === "function")
         replaceDrawer(`Kết quả · ${exam?.title || "Bài kiểm tra"}`, html, null, {
           wide: true,
           eyebrow: "KẾT QUẢ BÀI LÀM",
         });
-      else notify(`Điểm: ${Number(result.score || 0).toFixed(2)}`);
+      else notify(`Điểm: ${scaleExamScore(result.score, resolvedExam).toFixed(2)} / ${maxScoreText(resolvedExam)}`);
     }
 
     async function openStudentAttemptResult(attemptId, options = {}) {
@@ -583,7 +622,7 @@
         if (error) throw error;
         const { data: exam, error: ee } = await db
           .from("exams")
-          .select("id,title")
+          .select("id,title,question_blueprint")
           .eq("id", data.exam_id)
           .single();
         if (ee) throw ee;
@@ -594,11 +633,11 @@
           options.parentKind || "assessment-student-detail",
         );
         if (typeof openDrawer === "function")
-          openDrawer(`Kết quả · ${exam.title}`, studentResultHtml(data), null, {
+          openDrawer(`Kết quả · ${exam.title}`, studentResultHtml(data, exam), null, {
             wide: true,
             eyebrow: "CÂU HỎI / KẾT QUẢ BÀI LÀM",
           });
-        else notify(`Điểm: ${Number(data.score || 0).toFixed(2)}`);
+        else notify(`Điểm: ${scaleExamScore(data.score, exam).toFixed(2)} / ${maxScoreText(exam)}`);
       } catch (e) {
         showError(e);
       }

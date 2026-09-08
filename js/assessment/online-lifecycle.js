@@ -11,6 +11,20 @@
     if (!db || !ask || !notify || !showError || !getAssessmentRoot || !exams || !openExamBuilder || !studentResultHtml || !statusMeta || !modeLabel || !structureLabel || !escapeHtml || !formatDateTime || !qs || !qsa || !shuffle || !isAdmin) {
       throw new Error("Assessment Online Lifecycle dependencies are incomplete");
     }
+      function examResultConfig(exam) {
+        const blueprint = exam?.question_blueprint && typeof exam.question_blueprint === "object" ? exam.question_blueprint : {};
+        const rawMax = Number(blueprint.max_score);
+        return {
+          maxScore: Number.isFinite(rawMax) && rawMax > 0 ? rawMax : 10,
+          showCloScores: blueprint.show_clo_scores !== false,
+        };
+      }
+      function scaleExamScore(value, exam) { return (Number(value || 0) * examResultConfig(exam).maxScore) / 10; }
+      function maxScoreText(exam) {
+        const value = examResultConfig(exam).maxScore;
+        return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+      }
+      function passThreshold(exam) { return examResultConfig(exam).maxScore * 0.4; }
       function onlineTable(items, counts) {
         return `<div class="toolbar"><span class="hint">Mỗi bài có một trang Chi tiết duy nhất.</span><button id="v122CreateExam" class="primary">+ Tạo bài kiểm tra</button></div><div class="panel table-wrap"><table class="assessment-table"><thead><tr><th>Bài kiểm tra</th><th>Cấu trúc</th><th>Chế độ câu</th><th>Thời gian</th><th>Bài làm</th><th>Trạng thái</th><th></th></tr></thead><tbody>${
           items
@@ -181,10 +195,10 @@
         const x = a?._clo?.[code];
         return a?.submitted_at && x?.total ? Number(x.score) : null;
       }
-      function attemptTableHtml(rows, clos, mode = "date") {
+      function attemptTableHtml(exam, rows, clos, mode = "date") {
         const sorted = attemptSort(rows, mode), cloHeads = (clos || []).map((c) => `<th>${escapeHtml(c.code)}</th>`).join("");
         const colspan = 7 + (clos || []).length, admin = isAdmin();
-        return `<div class="toolbar assessment-attempt-toolbar"><span class="hint">${rows.length} lượt làm · ${rows.filter((x) => x.submitted_at).length} đã nộp${admin ? " · Admin có thể xóa lượt làm" : ""}</span><div class="assessment-attempt-tools"><label class="field compact-field">Sắp xếp<select id="v122AttemptSort"><option value="date" ${mode === "date" ? "selected" : ""}>Mới nhất</option><option value="name" ${mode === "name" ? "selected" : ""}>Tên sinh viên</option><option value="score" ${mode === "score" ? "selected" : ""}>Điểm cao</option></select></label><details class="assessment-export-dropdown"><summary class="secondary">Tải kết quả Excel ▾</summary><div class="assessment-export-menu"><button type="button" data-v1234-export="highest">Điểm cao nhất</button><button type="button" data-v1234-export="all">Tất cả lần làm</button><button type="button" data-v1234-export="average">Điểm trung bình</button></div></details></div></div><div class="table-wrap"><table class="assessment-attempt-table"><thead><tr><th>STT</th><th>Sinh viên</th><th>Lần</th><th>Thời gian</th><th>Điểm tổng</th>${cloHeads}<th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>${sorted.map((a, i) => `<tr><td>${i + 1}</td><td><b>${escapeHtml(attemptStudentName(a))}</b><br><small>${escapeHtml(a.profiles?.mssv || a.profiles?.email || "")}</small></td><td>${a.attempt_number || 1}</td><td class="attempt-time-cell"><small><b>Bắt đầu:</b> ${formatDateTime(a.started_at)}</small><small><b>Nộp:</b> ${a.submitted_at ? formatDateTime(a.submitted_at) : "—"}</small></td><td>${a.submitted_at && a.score != null ? `<b>${Number(a.score).toFixed(2)}</b>` : "—"}</td>${(clos || []).map((c) => { const v=cloScore(a,c.code); return `<td>${v == null ? "—" : `<b class="${v < 4 ? "score-below" : ""}">${v.toFixed(2)}</b>`}</td>`; }).join("")}<td><span class="badge ${a.submitted_at ? "green" : ""}">${a.submitted_at ? "Đã nộp" : "Đang làm"}</span></td><td class="row-actions">${a.submitted_at ? `<button type="button" class="secondary compact" data-v122-view-attempt="${a.id}">Xem bài</button>` : '<button type="button" class="secondary compact" disabled>Đang làm</button>'}${admin ? `<button type="button" class="danger compact" data-v122-delete-attempt="${a.id}">Xóa lượt</button>` : ""}</td></tr>`).join("") || `<tr><td colspan="${colspan}" class="empty">Chưa có lượt làm.</td></tr>`}</tbody></table></div>`;
+        return `<div class="toolbar assessment-attempt-toolbar"><span class="hint">${rows.length} lượt làm · ${rows.filter((x) => x.submitted_at).length} đã nộp${admin ? " · Admin có thể xóa lượt làm" : ""}</span><div class="assessment-attempt-tools"><label class="field compact-field">Sắp xếp<select id="v122AttemptSort"><option value="date" ${mode === "date" ? "selected" : ""}>Mới nhất</option><option value="name" ${mode === "name" ? "selected" : ""}>Tên sinh viên</option><option value="score" ${mode === "score" ? "selected" : ""}>Điểm cao</option></select></label><details class="assessment-export-dropdown"><summary class="secondary">Tải kết quả Excel ▾</summary><div class="assessment-export-menu"><button type="button" data-v1234-export="highest">Điểm cao nhất</button><button type="button" data-v1234-export="all">Tất cả lần làm</button><button type="button" data-v1234-export="average">Điểm trung bình</button></div></details></div></div><div class="table-wrap"><table class="assessment-attempt-table"><thead><tr><th>STT</th><th>Sinh viên</th><th>Lần</th><th>Thời gian</th><th>Điểm tổng</th>${cloHeads}<th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>${sorted.map((a, i) => `<tr><td>${i + 1}</td><td><b>${escapeHtml(attemptStudentName(a))}</b><br><small>${escapeHtml(a.profiles?.mssv || a.profiles?.email || "")}</small></td><td>${a.attempt_number || 1}</td><td class="attempt-time-cell"><small><b>Bắt đầu:</b> ${formatDateTime(a.started_at)}</small><small><b>Nộp:</b> ${a.submitted_at ? formatDateTime(a.submitted_at) : "—"}</small></td><td>${a.submitted_at && a.score != null ? `<b>${scaleExamScore(a.score, exam).toFixed(2)}</b>` : "—"}</td>${(clos || []).map((c) => { const v=cloScore(a,c.code), shown=v==null?null:scaleExamScore(v,exam); return `<td>${shown == null ? "—" : `<b class="${shown < passThreshold(exam) ? "score-below" : ""}">${shown.toFixed(2)}</b>`}</td>`; }).join("")}<td><span class="badge ${a.submitted_at ? "green" : ""}">${a.submitted_at ? "Đã nộp" : "Đang làm"}</span></td><td class="row-actions">${a.submitted_at ? `<button type="button" class="secondary compact" data-v122-view-attempt="${a.id}">Xem bài</button>` : '<button type="button" class="secondary compact" disabled>Đang làm</button>'}${admin ? `<button type="button" class="danger compact" data-v122-delete-attempt="${a.id}">Xóa lượt</button>` : ""}</td></tr>`).join("") || `<tr><td colspan="${colspan}" class="empty">Chưa có lượt làm.</td></tr>`}</tbody></table></div>`;
       }
       function exportRowsByMode(rows, clos, mode) {
         const submitted = rows.filter((x) => x.submitted_at);
@@ -220,22 +234,22 @@
           const totalCols=9+(clos||[]).length;
           ws.mergeCells(1,1,1,totalCols); const title=ws.getCell(1,1); title.value="BÁO CÁO KẾT QUẢ BÀI KIỂM TRA"; title.font={name:"Times New Roman",size:14,bold:true}; title.alignment={horizontal:"center",vertical:"middle"}; ws.getRow(1).height=24;
           const info=[
-            ["Tên học phần", subject?.name || subject?.title || "—"],["Mã học phần", subject?.code || subject?.subject_code || "—"],["Tên bài kiểm tra", exam.title || "—"],["Mô tả", exam.description || "—"],["Loại bài / cấu trúc", `Bài kiểm tra trực tuyến · ${structureLabel(exam.structure_mode)}`],["Thời gian làm bài", `${exam.duration_minutes || "—"} phút`],["Số câu", Number(exam.total_questions || 0)],["Số lần làm", Number(exam.max_attempts || 1)],["Chính sách tính điểm", scorePolicyVi(exam.score_policy)],["Chế độ báo cáo", reportModeVi(mode)],["Thời gian mở", exam.opens_at ? formatDateTime(exam.opens_at) : "Khi phát hành"],["Thời gian đóng", exam.closes_at ? formatDateTime(exam.closes_at) : "Không giới hạn"],["Số sinh viên đã làm", new Set(rows.filter((x)=>x.submitted_at).map((x)=>x.student_id)).size],["Ngày xuất báo cáo", formatDateTime(new Date().toISOString())]
+            ["Tên học phần", subject?.name || subject?.title || "—"],["Mã học phần", subject?.code || subject?.subject_code || "—"],["Tên bài kiểm tra", exam.title || "—"],["Mô tả", exam.description || "—"],["Loại bài / cấu trúc", `Bài kiểm tra trực tuyến · ${structureLabel(exam.structure_mode)}`],["Thời gian làm bài", `${exam.duration_minutes || "—"} phút`],["Số câu", Number(exam.total_questions || 0)],["Số lần làm", Number(exam.max_attempts || 1)],["Điểm tối đa", examResultConfig(exam).maxScore],["Chính sách tính điểm", scorePolicyVi(exam.score_policy)],["Chế độ báo cáo", reportModeVi(mode)],["Thời gian mở", exam.opens_at ? formatDateTime(exam.opens_at) : "Khi phát hành"],["Thời gian đóng", exam.closes_at ? formatDateTime(exam.closes_at) : "Không giới hạn"],["Số sinh viên đã làm", new Set(rows.filter((x)=>x.submitted_at).map((x)=>x.student_id)).size],["Ngày xuất báo cáo", formatDateTime(new Date().toISOString())]
           ];
           let r=3;
           for (const [label,value] of info){ ws.getCell(r,1).value=label; ws.getCell(r,1).font={name:"Times New Roman",size:12,bold:true}; ws.mergeCells(r,2,r,totalCols); ws.getCell(r,2).value=value; r++; }
           const tableStart=r+1;
           const headers=["STT","Mã SV","Họ tên","Lần","Bắt đầu","Nộp","Điểm tổng",...(clos||[]).map((c)=>c.code),"Trạng thái"];
-          const body=exportRows.map((a,i)=>[i+1,a.profiles?.mssv || "",attemptStudentName(a),a._exportAttempt || a.attempt_number || 1,a.started_at?formatDateTime(a.started_at):"—",a.submitted_at?formatDateTime(a.submitted_at):"—",a.score==null?null:Number(a.score),...(clos||[]).map((c)=>cloScore(a,c.code)),mode==="average"?`Trung bình`:"Đã nộp"]);
+          const body=exportRows.map((a,i)=>[i+1,a.profiles?.mssv || "",attemptStudentName(a),a._exportAttempt || a.attempt_number || 1,a.started_at?formatDateTime(a.started_at):"—",a.submitted_at?formatDateTime(a.submitted_at):"—",a.score==null?null:scaleExamScore(a.score,exam),...(clos||[]).map((c)=>{const v=cloScore(a,c.code);return v==null?null:scaleExamScore(v,exam);}),mode==="average"?`Trung bình`:"Đã nộp"]);
           ws.addTable({name:"BangKetQua",ref:`A${tableStart}`,headerRow:true,totalsRow:false,style:{theme:"TableStyleMedium2",showRowStripes:false},columns:headers.map((name)=>({name})),rows:body});
           const tableEnd=tableStart+body.length;
           for(let rr=tableStart;rr<=tableEnd;rr++) for(let cc=1;cc<=headers.length;cc++){ const cell=ws.getCell(rr,cc); cell.font={name:"Times New Roman",size:12,bold:rr===tableStart}; cell.alignment={vertical:"middle",horizontal:[1,4,7,...Array.from({length:(clos||[]).length},(_,i)=>8+i)].includes(cc)?"center":"left",wrapText:true}; cell.border={top:{style:"thin"},left:{style:"thin"},bottom:{style:"thin"},right:{style:"thin"}}; }
           const scoreCols=[7,...(clos||[]).map((_,i)=>8+i)];
-          for(let rr=tableStart+1;rr<=tableEnd;rr++) for(const cc of scoreCols){ const cell=ws.getCell(rr,cc); if(typeof cell.value==="number"){cell.numFmt="0.00"; if(cell.value<4) cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFF4CCCC"}};} }
+          for(let rr=tableStart+1;rr<=tableEnd;rr++) for(const cc of scoreCols){ const cell=ws.getCell(rr,cc); if(typeof cell.value==="number"){cell.numFmt="0.00"; if(cell.value<passThreshold(exam)) cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFF4CCCC"}};} }
           let sr=tableEnd+3; ws.mergeCells(sr,1,sr,totalCols); ws.getCell(sr,1).value="TỔNG HỢP"; ws.getCell(sr,1).font={name:"Times New Roman",size:12,bold:true}; sr++;
-          const scores=exportRows.map((x)=>Number(x.score)).filter(Number.isFinite);
-          const summary=[["Điểm trung bình",scores.length?scores.reduce((a,b)=>a+b,0)/scores.length:null],["Điểm cao nhất",scores.length?Math.max(...scores):null],["Điểm thấp nhất",scores.length?Math.min(...scores):null],["Số điểm tổng dưới 4",scores.filter((x)=>x<4).length]];
-          for(const c of clos||[]){const vals=exportRows.map((x)=>cloScore(x,c.code)).filter((v)=>v!=null);summary.push([`Trung bình ${c.code}`,vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null],[`Số SV/lượt ${c.code} dưới 4`,vals.filter((x)=>x<4).length],[`Tỷ lệ đạt ${c.code} (≥4)`,vals.length?vals.filter((x)=>x>=4).length/vals.length:null]);}
+          const scores=exportRows.map((x)=>x.score==null?null:scaleExamScore(x.score,exam)).filter(Number.isFinite);
+          const summary=[["Điểm trung bình",scores.length?scores.reduce((a,b)=>a+b,0)/scores.length:null],["Điểm cao nhất",scores.length?Math.max(...scores):null],["Điểm thấp nhất",scores.length?Math.min(...scores):null],[`Số điểm tổng dưới ${passThreshold(exam).toFixed(2)}`,scores.filter((x)=>x<passThreshold(exam)).length]];
+          for(const c of clos||[]){const vals=exportRows.map((x)=>{const v=cloScore(x,c.code);return v==null?null:scaleExamScore(v,exam);}).filter((v)=>v!=null);const threshold=passThreshold(exam);summary.push([`Trung bình ${c.code}`,vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null],[`Số SV/lượt ${c.code} dưới ${threshold.toFixed(2)}`,vals.filter((x)=>x<threshold).length],[`Tỷ lệ đạt ${c.code} (≥${threshold.toFixed(2)})`,vals.length?vals.filter((x)=>x>=threshold).length/vals.length:null]);}
           for(const [label,value] of summary){ws.getCell(sr,1).value=label;ws.getCell(sr,1).font={name:"Times New Roman",size:12,bold:true};ws.getCell(sr,2).value=value;ws.getCell(sr,2).font={name:"Times New Roman",size:12};if(typeof value==="number") ws.getCell(sr,2).numFmt=label.startsWith("Tỷ lệ")?"0.00%":"0.00";sr++;}
           ws.views=[{state:"frozen",ySplit:tableStart}];
           ws.columns.forEach((col,i)=>{col.width=i===2?28:i===4||i===5?19:i===1?15:i>=7&&i<7+(clos||[]).length?11:13;});
@@ -263,7 +277,7 @@
             c = getAssessmentRoot();
           if (!c) return;
           const s = statusMeta(exam);
-          c.innerHTML = `<div class="assessment-detail-v122"><div class="subpage-head"><div><button id="v122Back" class="secondary compact">← Quay lại</button><small>BÀI KIỂM TRA TRỰC TUYẾN</small><h3>${escapeHtml(exam.title || "Bài kiểm tra")}</h3><p>${escapeHtml(exam.description || "")}</p></div><span class="badge ${s.className}">${s.label}</span></div><section class="panel"><div class="panel-head"><div><h3>Thông tin bài kiểm tra</h3><p class="hint">Một nguồn trạng thái duy nhất từ bảng exams.</p></div><div class="assessment-detail-actions"><button id="v122Preview" class="secondary">Làm thử</button><button id="v1235ExportCenter" class="secondary">Xuất đề / Tạo mã đề</button>${detailActions(exam)}</div></div><div class="detail-grid"><div><small>Số câu</small><b>${Number(exam.total_questions || 0)}</b></div><div><small>Thời gian</small><b>${exam.duration_minutes || "—"} phút</b></div><div><small>Số lần làm</small><b>${exam.max_attempts || 1}</b></div><div><small>Lượt đã tạo</small><b>${attempts.length}</b></div><div><small>Rút câu</small><b>${escapeHtml(modeLabel(exam.question_mode))}</b></div><div><small>Cấu trúc</small><b>${escapeHtml(structureLabel(exam.structure_mode))}</b></div></div></section><section class="panel"><div class="panel-head"><div><h3>Cấu trúc và bộ câu</h3><p class="hint">Làm thử đọc trực tiếp frozen snapshot; không tạo lượt làm và không ghi điểm.</p></div></div><div id="v122DesignSummary"></div></section><section class="panel"><div class="panel-head"><div><h3>Danh sách bài làm</h3><p class="hint">${isAdmin() ? "Admin có thể xem hoặc xóa từng lượt làm của sinh viên." : "Xem từng bài đã nộp của sinh viên."}</p></div></div><div id="v122AttemptList">${attemptTableHtml(attempts, clos)}</div></section></div>`;
+          c.innerHTML = `<div class="assessment-detail-v122"><div class="subpage-head"><div><button id="v122Back" class="secondary compact">← Quay lại</button><small>BÀI KIỂM TRA TRỰC TUYẾN</small><h3>${escapeHtml(exam.title || "Bài kiểm tra")}</h3><p>${escapeHtml(exam.description || "")}</p></div><span class="badge ${s.className}">${s.label}</span></div><section class="panel"><div class="panel-head"><div><h3>Thông tin bài kiểm tra</h3><p class="hint">Một nguồn trạng thái duy nhất từ bảng exams.</p></div><div class="assessment-detail-actions"><button id="v122Preview" class="secondary">Làm thử</button><button id="v1235ExportCenter" class="secondary">Xuất đề / Tạo mã đề</button>${detailActions(exam)}</div></div><div class="detail-grid"><div><small>Số câu</small><b>${Number(exam.total_questions || 0)}</b></div><div><small>Thời gian</small><b>${exam.duration_minutes || "—"} phút</b></div><div><small>Số lần làm</small><b>${exam.max_attempts || 1}</b></div><div><small>Điểm tối đa</small><b>${maxScoreText(exam)}</b></div><div><small>SV xem điểm CLO</small><b>${examResultConfig(exam).showCloScores ? "Có" : "Không"}</b></div><div><small>Lượt đã tạo</small><b>${attempts.length}</b></div><div><small>Rút câu</small><b>${escapeHtml(modeLabel(exam.question_mode))}</b></div><div><small>Cấu trúc</small><b>${escapeHtml(structureLabel(exam.structure_mode))}</b></div></div></section><section class="panel"><div class="panel-head"><div><h3>Cấu trúc và bộ câu</h3><p class="hint">Làm thử đọc trực tiếp frozen snapshot; không tạo lượt làm và không ghi điểm.</p></div></div><div id="v122DesignSummary"></div></section><section class="panel"><div class="panel-head"><div><h3>Danh sách bài làm</h3><p class="hint">${isAdmin() ? "Admin có thể xem hoặc xóa từng lượt làm của sinh viên." : "Xem từng bài đã nộp của sinh viên."}</p></div></div><div id="v122AttemptList">${attemptTableHtml(exam, attempts, clos)}</div></section></div>`;
           qs("#v122Back")?.addEventListener("click", () => exams(c));
           qs("#v122Preview")?.addEventListener("click", () =>
             openTeacherPreview(exam),
@@ -312,7 +326,7 @@
         const sort = qs("#v122AttemptSort", box);
         if (sort)
           sort.onchange = () => {
-            box.innerHTML = attemptTableHtml(attempts, clos, sort.value);
+            box.innerHTML = attemptTableHtml(exam, attempts, clos, sort.value);
             bindAttemptTable(exam, attempts, clos, sort.value);
           };
         qsa("[data-v1234-export]", box).forEach((b) => {
@@ -354,13 +368,13 @@
             p_attempt_id: attemptId,
           });
           if (error) throw error;
-          const html = studentResultHtml(data);
+          const html = studentResultHtml(data, exam, { forceClo: true });
           if (typeof openDrawer === "function")
             openDrawer(`Bài làm · ${exam.title}`, html, null, {
               wide: true,
               eyebrow: "GIẢNG VIÊN XEM BÀI",
             });
-          else notify(`Điểm: ${Number(data.score || 0).toFixed(2)}`);
+          else notify(`Điểm: ${scaleExamScore(data.score, exam).toFixed(2)} / ${maxScoreText(exam)}`);
         } catch (e) {
           showError(e);
         }
@@ -586,10 +600,10 @@
             code,
             total: cloQuestions.length,
             correct: right,
-            score: cloQuestions.length ? (right * 10) / cloQuestions.length : 0,
+            score: cloQuestions.length ? (right * examResultConfig(exam).maxScore) / cloQuestions.length : 0,
           };
         });
-        const html = `<div class="preview-result"><div class="result-score"><small>Điểm bài thử</small><b>${questions.length ? ((correct * 10) / questions.length).toFixed(2) : "0.00"}</b><span>${correct}/${questions.length} câu đúng</span></div><div class="clo-results">${byClo.map((x) => `<div><b>${escapeHtml(x.code)}</b><strong>${x.score.toFixed(2)}</strong><span>${x.correct}/${x.total} câu đúng</span></div>`).join("")}</div><p class="hint">Làm thử chỉ dùng frozen snapshot, không tạo lượt làm, không ghi điểm và không gọi AI.</p><div class="drawer-actions"><button id="v122PreviewRetry" class="primary">Làm lại</button></div></div>`;
+        const html = `<div class="preview-result"><div class="result-score"><small>Điểm bài thử</small><b>${questions.length ? ((correct * examResultConfig(exam).maxScore) / questions.length).toFixed(2) : "0.00"} / ${maxScoreText(exam)}</b><span>${correct}/${questions.length} câu đúng</span></div><div class="clo-results">${byClo.map((x) => `<div><b>${escapeHtml(x.code)}</b><strong>${x.score.toFixed(2)}</strong><span>${x.correct}/${x.total} câu đúng</span></div>`).join("")}</div><p class="hint">Làm thử chỉ dùng frozen snapshot, không tạo lượt làm, không ghi điểm và không gọi AI.</p><div class="drawer-actions"><button id="v122PreviewRetry" class="primary">Làm lại</button></div></div>`;
         if (typeof replaceDrawer === "function")
           replaceDrawer(
             `Kết quả làm thử · ${exam.title}`,
