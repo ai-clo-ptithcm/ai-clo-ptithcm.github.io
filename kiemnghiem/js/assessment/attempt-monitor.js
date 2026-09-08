@@ -5,6 +5,8 @@
   const POLL_MS = 500;
   const LEAVE_GRACE_MS = 1200;
   const SUPPRESS_MS = 900;
+  const STRONG_WARNING_COUNT = 3;
+  const LONG_AWAY_MS = 15000;
   const STORAGE_PREFIX = "aiclo:attempt-monitor:";
 
   let activeAttemptId = null;
@@ -14,6 +16,7 @@
   let suppressUntil = 0;
   let requestedFullscreen = false;
   let panel = null;
+  let returnOverlay = null;
 
   const page = () => document.querySelector(".student-attempt-page[data-attempt-id]");
   const fullscreenTarget = () => document.querySelector("#app") || document.documentElement;
@@ -54,6 +57,28 @@
     return `${Math.floor(sec / 60)} phút ${sec % 60} giây`;
   }
 
+  function reasonText(reason) {
+    if (reason === "tab_hidden") return "chuyển sang tab khác";
+    if (reason === "fullscreen_exit") return "thoát chế độ toàn màn hình";
+    return "rời cửa sổ làm bài";
+  }
+
+  function lastIncident(state) {
+    return Array.isArray(state?.events) && state.events.length
+      ? state.events[state.events.length - 1]
+      : null;
+  }
+
+  function isStrongWarning(state, incident = lastIncident(state)) {
+    return Number(state?.violations || 0) >= STRONG_WARNING_COUNT ||
+      Number(incident?.durationMs || 0) >= LONG_AWAY_MS;
+  }
+
+  function removeReturnOverlay() {
+    if (returnOverlay?.isConnected) returnOverlay.remove();
+    returnOverlay = null;
+  }
+
   function ensureAttemptFullscreenButton() {
     const current = page();
     if (!current) return null;
@@ -76,6 +101,52 @@
       ? "Đang ở chế độ toàn màn hình. Nhấn Esc để thoát."
       : "Mở giao diện làm bài ở chế độ toàn màn hình";
     return button;
+  }
+
+  function showReturnOverlay(state, incident) {
+    const current = page();
+    if (!current || !activeAttemptId || !incident) return;
+    removeReturnOverlay();
+    const duration = Number(incident.durationMs || 0);
+    const strong = isStrongWarning(state, incident);
+    const overlay = document.createElement("div");
+    overlay.className = `attempt-return-overlay${strong ? " strong" : ""}`;
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-labelledby", "attemptReturnTitle");
+    overlay.innerHTML = `
+      <div class="attempt-return-card">
+        <div class="attempt-return-icon" aria-hidden="true">${strong ? "!" : "↩"}</div>
+        <small>${strong ? "CẢNH BÁO PHIÊN LÀM BÀI" : "ĐÃ GHI NHẬN RỜI MÀN HÌNH"}</small>
+        <h3 id="attemptReturnTitle">Bạn vừa quay lại bài làm</h3>
+        <p>Hệ thống ghi nhận bạn vừa ${reasonText(incident.type)}.</p>
+        <div class="attempt-return-stats">
+          <span><small>Thời gian rời</small><b>${formatAway(duration)}</b></span>
+          <span><small>Số lần đã ghi nhận</small><b>${Number(state.violations || 0)}</b></span>
+        </div>
+        <p class="attempt-return-note">Đồng hồ làm bài vẫn tiếp tục chạy. Câu đang làm và đáp án đã chọn được giữ nguyên.</p>
+        ${strong ? '<p class="attempt-return-alert">Phiên làm bài đã có mức cảnh báo cao do rời màn hình nhiều lần hoặc trong thời gian dài.</p>' : ""}
+        <div class="attempt-return-actions">
+          <button type="button" class="secondary" data-attempt-return-continue>Tiếp tục làm bài</button>
+          <button type="button" class="primary" data-attempt-return-fullscreen>${document.fullscreenElement ? "Tiếp tục làm bài" : "Tiếp tục và bật toàn màn hình"}</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    returnOverlay = overlay;
+
+    const dismiss = () => {
+      removeReturnOverlay();
+      renderPanel();
+      page()?.querySelector('input[name="v122LiveAnswer"]:checked')?.focus?.({ preventScroll: true });
+    };
+    overlay.querySelector("[data-attempt-return-continue]")?.addEventListener("click", dismiss);
+    overlay.querySelector("[data-attempt-return-fullscreen]")?.addEventListener("click", async () => {
+      if (document.fullscreenElement || await requestFullscreen()) dismiss();
+    });
+    requestAnimationFrame(() =>
+      overlay.querySelector("[data-attempt-return-fullscreen]")?.focus?.({ preventScroll: true }),
+    );
   }
 
   function ensurePanel() {
@@ -111,15 +182,20 @@
     const box = ensurePanel();
     if (!box) return;
     const state = readState(activeAttemptId);
+    const strong = isStrongWarning(state);
+    const persistentMessage = strong
+      ? `Cảnh báo: phiên làm bài đã rời màn hình ${state.violations} lần.`
+      : "";
+    const displayMessage = message || persistentMessage;
     box.hidden = false;
-    box.classList.toggle("warning", !!message);
+    box.classList.toggle("warning", !!displayMessage);
     const text = box.querySelector("#attemptMonitorText");
     const count = box.querySelector("#attemptMonitorCount");
     const away = box.querySelector("#attemptMonitorAway");
     const fullscreen = box.querySelector("#attemptMonitorFullscreen");
     if (text)
       text.textContent =
-        message ||
+        displayMessage ||
         (document.fullscreenElement
           ? "Đang toàn màn hình. Hệ thống sẽ cảnh báo khi bạn rời tab hoặc cửa sổ."
           : "Bạn đang ngoài chế độ toàn màn hình. Có thể bật lại bên dưới.");
@@ -140,6 +216,7 @@
       renderPanel();
       return;
     }
+    removeReturnOverlay();
     activeAttemptId = String(attemptId);
     missingSince = 0;
     awayStartedAt = null;
@@ -157,7 +234,8 @@
 
   async function deactivate() {
     if (!activeAttemptId) return;
-    endAway();
+    endAway({ showOverlay: false });
+    removeReturnOverlay();
     activeAttemptId = null;
     missingSince = 0;
     incidentOpen = false;
@@ -178,19 +256,21 @@
     renderPanel(`Cảnh báo: bạn vừa rời màn hình (${state.violations} lần).`);
   }
 
-  function endAway() {
+  function endAway({ showOverlay = true } = {}) {
     if (!activeAttemptId || !incidentOpen) return;
     const state = readState(activeAttemptId);
     const duration = awayStartedAt ? Math.max(0, Date.now() - awayStartedAt) : 0;
     state.totalAwayMs += duration;
+    let incident = null;
     if (state.events.length) {
-      const last = state.events[state.events.length - 1];
-      if (last && !last.durationMs) last.durationMs = duration;
+      incident = state.events[state.events.length - 1];
+      if (incident && !incident.durationMs) incident.durationMs = duration;
     }
     writeState(activeAttemptId, state);
     incidentOpen = false;
     awayStartedAt = null;
     renderPanel();
+    if (showOverlay && incident) showReturnOverlay(state, incident);
   }
 
   async function requestFullscreen() {
@@ -266,7 +346,7 @@
   }, POLL_MS);
 
   window.AICLO_ATTEMPT_MONITOR = Object.freeze({
-    version: "frontend-only-3",
+    version: "frontend-only-4",
     activeAttemptId: () => activeAttemptId,
     snapshot: () => (activeAttemptId ? readState(activeAttemptId) : null),
     requestFullscreen,
