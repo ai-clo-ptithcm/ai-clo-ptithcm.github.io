@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.6.34 — Assessment single-owner engine.
+/* AI-CLO PTITHCM V12.6.37 — Assessment single-owner engine.
    Assessment workspaces register with the shared subpage persistence layer; child modules remain single-owner. */
 (() => {
   "use strict";
@@ -12,7 +12,7 @@
     if (root) runtime.root = root;
     return getAssessmentRoot();
   };
-  const VERSION = "12.6.34";
+  const VERSION = "12.6.37";
   const {
     qs,
     qsa,
@@ -208,8 +208,15 @@
       qsa("[data-v122-tab]", c).forEach(
         (b) => (b.onclick = () => renderTab(b.dataset.v122Tab)),
       );
-      if (tab === "online") bindOnlineList(c, items);
-      else bindFinalList(c, finals);
+      if (tab === "online") {
+        bindOnlineList(c, items);
+        qsa("[data-v122-detail]", c).forEach((button) => {
+          button.onclick = () => {
+            const exam = items.find((item) => item.id === button.dataset.v122Detail);
+            if (exam) openExamDetailTracked(exam);
+          };
+        });
+      } else bindFinalList(c, finals);
     };
     renderTab(active);
   }
@@ -405,6 +412,10 @@
         const current = persistence.current?.();
         const id = page.dataset.assessmentExamId ||
           (current?.kind === "assessment-detail" ? current.entityId || "" : "");
+        if (id) {
+          page.dataset.assessmentExamId = String(id);
+          attachDetailButton(page, id);
+        }
         return id ? { entityType: "exam", entityId: id } : null;
       },
       isActive: (x) => activeEntity(".assessment-detail-v122", x.entityId, "assessment-detail"),
