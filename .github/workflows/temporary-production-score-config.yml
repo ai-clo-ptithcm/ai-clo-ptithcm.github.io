@@ -1,0 +1,171 @@
+name: Temporary production score config patch
+
+on:
+  push:
+    paths:
+      - '.github/workflows/temporary-production-score-config.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-production:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Patch canonical assessment owners
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          def read(path):
+              return Path(path).read_text(encoding='utf-8')
+
+          def write(path, text):
+              Path(path).write_text(text, encoding='utf-8')
+
+          def replace_once(path, old, new):
+              text = read(path)
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected 1 exact match, got {count}: {old[:120]!r}')
+              write(path, text.replace(old, new, 1))
+
+          def regex_once(path, pattern, replacement):
+              text = read(path)
+              new, count = re.subn(pattern, replacement, text, count=1, flags=re.S)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected 1 regex match, got {count}: {pattern[:120]!r}')
+              write(path, new)
+
+          # 1) Canonical online builder: persist presentation score settings in question_blueprint.
+          p = 'js/assessment/online-builder.js'
+          replace_once(p,
+              '          max_attempts: +exam?.max_attempts || 1,\n          question_mode: exam?.question_mode || "common_fixed",',
+              '          max_attempts: +exam?.max_attempts || 1,\n          max_score: Number(exam?.question_blueprint?.max_score) > 0 ? Number(exam.question_blueprint.max_score) : 10,\n          show_clo_scores: exam?.question_blueprint?.show_clo_scores !== false,\n          question_mode: exam?.question_mode || "common_fixed",')
+          replace_once(p,
+              '<label class="field">Số lần làm<input type="number" min="1" max="20" data-v122-setting="max_attempts" value="${s.max_attempts}"></label><label class="field">Cách rút câu',
+              '<label class="field">Số lần làm<input type="number" min="1" max="20" data-v122-setting="max_attempts" value="${s.max_attempts}"></label><label class="field">Điểm tối đa<input type="number" min="0.1" max="1000" step="0.1" data-v122-setting="max_score" value="${s.max_score}"></label><label class="field">Cách rút câu')
+          replace_once(p,
+              '<label><input type="checkbox" data-v122-check="allow_ai_feedback" ${s.allow_ai_feedback ? "checked" : ""}> Cho phép AI nhận xét</label><label><input type="checkbox" data-v122-check="counts_toward_grade"',
+              '<label><input type="checkbox" data-v122-check="allow_ai_feedback" ${s.allow_ai_feedback ? "checked" : ""}> Cho phép AI nhận xét</label><label><input type="checkbox" data-v122-check="show_clo_scores" ${s.show_clo_scores ? "checked" : ""}> Cho sinh viên xem điểm theo CLO</label><label><input type="checkbox" data-v122-check="counts_toward_grade"')
+          replace_once(p,
+              '        if (!ctx.settings.title.trim()) throw new Error("Cần nhập tên bài kiểm tra");\n        if (ctx.settings.opens_at && ctx.settings.closes_at',
+              '        if (!ctx.settings.title.trim()) throw new Error("Cần nhập tên bài kiểm tra");\n        const maxScore = Number(ctx.settings.max_score);\n        if (!Number.isFinite(maxScore) || maxScore <= 0 || maxScore > 1000) throw new Error("Điểm tối đa phải lớn hơn 0 và không vượt quá 1000");\n        if (ctx.settings.opens_at && ctx.settings.closes_at')
+          replace_once(p,
+              '            matrix: { ...ctx.matrix },\n            fixed_question_ids: fixedIds,',
+              '            matrix: { ...ctx.matrix },\n            fixed_question_ids: fixedIds,\n            max_score: maxScore,\n            show_clo_scores: !!ctx.settings.show_clo_scores,')
+          replace_once(p,
+              '          const r = await db.from("exams").update(settings).eq("id", examId).select("*").single();',
+              '          const r = await db.from("exams").update({ ...settings, question_blueprint: blueprint }).eq("id", examId).select("*").single();')
+
+          # 2) Student attempt owner: scale per-exam display and honor CLO visibility.
+          p = 'js/assessment/student-attempt.js'
+          replace_once(p,
+              '    let liveTimer = null;\n    let listRoot = null;\n',
+              '''    let liveTimer = null;\n    let listRoot = null;\n\n    function examResultConfig(exam) {\n      const blueprint = exam?.question_blueprint && typeof exam.question_blueprint === "object"\n        ? exam.question_blueprint\n        : {};\n      const rawMax = Number(blueprint.max_score);\n      return {\n        maxScore: Number.isFinite(rawMax) && rawMax > 0 ? rawMax : 10,\n        showCloScores: blueprint.show_clo_scores !== false,\n      };\n    }\n    function scaleExamScore(value, exam) {\n      return (Number(value || 0) * examResultConfig(exam).maxScore) / 10;\n    }\n    function maxScoreText(exam) {\n      const value = examResultConfig(exam).maxScore;\n      return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, "").replace(/\\.$/, "");\n    }\n    async function resolveResultExam(examOrId) {\n      const id = typeof examOrId === "string" ? examOrId : examOrId?.id;\n      if (!id) return examOrId || null;\n      if (typeof examOrId === "object" && examOrId?.question_blueprint) return examOrId;\n      try {\n        const { data, error } = await db.from("exams").select("id,title,question_blueprint").eq("id", id).maybeSingle();\n        if (error) throw error;\n        return { ...(typeof examOrId === "object" ? examOrId : {}), ...(data || {}) };\n      } catch (error) {\n        console.warn("Assessment result config", error);\n        return typeof examOrId === "object" ? examOrId : { id };\n      }\n    }\n''')
+          replace_once(p,
+              '${latest?.score == null ? "—" : Number(latest.score).toFixed(2)}</b><small>điểm gần nhất</small>',
+              '${latest?.score == null ? "—" : `${scaleExamScore(latest.score, exam).toFixed(2)}/${maxScoreText(exam)}`}</b><small>điểm gần nhất</small>')
+          replace_once(p,
+              '<div><small>Số lần được làm</small><b>${meta.max}</b></div>\n              <div><small>Đã nộp</small>',
+              '<div><small>Số lần được làm</small><b>${meta.max}</b></div>\n              <div><small>Điểm tối đa</small><b>${maxScoreText(exam)}</b></div>\n              <div><small>Điểm CLO</small><b>${examResultConfig(exam).showCloScores ? "Được xem" : "Không hiển thị"}</b></div>\n              <div><small>Đã nộp</small>')
+          replace_once(p,
+              '${a.submitted_at && a.score != null ? Number(a.score).toFixed(2) : "—"}</b></div>',
+              '${a.submitted_at && a.score != null ? `${scaleExamScore(a.score, exam).toFixed(2)}/${maxScoreText(exam)}` : "—"}</b></div>')
+          regex_once(p,
+              r'    function studentResultHtml\(result\) \{.*?\n    \}\n\n    document\.addEventListener',
+              '''    function studentResultHtml(result, exam = null, options = {}) {\n      const reviewAllowed = !!result.show_review;\n      const answersAllowed = !!result.show_answers;\n      const config = examResultConfig(exam);\n      const showCloScores = options.forceClo === true || config.showCloScores;\n      const detail =\n        reviewAllowed && result.review?.length\n          ? `<h4>Chi tiết bài làm</h4><div class="answer-review">${result.review.map((x, i) => `<details class="${x.is_correct ? "right" : "wrong"}"><summary>Câu ${i + 1} — ${x.is_correct ? "Đúng" : "Chưa đúng"} · ${escapeHtml(x.clo_code || "")}</summary><div>${escapeHtml(x.content || "")}</div><p>Bạn chọn: <b>${escapeHtml(x.selected || "Chưa trả lời")}</b>${answersAllowed ? ` · Đáp án đúng: <b>${escapeHtml(x.correct_answer || "")}</b>` : ""}</p>${answersAllowed && x.explanation ? `<p>${escapeHtml(x.explanation)}</p>` : ""}</details>`).join("")}</div>`\n          : '<p class="hint">Giảng viên chưa cho phép xem lại chi tiết bài làm.</p>';\n      const ai =\n        result.allow_ai_feedback && result.attempt_id\n          ? `<div class="result-ai-actions"><button type="button" class="ai-btn" data-v123-ai-attempt="${escapeHtml(result.attempt_id)}">✦ AI nhận xét bài làm</button></div><div data-v123-ai-output="${escapeHtml(result.attempt_id)}"></div>`\n          : "";\n      const clo = showCloScores\n        ? `<h4>Kết quả theo CLO</h4><div class="clo-results">${(result.clo_scores || []).map((x) => `<div><b>${escapeHtml(x.code || "CLO")}</b><strong>${scaleExamScore(x.score, exam).toFixed(2)} / ${maxScoreText(exam)}</strong><span>${x.correct}/${x.total} câu đúng</span></div>`).join("") || "<p>Chưa có dữ liệu CLO.</p>"}</div>`\n        : '<p class="hint">Giảng viên không cho phép hiển thị điểm theo CLO của bài kiểm tra này.</p>';\n      return `<div class="preview-result result-v122"><div class="result-score"><small>Điểm tổng</small><b>${scaleExamScore(result.score, exam).toFixed(2)} / ${maxScoreText(exam)}</b><span>${Number(result.correct || 0)}/${Number(result.total || 0)} câu đúng</span></div>${clo}${ai}${detail}</div>`;\n    }\n\n    document.addEventListener''')
+          replace_once(p,
+              '    function showStudentResult(exam, result, examId = null) {\n      clearLiveTimer();\n      const id = examId || exam?.id || result?.exam_id || null;\n      if (result?.attempt_id) rememberAttemptResult(result.attempt_id, id);\n      const html = studentResultHtml(result);',
+              '    async function showStudentResult(exam, result, examId = null) {\n      clearLiveTimer();\n      const id = examId || exam?.id || result?.exam_id || null;\n      const resolvedExam = await resolveResultExam(exam || id);\n      if (result?.attempt_id) rememberAttemptResult(result.attempt_id, id);\n      const html = studentResultHtml(result, resolvedExam);')
+          replace_once(p,
+              '      else notify(`Điểm: ${Number(result.score || 0).toFixed(2)}`);',
+              '      else notify(`Điểm: ${scaleExamScore(result.score, resolvedExam).toFixed(2)} / ${maxScoreText(resolvedExam)}`);')
+          replace_once(p,
+              '          .select("id,title")\n          .eq("id", data.exam_id)',
+              '          .select("id,title,question_blueprint")\n          .eq("id", data.exam_id)')
+          replace_once(p,
+              '          openDrawer(`Kết quả · ${exam.title}`, studentResultHtml(data), null, {',
+              '          openDrawer(`Kết quả · ${exam.title}`, studentResultHtml(data, exam), null, {')
+          replace_once(p,
+              '        else notify(`Điểm: ${Number(data.score || 0).toFixed(2)}`);',
+              '        else notify(`Điểm: ${scaleExamScore(data.score, exam).toFixed(2)} / ${maxScoreText(exam)}`);')
+          replace_once(p,
+              '        showStudentResult(payload.exam, data, payload.exam?.id || null);',
+              '        await showStudentResult(payload.exam, data, payload.exam?.id || null);')
+
+          # 3) Teacher lifecycle: same score scale for detail, preview, attempts and Excel; teacher always sees CLO.
+          p = 'js/assessment/online-lifecycle.js'
+          replace_once(p,
+              '      throw new Error("Assessment Online Lifecycle dependencies are incomplete");\n    }\n      function onlineTable',
+              '''      throw new Error("Assessment Online Lifecycle dependencies are incomplete");\n    }\n      function examResultConfig(exam) {\n        const blueprint = exam?.question_blueprint && typeof exam.question_blueprint === "object" ? exam.question_blueprint : {};\n        const rawMax = Number(blueprint.max_score);\n        return {\n          maxScore: Number.isFinite(rawMax) && rawMax > 0 ? rawMax : 10,\n          showCloScores: blueprint.show_clo_scores !== false,\n        };\n      }\n      function scaleExamScore(value, exam) { return (Number(value || 0) * examResultConfig(exam).maxScore) / 10; }\n      function maxScoreText(exam) {\n        const value = examResultConfig(exam).maxScore;\n        return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, "").replace(/\\.$/, "");\n      }\n      function passThreshold(exam) { return examResultConfig(exam).maxScore * 0.4; }\n      function onlineTable''')
+          replace_once(p,
+              '      function attemptTableHtml(rows, clos, mode = "date") {',
+              '      function attemptTableHtml(exam, rows, clos, mode = "date") {')
+          replace_once(p,
+              '<td>${a.submitted_at && a.score != null ? `<b>${Number(a.score).toFixed(2)}</b>` : "—"}</td>${(clos || []).map((c) => { const v=cloScore(a,c.code); return `<td>${v == null ? "—" : `<b class="${v < 4 ? "score-below" : ""}">${v.toFixed(2)}</b>`}</td>`; }).join("")}',
+              '<td>${a.submitted_at && a.score != null ? `<b>${scaleExamScore(a.score, exam).toFixed(2)}</b>` : "—"}</td>${(clos || []).map((c) => { const v=cloScore(a,c.code), shown=v==null?null:scaleExamScore(v,exam); return `<td>${shown == null ? "—" : `<b class="${shown < passThreshold(exam) ? "score-below" : ""}">${shown.toFixed(2)}</b>`}</td>`; }).join("")}')
+          replace_once(p,
+              '["Số câu", Number(exam.total_questions || 0)],["Số lần làm", Number(exam.max_attempts || 1)],["Chính sách tính điểm",',
+              '["Số câu", Number(exam.total_questions || 0)],["Số lần làm", Number(exam.max_attempts || 1)],["Điểm tối đa", examResultConfig(exam).maxScore],["Chính sách tính điểm",')
+          replace_once(p,
+              'a.score==null?null:Number(a.score),...(clos||[]).map((c)=>cloScore(a,c.code)),mode==="average"?',
+              'a.score==null?null:scaleExamScore(a.score,exam),...(clos||[]).map((c)=>{const v=cloScore(a,c.code);return v==null?null:scaleExamScore(v,exam);}),mode==="average"?')
+          replace_once(p,
+              'if(cell.value<4) cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFF4CCCC"}};',
+              'if(cell.value<passThreshold(exam)) cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFF4CCCC"}};')
+          replace_once(p,
+              'const scores=exportRows.map((x)=>Number(x.score)).filter(Number.isFinite);',
+              'const scores=exportRows.map((x)=>x.score==null?null:scaleExamScore(x.score,exam)).filter(Number.isFinite);')
+          replace_once(p,
+              '["Số điểm tổng dưới 4",scores.filter((x)=>x<4).length]];',
+              '[`Số điểm tổng dưới ${passThreshold(exam).toFixed(2)}`,scores.filter((x)=>x<passThreshold(exam)).length]];')
+          replace_once(p,
+              'const vals=exportRows.map((x)=>cloScore(x,c.code)).filter((v)=>v!=null);summary.push([`Trung bình ${c.code}`,vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null],[`Số SV/lượt ${c.code} dưới 4`,vals.filter((x)=>x<4).length],[`Tỷ lệ đạt ${c.code} (≥4)`,vals.length?vals.filter((x)=>x>=4).length/vals.length:null]);',
+              'const vals=exportRows.map((x)=>{const v=cloScore(x,c.code);return v==null?null:scaleExamScore(v,exam);}).filter((v)=>v!=null);const threshold=passThreshold(exam);summary.push([`Trung bình ${c.code}`,vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null],[`Số SV/lượt ${c.code} dưới ${threshold.toFixed(2)}`,vals.filter((x)=>x<threshold).length],[`Tỷ lệ đạt ${c.code} (≥${threshold.toFixed(2)})`,vals.length?vals.filter((x)=>x>=threshold).length/vals.length:null]);')
+          replace_once(p,
+              '<div><small>Số lần làm</small><b>${exam.max_attempts || 1}</b></div><div><small>Lượt đã tạo</small>',
+              '<div><small>Số lần làm</small><b>${exam.max_attempts || 1}</b></div><div><small>Điểm tối đa</small><b>${maxScoreText(exam)}</b></div><div><small>SV xem điểm CLO</small><b>${examResultConfig(exam).showCloScores ? "Có" : "Không"}</b></div><div><small>Lượt đã tạo</small>')
+          replace_once(p,
+              '${attemptTableHtml(attempts, clos)}</div>',
+              '${attemptTableHtml(exam, attempts, clos)}</div>')
+          replace_once(p,
+              '            box.innerHTML = attemptTableHtml(attempts, clos, sort.value);',
+              '            box.innerHTML = attemptTableHtml(exam, attempts, clos, sort.value);')
+          replace_once(p,
+              '          const html = studentResultHtml(data);',
+              '          const html = studentResultHtml(data, exam, { forceClo: true });')
+          replace_once(p,
+              '          else notify(`Điểm: ${Number(data.score || 0).toFixed(2)}`);',
+              '          else notify(`Điểm: ${scaleExamScore(data.score, exam).toFixed(2)} / ${maxScoreText(exam)}`);')
+          replace_once(p,
+              '            score: cloQuestions.length ? (right * 10) / cloQuestions.length : 0,',
+              '            score: cloQuestions.length ? (right * examResultConfig(exam).maxScore) / cloQuestions.length : 0,')
+          replace_once(p,
+              '<small>Điểm bài thử</small><b>${questions.length ? ((correct * 10) / questions.length).toFixed(2) : "0.00"}</b>',
+              '<small>Điểm bài thử</small><b>${questions.length ? ((correct * examResultConfig(exam).maxScore) / questions.length).toFixed(2) : "0.00"} / ${maxScoreText(exam)}</b>')
+
+          # 4) Cache-bust only the three changed canonical owners.
+          p = 'app.html'
+          replace_once(p, 'js/assessment/online-lifecycle.js?v=12.5.0', 'js/assessment/online-lifecycle.js?v=12.6.30')
+          replace_once(p, 'js/assessment/online-builder.js?v=12.6.1', 'js/assessment/online-builder.js?v=12.6.30')
+          replace_once(p, 'js/assessment/student-attempt.js?v=12.5.0', 'js/assessment/student-attempt.js?v=12.6.30')
+
+          print('Production score scale + CLO visibility patch applied with strict one-match assertions.')
+          PY
+          git diff --check
+      - name: Commit canonical changes
+        shell: bash
+        run: |
+          git config user.name "ai-clo-ptithcm"
+          git config user.email "namph@ptithcm.edu.vn"
+          git add app.html js/assessment/online-builder.js js/assessment/student-attempt.js js/assessment/online-lifecycle.js
+          git diff --cached --stat
+          git commit -m "production: configurable assessment score scale and CLO visibility"
+          git push origin HEAD:main
