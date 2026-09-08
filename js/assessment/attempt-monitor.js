@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.6.34 — monitored student attempt + privacy-preserving Live telemetry. */
+/* AI-CLO PTITHCM V12.6.35 — monitored student attempt + resilient mobile/iOS Live telemetry. */
 (() => {
   "use strict";
 
@@ -18,11 +18,13 @@
   let requestedFullscreen = false;
   let panel = null;
   let returnOverlay = null;
-  let telemetryAvailable = null;
+  let liveStateAvailable = null;
+  let incidentSyncAvailable = null;
   let lastHeartbeatAt = 0;
-  let serverEventId = null;
-  let serverEventPromise = null;
+  let legacyServerEventId = null;
+  let legacyServerEventPromise = null;
   let missingCheckBusy = false;
+  let flushBusy = false;
 
   const page = () => document.querySelector(".student-attempt-page[data-attempt-id]");
   const fullscreenTarget = () => document.querySelector("#app") || document.documentElement;
@@ -58,6 +60,13 @@
     } catch {}
   }
 
+  function makeClientEventId() {
+    try {
+      if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+    } catch {}
+    return `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+  }
+
   function formatAway(ms) {
     const sec = Math.max(0, Math.round(Number(ms || 0) / 1000));
     if (sec < 60) return `${sec} giây`;
@@ -82,21 +91,19 @@
       Number(incident?.durationMs || 0) >= LONG_AWAY_MS;
   }
 
-  function telemetryMissing(error) {
+  function missingRpc(error, names) {
     const text = `${error?.message || ""} ${error?.details || ""} ${error?.hint || ""}`;
-    return /update_attempt_live_state|start_attempt_monitor_event|finish_attempt_monitor_event|PGRST202|schema cache/i.test(text);
+    return names.some((name) => text.includes(name)) || /PGRST202|schema cache/i.test(text);
   }
 
-  async function telemetryRpc(name, args) {
-    if (telemetryAvailable === false || !liveDb()) return { data: null, error: null };
+  async function callRpc(name, args) {
+    const client = liveDb();
+    if (!client) return { data: null, error: new Error("Supabase chưa sẵn sàng") };
     try {
-      const result = await liveDb().rpc(name, args);
+      const result = await client.rpc(name, args);
       if (result.error) throw result.error;
-      telemetryAvailable = true;
-      return result;
+      return { data: result.data, error: null };
     } catch (error) {
-      if (telemetryMissing(error)) telemetryAvailable = false;
-      else console.warn(`AI-CLO Live telemetry · ${name}`, error);
       return { data: null, error };
     }
   }
@@ -116,17 +123,17 @@
       answered,
       total: buttons.length,
       fullscreen: !!document.fullscreenElement,
-      visible: !document.hidden && document.hasFocus(),
+      visible: !document.hidden,
     };
   }
 
   async function sendHeartbeat(force = false) {
-    if (!activeAttemptId || !page() || telemetryAvailable === false) return;
+    if (!activeAttemptId || !page() || liveStateAvailable === false) return;
     const now = Date.now();
     if (!force && now - lastHeartbeatAt < HEARTBEAT_MS) return;
     lastHeartbeatAt = now;
     const snap = progressSnapshot();
-    await telemetryRpc("update_attempt_live_state", {
+    const { error } = await callRpc("update_attempt_live_state", {
       p_attempt_id: activeAttemptId,
       p_current_question_number: snap.currentQuestion,
       p_answered_numbers: snap.answered,
@@ -134,29 +141,80 @@
       p_fullscreen_active: snap.fullscreen,
       p_page_visible: snap.visible,
     });
+    if (!error) liveStateAvailable = true;
+    else if (missingRpc(error, ["update_attempt_live_state"])) liveStateAvailable = false;
+    else console.warn("AI-CLO Live telemetry · update_attempt_live_state", error);
   }
 
-  function startServerEvent(reason) {
-    if (!activeAttemptId || telemetryAvailable === false) return;
-    serverEventId = null;
-    serverEventPromise = telemetryRpc("start_attempt_monitor_event", {
-      p_attempt_id: activeAttemptId,
+  function legacyStartServerEvent(attemptId, reason) {
+    if (!attemptId) return;
+    legacyServerEventId = null;
+    legacyServerEventPromise = callRpc("start_attempt_monitor_event", {
+      p_attempt_id: attemptId,
       p_event_type: reason,
     }).then((result) => {
-      serverEventId = result?.data || null;
-      return serverEventId;
+      legacyServerEventId = result?.data || null;
+      return legacyServerEventId;
     });
   }
 
-  function finishServerEvent() {
-    const promise = serverEventId ? Promise.resolve(serverEventId) : serverEventPromise;
-    serverEventId = null;
-    serverEventPromise = null;
+  function legacyFinishServerEvent() {
+    const promise = legacyServerEventId
+      ? Promise.resolve(legacyServerEventId)
+      : legacyServerEventPromise;
+    legacyServerEventId = null;
+    legacyServerEventPromise = null;
     if (!promise) return;
-    promise.then((id) => {
+    promise.then(async (id) => {
       if (!id) return;
-      telemetryRpc("finish_attempt_monitor_event", { p_event_id: id }).then(() => sendHeartbeat(true));
+      await callRpc("finish_attempt_monitor_event", { p_event_id: id });
+      sendHeartbeat(true);
     });
+  }
+
+  async function syncIncident(attemptId, incident, completed = false) {
+    if (!attemptId || !incident || incidentSyncAvailable === false) return false;
+    if (!incident.clientId) incident.clientId = makeClientEventId();
+    const startedAt = incident.at || new Date().toISOString();
+    const endedAt = completed
+      ? (incident.endedAt || new Date(Date.parse(startedAt) + Math.max(0, Number(incident.durationMs || 0))).toISOString())
+      : null;
+    const { error } = await callRpc("sync_attempt_monitor_event", {
+      p_attempt_id: attemptId,
+      p_client_event_id: incident.clientId,
+      p_event_type: incident.type,
+      p_started_at: startedAt,
+      p_ended_at: endedAt,
+    });
+    if (!error) {
+      incidentSyncAvailable = true;
+      if (completed) incident.syncedAt = new Date().toISOString();
+      return true;
+    }
+    if (missingRpc(error, ["sync_attempt_monitor_event"])) {
+      incidentSyncAvailable = false;
+      return false;
+    }
+    console.warn("AI-CLO Live telemetry · sync_attempt_monitor_event", error);
+    return false;
+  }
+
+  async function flushPendingEvents(attemptId = activeAttemptId) {
+    if (!attemptId || flushBusy || incidentSyncAvailable === false) return;
+    flushBusy = true;
+    try {
+      const state = readState(attemptId);
+      let changed = false;
+      for (const incident of state.events || []) {
+        if (!incident?.clientId || incident.syncedAt || incident.durationMs == null) continue;
+        const ok = await syncIncident(attemptId, incident, true);
+        if (ok) changed = true;
+        if (incidentSyncAvailable === false) break;
+      }
+      if (changed) writeState(attemptId, state);
+    } finally {
+      flushBusy = false;
+    }
   }
 
   function removeReturnOverlay() {
@@ -223,6 +281,7 @@
     const dismiss = () => {
       removeReturnOverlay();
       renderPanel();
+      flushPendingEvents();
       sendHeartbeat(true);
       page()?.querySelector('input[name="v122LiveAnswer"]:checked')?.focus?.({ preventScroll: true });
     };
@@ -308,10 +367,11 @@
     missingSince = 0;
     awayStartedAt = null;
     incidentOpen = false;
-    serverEventId = null;
-    serverEventPromise = null;
+    legacyServerEventId = null;
+    legacyServerEventPromise = null;
     lastHeartbeatAt = 0;
     renderPanel();
+    flushPendingEvents(activeAttemptId);
     sendHeartbeat(true);
   }
 
@@ -325,14 +385,16 @@
 
   async function deactivate() {
     if (!activeAttemptId) return;
+    const attemptId = activeAttemptId;
     endAway({ showOverlay: false });
+    await flushPendingEvents(attemptId);
     removeReturnOverlay();
     activeAttemptId = null;
     missingSince = 0;
     incidentOpen = false;
     awayStartedAt = null;
-    serverEventId = null;
-    serverEventPromise = null;
+    legacyServerEventId = null;
+    legacyServerEventPromise = null;
     lastHeartbeatAt = 0;
     if (panel) panel.hidden = true;
     await exitRequestedFullscreen();
@@ -341,30 +403,49 @@
 
   function startAway(reason) {
     if (!activeAttemptId || Date.now() < suppressUntil || incidentOpen) return;
+    const attemptId = activeAttemptId;
     incidentOpen = true;
     awayStartedAt = Date.now();
-    const state = readState(activeAttemptId);
+    const state = readState(attemptId);
+    const incident = {
+      clientId: makeClientEventId(),
+      type: reason,
+      at: new Date(awayStartedAt).toISOString(),
+    };
     state.violations += 1;
-    state.events.push({ type: reason, at: new Date().toISOString() });
-    writeState(activeAttemptId, state);
-    startServerEvent(reason);
+    state.events.push(incident);
+    writeState(attemptId, state);
+    syncIncident(attemptId, incident, false).then((ok) => {
+      if (!ok && incidentSyncAvailable === false) legacyStartServerEvent(attemptId, reason);
+    });
     renderPanel(`Cảnh báo: bạn vừa rời màn hình (${state.violations} lần).`);
   }
 
   function endAway({ showOverlay = true } = {}) {
     if (!activeAttemptId || !incidentOpen) return;
-    const state = readState(activeAttemptId);
+    const attemptId = activeAttemptId;
+    const state = readState(attemptId);
     const duration = awayStartedAt ? Math.max(0, Date.now() - awayStartedAt) : 0;
     state.totalAwayMs += duration;
-    let incident = null;
-    if (state.events.length) {
-      incident = state.events[state.events.length - 1];
-      if (incident && !incident.durationMs) incident.durationMs = duration;
+    let incident = lastIncident(state);
+    if (incident) {
+      incident.durationMs = duration;
+      incident.endedAt = new Date().toISOString();
     }
-    writeState(activeAttemptId, state);
+    writeState(attemptId, state);
     incidentOpen = false;
     awayStartedAt = null;
-    finishServerEvent();
+    if (incident) {
+      syncIncident(attemptId, incident, true).then((ok) => {
+        if (ok) {
+          const latest = readState(attemptId);
+          const matched = latest.events.find((x) => x.clientId === incident.clientId);
+          if (matched) matched.syncedAt = incident.syncedAt || new Date().toISOString();
+          writeState(attemptId, latest);
+        } else if (incidentSyncAvailable === false) legacyFinishServerEvent();
+      });
+    }
+    flushPendingEvents(attemptId);
     renderPanel();
     if (showOverlay && incident) showReturnOverlay(state, incident);
   }
@@ -395,11 +476,28 @@
     }
   }
 
+  function resumeFromMobileBackground() {
+    if (!activeAttemptId || document.hidden) return;
+    window.setTimeout(() => {
+      if (!activeAttemptId || document.hidden) return;
+      endAway();
+      flushPendingEvents();
+      sendHeartbeat(true);
+    }, 60);
+  }
+
   document.addEventListener("visibilitychange", () => {
     if (!activeAttemptId) return;
     if (document.hidden) startAway("tab_hidden");
-    else if (document.hasFocus()) endAway();
+    else resumeFromMobileBackground();
   });
+
+  window.addEventListener("pagehide", () => {
+    if (!activeAttemptId || Date.now() < suppressUntil) return;
+    startAway(document.hidden ? "tab_hidden" : "window_blur");
+  });
+
+  window.addEventListener("pageshow", () => resumeFromMobileBackground());
 
   window.addEventListener("blur", () => {
     if (!activeAttemptId) return;
@@ -409,11 +507,7 @@
     }, 80);
   });
 
-  window.addEventListener("focus", () => {
-    if (!activeAttemptId || document.hidden) return;
-    endAway();
-    sendHeartbeat(true);
-  });
+  window.addEventListener("focus", () => resumeFromMobileBackground());
 
   document.addEventListener("fullscreenchange", () => {
     ensureAttemptFullscreenButton();
@@ -427,7 +521,7 @@
         }
         startAway("fullscreen_exit");
         window.setTimeout(() => {
-          if (document.hasFocus() && !document.hidden) endAway();
+          if (!document.hidden) endAway();
         }, 250);
       }, 150);
     } else sendHeartbeat(true);
@@ -472,10 +566,13 @@
   }, POLL_MS);
 
   window.AICLO_ATTEMPT_MONITOR = Object.freeze({
-    version: "12.6.34",
+    version: "12.6.35",
     activeAttemptId: () => activeAttemptId,
     snapshot: () => (activeAttemptId ? readState(activeAttemptId) : null),
     requestFullscreen,
-    syncLive: () => sendHeartbeat(true),
+    syncLive: () => {
+      flushPendingEvents();
+      return sendHeartbeat(true);
+    },
   });
 })();
