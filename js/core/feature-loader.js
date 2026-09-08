@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.2 — on-demand loader for independent utilities only.
+/* AI-CLO PTITHCM V12.6.39 — on-demand loader for independent utilities only.
    Assessment runtime is owned entirely by js/assessment.js. */
 (()=>{
 'use strict';
@@ -6,7 +6,7 @@ const pending=new Map(),loaded=new Set();
 const APP_WINDOW_GEOMETRY='js/ui/app-window-geometry.js?v=11.8.6';
 function loadScript(src){if(loaded.has(src))return Promise.resolve();if(pending.has(src))return pending.get(src);const p=new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.async=false;s.dataset.aicloFeature=src;s.onload=()=>{loaded.add(src);pending.delete(src);resolve()};s.onerror=()=>{pending.delete(src);s.remove();reject(new Error(`Không tải được mô-đun ${src}.`))};document.head.appendChild(s)});pending.set(src,p);return p}
 async function loadMany(files){for(const f of files)await loadScript(f)}
-const lazyImport=async(...args)=>{await loadScript('js/questions/import.js');const fn=window.v102BulkImportQuestions;if(typeof fn!=='function'||fn===lazyImport)throw new Error('Không khởi tạo được chức năng nhập câu hỏi.');return fn(...args)};window.v102BulkImportQuestions=lazyImport;
+const lazyImport=async(...args)=>{await loadScript('js/questions/import.js?v=12.6.39');const fn=window.v102BulkImportQuestions;if(typeof fn!=='function'||fn===lazyImport)throw new Error('Không khởi tạo được chức năng nhập câu hỏi.');return fn(...args)};window.v102BulkImportQuestions=lazyImport;
 window.v102CloForm=function(clo={}){modal(clo.id?'Sửa CLO':'Tạo CLO',`<form id="v122CloForm" class="form-grid"><label class="field">Mã CLO<input name="code" required value="${esc(clo.code||'')}"></label><label class="field wide">Mô tả đầy đủ<textarea name="description" required>${esc(clo.description||'')}</textarea></label><label class="field wide">Mô tả ngắn BM08<textarea name="short_description" required>${esc(clo.short_description||'')}</textarea></label><div class="form-actions"><button type="button" id="v122CloCancel" class="secondary">Hủy</button><button class="primary">Lưu CLO</button></div></form>`);$('#v122CloCancel').onclick=closeModal;$('#v122CloForm').onsubmit=async e=>{e.preventDefault();const v=Object.fromEntries(new FormData(e.target)),r=clo.id?await db.from('clos').update(v).eq('id',clo.id):await db.from('clos').insert(contentValues(v));if(r.error)return err(r.error);closeModal();toast('Đã lưu CLO');render()}}
 async function loadAiReviewFlow(){await loadMany(['js/ai/question-review.js?v=11.6.8','js/ai/review-flow.js?v=11.6.10'])}
 const lazyAiHistory=async(...args)=>{await loadAiReviewFlow();const fn=window.aiHistory;if(typeof fn!=='function'||fn===lazyAiHistory)throw new Error('Không khởi tạo được lịch sử AI.');return fn(...args)};window.aiHistory=lazyAiHistory;
