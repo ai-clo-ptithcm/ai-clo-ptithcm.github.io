@@ -9,6 +9,14 @@ let activeButton = null;
 let preview = null;
 let requestToken = 0;
 
+function hidePreview(){
+  clearTimeout(timer);
+  timer = null;
+  activeButton = null;
+  requestToken++;
+  if(preview) preview.hidden = true;
+}
+
 function ensurePreview(){
   if(preview && document.body.contains(preview)) return preview;
   preview = document.createElement('aside');
@@ -16,6 +24,7 @@ function ensurePreview(){
   preview.className = 'question-hover-preview';
   preview.setAttribute('role','tooltip');
   preview.hidden = true;
+  preview.addEventListener('pointerleave', hidePreview);
   document.body.appendChild(preview);
   return preview;
 }
@@ -27,7 +36,7 @@ function optionMap(question){
 function renderPreview(question){
   const box = ensurePreview();
   const options = optionMap(question);
-  box.innerHTML = `<div class="question-hover-preview-head"><b>${esc(questionCode(question))}</b><span>${esc(question.clo_code || '')}</span></div>
+  box.innerHTML = `<div class="question-hover-preview-head"><b>${esc(questionCode(question))}</b><span>Xem nhanh</span></div>
     <div class="question-hover-preview-content">${esc(question.content || '')}</div>
     <div class="question-hover-preview-options">${['A','B','C','D'].map(key => `<div><b>${key}.</b><span>${esc(options[key] || '—')}</span></div>`).join('')}</div>`;
   box.hidden = false;
@@ -54,27 +63,17 @@ function positionPreview(button){
   box.style.top = `${Math.round(top)}px`;
 }
 
-function hidePreview(){
-  clearTimeout(timer);
-  timer = null;
-  activeButton = null;
-  requestToken++;
-  if(preview) preview.hidden = true;
-}
-
 async function loadQuestion(id){
   if(cache.has(id)) return cache.get(id);
-  let base = {id};
   try{
     const {data,error} = await db.from('questions').select('*, question_options(*)').eq('id',id).single();
     if(error) throw error;
-    base = data;
+    cache.set(id,data);
+    return data;
   }catch(error){
     console.warn('Không tải được xem nhanh câu hỏi', error);
     return null;
   }
-  cache.set(id,base);
-  return base;
 }
 
 function schedulePreview(button){
@@ -112,9 +111,7 @@ document.addEventListener('pointerout', event => {
 document.addEventListener('scroll', hidePreview, true);
 window.addEventListener('resize', hidePreview);
 document.addEventListener('keydown', event => { if(event.key === 'Escape') hidePreview(); });
-document.addEventListener('click', event => {
-  if(!event.target.closest?.('#qrows .question-summary[data-detail]')) hidePreview();
-}, true);
+document.addEventListener('click', hidePreview, true);
 
 window.AICLO_QUESTION_HOVER_PREVIEW = Object.freeze({clear:()=>cache.clear(), hide:hidePreview});
 })();
