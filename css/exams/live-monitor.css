@@ -1,0 +1,70 @@
+/* AI-CLO PTITHCM V12.6.34 — AI-CLO | LIVE teacher monitoring. */
+
+/* Live entry belongs to the assessment detail title row. */
+.assessment-detail-v122.has-live-entry>.subpage-head>div>.assessment-detail-title-row{
+  grid-column:1/-1!important;
+  grid-row:2!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:14px!important;
+  min-width:0!important;
+  margin-top:12px!important;
+}
+.assessment-detail-v122.has-live-entry>.subpage-head>div>.assessment-detail-title-row>h3{
+  min-width:0!important;
+  margin:0!important;
+}
+.assessment-detail-v122.has-live-entry>.subpage-head>div>p{grid-row:3!important}
+.aiclo-live-entry{
+  flex:0 0 auto;display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:8px 12px;
+  border:1px solid #e7aeb7;border-radius:11px;background:#fff4f6;color:#991f34;font-weight:800;
+  box-shadow:0 2px 8px rgba(153,31,52,.07);white-space:nowrap;cursor:pointer
+}
+.aiclo-live-entry:hover{background:#ffecef;border-color:#d7818f}
+.aiclo-live-entry strong{font-size:12px;letter-spacing:.08em}.aiclo-live-entry span:not(.aiclo-live-dot){opacity:.55}
+.aiclo-live-dot{width:8px;height:8px;border-radius:50%;background:#d7233f;box-shadow:0 0 0 4px rgba(215,35,63,.12)}
+
+.assessment-live-page{display:grid;gap:16px;min-width:0}
+.aiclo-live-page-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:16px 24px}
+.aiclo-live-page-head>div:first-child{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:0 14px;min-width:0}
+.aiclo-live-page-head #aicloLiveBack{grid-column:1;grid-row:1;justify-self:start}
+.aiclo-live-page-head small{grid-column:2;grid-row:1;color:var(--red);font-size:11px;font-weight:900;letter-spacing:.09em}
+.aiclo-live-page-head h3{grid-column:1/-1;grid-row:2;margin:12px 0 0;font-size:clamp(24px,2.4vw,32px);line-height:1.2}
+.aiclo-live-page-head p{grid-column:1/-1;grid-row:3;margin:7px 0 0;color:var(--muted);line-height:1.5}
+.aiclo-live-head-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding-top:2px}
+
+.aiclo-live-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.aiclo-live-summary>div{display:grid;gap:4px;padding:14px 16px;border:1px solid var(--line);border-radius:13px;background:#fff}
+.aiclo-live-summary small{color:var(--muted);font-size:11px;font-weight:700}.aiclo-live-summary b{font-size:26px;line-height:1.1}
+.aiclo-live-summary .warning{border-color:#efc2ca;background:#fff6f7}.aiclo-live-summary .warning b{color:#b52037}
+
+.aiclo-live-table-wrap{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:auto}
+.aiclo-live-table{width:100%;min-width:1120px;border-collapse:collapse}
+.aiclo-live-table th{position:sticky;top:0;z-index:1;background:#f7f8fa;font-size:11px;color:#596273;text-align:left}
+.aiclo-live-table th,.aiclo-live-table td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+.aiclo-live-table tbody tr{cursor:pointer}.aiclo-live-table tbody tr:hover{background:#fff8f9}
+.aiclo-live-table small{color:var(--muted)}.aiclo-live-mono{font-variant-numeric:tabular-nums;font-weight:850}
+.aiclo-live-progress{display:grid;gap:5px;min-width:92px}.aiclo-live-progress>span{height:6px;overflow:hidden;border-radius:99px;background:#e8ebef}.aiclo-live-progress i{display:block;height:100%;background:#2b9a68;border-radius:99px}
+.badge.yellow{background:#fff4d8;color:#8a5b00;border-color:#ead296}
+
+.aiclo-live-detail{display:grid;gap:16px}.aiclo-live-detail h4{margin:2px 0 0}
+.aiclo-live-detail-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.aiclo-live-detail-grid>div{display:grid;gap:4px;padding:12px;border:1px solid var(--line);border-radius:11px;background:#fafbfc}
+.aiclo-live-detail-grid small{color:var(--muted);font-size:10px}.aiclo-live-detail-grid b{font-size:14px}
+.aiclo-live-question-map{display:flex;gap:6px;flex-wrap:wrap}.aiclo-live-question-map span{width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:12px;font-weight:800}.aiclo-live-question-map span.answered{background:#e8f7f1;border-color:#8bd1b7;color:#087a55}.aiclo-live-question-map span.current{outline:2px solid #bd3346;outline-offset:1px}
+.aiclo-live-event-list{display:grid;gap:8px}.aiclo-live-event-list>div{display:flex;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}.aiclo-live-event-list span{font-weight:750}.aiclo-live-event-list small{color:var(--muted);text-align:right}
+
+@media(max-width:900px){
+  .aiclo-live-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .aiclo-live-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:760px){
+  .assessment-detail-v122.has-live-entry>.subpage-head>div>.assessment-detail-title-row{align-items:flex-start!important;flex-direction:column!important}
+  .aiclo-live-entry{align-self:stretch;justify-content:center;width:100%}
+  .aiclo-live-page-head{grid-template-columns:1fr}.aiclo-live-head-actions{justify-content:flex-start}.aiclo-live-head-actions button{width:100%}
+}
+@media(max-width:520px){
+  .aiclo-live-summary,.aiclo-live-detail-grid{grid-template-columns:1fr}
+  .aiclo-live-event-list>div{display:grid}.aiclo-live-event-list small{text-align:left}
+}
