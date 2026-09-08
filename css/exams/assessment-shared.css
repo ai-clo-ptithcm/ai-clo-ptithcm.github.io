@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.6.7 — shared Assessment runtime styles.
+/* AI-CLO PTITHCM V12.6.32 — shared Assessment runtime styles.
    Keep only selectors used by the current Assessment runtime. Confirmed V9/V9.1-only selectors live in css/legacy/assessment-v9.css and are not loaded by app.html.
    AI review/feedback components are owned by css/ai.css. */
 
@@ -75,25 +75,34 @@
 .online-exam-matrix .online-row-total,.online-exam-matrix-total b{font-weight:900}
 .online-matrix-box .bank-check{margin-top:14px}
 
-/* V12.6.7 — one heading system for Assessment list/detail/results pages. */
+/* V12.6.32 — one compact heading system for Assessment builder/detail/results pages. */
+.assessment-builder-v122>.subpage-head,
 .assessment-detail-v122>.subpage-head,
 .assessment-results-v122>.subpage-head,
 .student-exam-detail-v125>.student-exam-detail-head{
   display:grid!important;
   grid-template-columns:minmax(0,1fr) auto!important;
-  align-items:end!important;
-  gap:14px 24px!important;
+  align-items:start!important;
+  gap:12px 24px!important;
   width:100%!important;
   max-width:100%!important;
   min-width:0!important;
   padding:0!important;
-  margin:0 0 16px!important;
+  margin:0 0 18px!important;
   border:0!important;
   border-radius:0!important;
   background:transparent!important;
   box-shadow:none!important;
 }
-.assessment-detail-v122>.subpage-head>div,
+.assessment-builder-v122>.subpage-head>div,
+.assessment-detail-v122>.subpage-head>div{
+  min-width:0!important;
+  display:grid!important;
+  grid-template-columns:auto minmax(0,1fr)!important;
+  align-items:center!important;
+  column-gap:14px!important;
+  row-gap:0!important;
+}
 .assessment-results-v122>.subpage-head>div,
 .student-exam-detail-v125>.student-exam-detail-head>div{
   min-width:0!important;
@@ -101,27 +110,46 @@
   grid-template-columns:minmax(0,1fr)!important;
   align-items:start!important;
 }
+.assessment-builder-v122>.subpage-head small,
 .assessment-detail-v122>.subpage-head small,
 .assessment-results-v122>.subpage-head small,
 .student-exam-detail-v125>.student-exam-detail-head small{
   display:block!important;
-  margin:0 0 6px!important;
   color:var(--red)!important;
   font-size:11px!important;
   font-weight:900!important;
   letter-spacing:.08em!important;
   line-height:1.25!important;
 }
+.assessment-builder-v122>.subpage-head>div>small,
+.assessment-detail-v122>.subpage-head>div>small{
+  grid-column:2!important;
+  grid-row:1!important;
+  align-self:center!important;
+  margin:0!important;
+}
+.assessment-results-v122>.subpage-head small,
+.student-exam-detail-v125>.student-exam-detail-head small{
+  margin:0 0 6px!important;
+}
+.assessment-builder-v122>.subpage-head h3,
 .assessment-detail-v122>.subpage-head h3,
 .assessment-results-v122>.subpage-head h3,
 .student-exam-detail-v125>.student-exam-detail-head h3{
   margin:0!important;
   color:var(--ink)!important;
-  font-size:clamp(21px,2.2vw,28px)!important;
+  font-size:clamp(22px,2.25vw,30px)!important;
   font-weight:850!important;
   line-height:1.2!important;
   overflow-wrap:anywhere!important;
 }
+.assessment-builder-v122>.subpage-head>div>h3,
+.assessment-detail-v122>.subpage-head>div>h3{
+  grid-column:1/-1!important;
+  grid-row:2!important;
+  margin-top:12px!important;
+}
+.assessment-builder-v122>.subpage-head p,
 .assessment-detail-v122>.subpage-head p,
 .assessment-results-v122>.subpage-head p,
 .student-exam-detail-v125>.student-exam-detail-head p{
@@ -132,34 +160,75 @@
   line-height:1.5!important;
   overflow-wrap:anywhere!important;
 }
+.assessment-builder-v122>.subpage-head>div>p,
+.assessment-detail-v122>.subpage-head>div>p{
+  grid-column:1/-1!important;
+  grid-row:3!important;
+}
+.assessment-builder-v122>.subpage-head>span,
 .assessment-detail-v122>.subpage-head>span,
 .student-exam-detail-v125>.student-exam-detail-head>span,
 .assessment-results-v122>.subpage-head>button{
   justify-self:end!important;
-  align-self:end!important;
-  margin:0 0 2px!important;
+  align-self:start!important;
+  margin:2px 0 0!important;
 }
+.assessment-builder-v122>.subpage-head>div>#v122BuilderBack,
 .assessment-detail-v122>.subpage-head>div>#v122Back,
 .student-exam-detail-v125>.student-exam-detail-head>div>#v125StudentExamBack{
   justify-self:start!important;
   width:max-content!important;
+}
+.assessment-builder-v122>.subpage-head>div>#v122BuilderBack,
+.assessment-detail-v122>.subpage-head>div>#v122Back{
+  grid-column:1!important;
+  grid-row:1!important;
+  order:initial!important;
+  min-height:42px!important;
+  margin:0!important;
+  padding:9px 14px!important;
+  border-radius:10px!important;
+  font-size:14px!important;
+  line-height:1.2!important;
+}
+.student-exam-detail-v125>.student-exam-detail-head>div>#v125StudentExamBack{
   margin:0 0 14px!important;
   order:-1!important;
 }
 @media(max-width:760px){
+  .assessment-builder-v122>.subpage-head,
   .assessment-detail-v122>.subpage-head,
   .assessment-results-v122>.subpage-head,
   .student-exam-detail-v125>.student-exam-detail-head{
     grid-template-columns:1fr!important;
     align-items:start!important;
     gap:10px!important;
-    margin-bottom:12px!important;
+    margin-bottom:14px!important;
   }
+  .assessment-builder-v122>.subpage-head>span,
   .assessment-detail-v122>.subpage-head>span,
   .student-exam-detail-v125>.student-exam-detail-head>span,
   .assessment-results-v122>.subpage-head>button{
     justify-self:start!important;
     margin:0!important;
+  }
+}
+@media(max-width:520px){
+  .assessment-builder-v122>.subpage-head>div,
+  .assessment-detail-v122>.subpage-head>div{
+    grid-template-columns:auto minmax(0,1fr)!important;
+    column-gap:10px!important;
+  }
+  .assessment-builder-v122>.subpage-head>div>#v122BuilderBack,
+  .assessment-detail-v122>.subpage-head>div>#v122Back{
+    min-height:40px!important;
+    padding:8px 11px!important;
+    font-size:13px!important;
+  }
+  .assessment-builder-v122>.subpage-head>div>small,
+  .assessment-detail-v122>.subpage-head>div>small{
+    font-size:10px!important;
+    letter-spacing:.065em!important;
   }
 }
 
