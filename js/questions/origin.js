@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.6.32 — question provenance and Academy verification. */
+/* AI-CLO PTITHCM V12.6.38 — question provenance and Academy verification. */
 (() => {
 'use strict';
 const label=value=>value==='gemini'?'✦ AI hỗ trợ':value==='academy'?'🏛 Câu hỏi Học viện':'✍️ Giảng viên biên soạn';
@@ -35,9 +35,29 @@ window.v96QuestionDetail=async function(x,sets){
  async function verify(approve){if(!await confirmAction(approve?'Xác nhận câu hỏi Học viện':'Từ chối nguồn Học viện',approve?'Câu sẽ được duyệt, bảo vệ và chỉ lưu trong Ngân hàng đề thi – bảo mật.':'Câu trở lại nguồn Giảng viên biên soạn và trạng thái bản nháp.',{confirmLabel:approve?'Xác nhận':'Từ chối'}))return;let {error}=await db.rpc('verify_academy_question',{p_question_id:x.id,p_approve:approve});if(error)return err(error);window.AICLO_QUESTION_STATE?.invalidate?.(x.id);toast(approve?'Đã xác nhận câu hỏi Học viện':'Đã từ chối nguồn Học viện');backToQuestionList()}
 };
 
+function syncOriginBadge(cell,x){
+ if(!cell)return;
+ const className=`badge question-origin ${x.origin_type||'lecturer'}`;
+ let badge=cell.querySelector('.question-origin');
+ if(!badge){
+  badge=document.createElement('span');
+  badge.className=className;
+  cell.appendChild(document.createElement('br'));
+  cell.appendChild(badge);
+ }else badge.className=className;
+ badge.textContent=label(x.origin_type);
+ let official=cell.querySelector('.question-origin-status');
+ const officialText=x.is_official?'Đã xác nhận':x.origin_type==='academy'?'Chờ xác nhận':'';
+ if(officialText){
+  if(!official){official=document.createElement('span');official.className='badge question-origin-status';cell.appendChild(document.createElement('br'));cell.appendChild(official)}
+  official.className=`badge question-origin-status ${x.is_official?'green':'red'}`;
+  official.textContent=officialText;
+ }else official?.remove();
+}
+
 async function decorateList(){
  if(state.view!=='questions'||!state.subjectId)return;const creatorAll=$('#qcreatorFilter option[value="all"]');if(creatorAll)creatorAll.textContent='Tất cả người nhập';const {data,error}=await contentFilter(db.from('questions').select('id,origin_type,is_official,display_code'));if(error)return;
- for(const x of data||[]){const button=document.querySelector(`#qrows [data-detail="${CSS.escape(x.id)}"]`);if(!button)continue;const row=button.closest('tr'),cell=row?.querySelector('.q-code-cell');if(x.is_official)row?.querySelector('[data-select-question]')?.remove();if(!cell||cell.querySelector('.question-origin'))continue;cell.insertAdjacentHTML('beforeend',`<br><span class="badge question-origin ${x.origin_type||'lecturer'}">${esc(label(x.origin_type))}</span>${x.is_official?'<br><span class="badge green">Đã xác nhận</span>':x.origin_type==='academy'?'<br><span class="badge red">Chờ xác nhận</span>':''}`)}
+ for(const x of data||[]){const button=document.querySelector(`#qrows [data-detail="${CSS.escape(x.id)}"]`);if(!button)continue;const row=button.closest('tr'),cell=row?.querySelector('.q-code-cell');if(x.is_official)row?.querySelector('[data-select-question]')?.remove();syncOriginBadge(cell,x)}
 }
 const oldQuestions=window.questions;window.questions=async function(c){await oldQuestions(c);await decorateList()};
 
