@@ -1,8 +1,9 @@
-/* AI-CLO PTITHCM — frontend-only attempt monitoring. */
+/* AI-CLO PTITHCM V12.6.34 — monitored student attempt + privacy-preserving Live telemetry. */
 (() => {
   "use strict";
 
   const POLL_MS = 500;
+  const HEARTBEAT_MS = 5000;
   const LEAVE_GRACE_MS = 1200;
   const SUPPRESS_MS = 900;
   const STRONG_WARNING_COUNT = 3;
@@ -17,10 +18,16 @@
   let requestedFullscreen = false;
   let panel = null;
   let returnOverlay = null;
+  let telemetryAvailable = null;
+  let lastHeartbeatAt = 0;
+  let serverEventId = null;
+  let serverEventPromise = null;
+  let missingCheckBusy = false;
 
   const page = () => document.querySelector(".student-attempt-page[data-attempt-id]");
   const fullscreenTarget = () => document.querySelector("#app") || document.documentElement;
   const storageKey = (attemptId) => `${STORAGE_PREFIX}${attemptId}`;
+  const liveDb = () => (typeof db !== "undefined" && db?.rpc ? db : null);
 
   function readState(attemptId) {
     try {
@@ -60,6 +67,7 @@
   function reasonText(reason) {
     if (reason === "tab_hidden") return "chuyển sang tab khác";
     if (reason === "fullscreen_exit") return "thoát chế độ toàn màn hình";
+    if (reason === "app_navigation") return "rời trang làm bài trong AI-CLO";
     return "rời cửa sổ làm bài";
   }
 
@@ -72,6 +80,83 @@
   function isStrongWarning(state, incident = lastIncident(state)) {
     return Number(state?.violations || 0) >= STRONG_WARNING_COUNT ||
       Number(incident?.durationMs || 0) >= LONG_AWAY_MS;
+  }
+
+  function telemetryMissing(error) {
+    const text = `${error?.message || ""} ${error?.details || ""} ${error?.hint || ""}`;
+    return /update_attempt_live_state|start_attempt_monitor_event|finish_attempt_monitor_event|PGRST202|schema cache/i.test(text);
+  }
+
+  async function telemetryRpc(name, args) {
+    if (telemetryAvailable === false || !liveDb()) return { data: null, error: null };
+    try {
+      const result = await liveDb().rpc(name, args);
+      if (result.error) throw result.error;
+      telemetryAvailable = true;
+      return result;
+    } catch (error) {
+      if (telemetryMissing(error)) telemetryAvailable = false;
+      else console.warn(`AI-CLO Live telemetry · ${name}`, error);
+      return { data: null, error };
+    }
+  }
+
+  function progressSnapshot() {
+    const current = page();
+    const buttons = current ? [...current.querySelectorAll(".question-jump [data-v122-jump]")] : [];
+    const answered = [];
+    let currentQuestion = null;
+    buttons.forEach((button, index) => {
+      const number = index + 1;
+      if (button.classList.contains("answered")) answered.push(number);
+      if (button.classList.contains("current")) currentQuestion = number;
+    });
+    return {
+      currentQuestion,
+      answered,
+      total: buttons.length,
+      fullscreen: !!document.fullscreenElement,
+      visible: !document.hidden && document.hasFocus(),
+    };
+  }
+
+  async function sendHeartbeat(force = false) {
+    if (!activeAttemptId || !page() || telemetryAvailable === false) return;
+    const now = Date.now();
+    if (!force && now - lastHeartbeatAt < HEARTBEAT_MS) return;
+    lastHeartbeatAt = now;
+    const snap = progressSnapshot();
+    await telemetryRpc("update_attempt_live_state", {
+      p_attempt_id: activeAttemptId,
+      p_current_question_number: snap.currentQuestion,
+      p_answered_numbers: snap.answered,
+      p_total_questions: snap.total,
+      p_fullscreen_active: snap.fullscreen,
+      p_page_visible: snap.visible,
+    });
+  }
+
+  function startServerEvent(reason) {
+    if (!activeAttemptId || telemetryAvailable === false) return;
+    serverEventId = null;
+    serverEventPromise = telemetryRpc("start_attempt_monitor_event", {
+      p_attempt_id: activeAttemptId,
+      p_event_type: reason,
+    }).then((result) => {
+      serverEventId = result?.data || null;
+      return serverEventId;
+    });
+  }
+
+  function finishServerEvent() {
+    const promise = serverEventId ? Promise.resolve(serverEventId) : serverEventPromise;
+    serverEventId = null;
+    serverEventPromise = null;
+    if (!promise) return;
+    promise.then((id) => {
+      if (!id) return;
+      telemetryRpc("finish_attempt_monitor_event", { p_event_id: id }).then(() => sendHeartbeat(true));
+    });
   }
 
   function removeReturnOverlay() {
@@ -138,6 +223,7 @@
     const dismiss = () => {
       removeReturnOverlay();
       renderPanel();
+      sendHeartbeat(true);
       page()?.querySelector('input[name="v122LiveAnswer"]:checked')?.focus?.({ preventScroll: true });
     };
     overlay.querySelector("[data-attempt-return-continue]")?.addEventListener("click", dismiss);
@@ -214,6 +300,7 @@
     if (!attemptId) return;
     if (String(activeAttemptId) === String(attemptId)) {
       renderPanel();
+      sendHeartbeat();
       return;
     }
     removeReturnOverlay();
@@ -221,7 +308,11 @@
     missingSince = 0;
     awayStartedAt = null;
     incidentOpen = false;
+    serverEventId = null;
+    serverEventPromise = null;
+    lastHeartbeatAt = 0;
     renderPanel();
+    sendHeartbeat(true);
   }
 
   async function exitRequestedFullscreen() {
@@ -240,6 +331,9 @@
     missingSince = 0;
     incidentOpen = false;
     awayStartedAt = null;
+    serverEventId = null;
+    serverEventPromise = null;
+    lastHeartbeatAt = 0;
     if (panel) panel.hidden = true;
     await exitRequestedFullscreen();
     requestedFullscreen = false;
@@ -253,6 +347,7 @@
     state.violations += 1;
     state.events.push({ type: reason, at: new Date().toISOString() });
     writeState(activeAttemptId, state);
+    startServerEvent(reason);
     renderPanel(`Cảnh báo: bạn vừa rời màn hình (${state.violations} lần).`);
   }
 
@@ -269,6 +364,7 @@
     writeState(activeAttemptId, state);
     incidentOpen = false;
     awayStartedAt = null;
+    finishServerEvent();
     renderPanel();
     if (showOverlay && incident) showReturnOverlay(state, incident);
   }
@@ -277,6 +373,7 @@
     if (!activeAttemptId || !page()) return false;
     if (document.fullscreenElement) {
       renderPanel();
+      sendHeartbeat(true);
       return true;
     }
     const target = fullscreenTarget();
@@ -289,6 +386,7 @@
       await target.requestFullscreen();
       requestedFullscreen = true;
       renderPanel();
+      sendHeartbeat(true);
       return true;
     } catch (error) {
       console.warn("AI-CLO attempt fullscreen", error);
@@ -314,6 +412,7 @@
   window.addEventListener("focus", () => {
     if (!activeAttemptId || document.hidden) return;
     endAway();
+    sendHeartbeat(true);
   });
 
   document.addEventListener("fullscreenchange", () => {
@@ -331,9 +430,28 @@
           if (document.hasFocus() && !document.hidden) endAway();
         }, 250);
       }, 150);
-    }
+    } else sendHeartbeat(true);
     renderPanel();
   });
+
+  async function reconcileMissingPage() {
+    if (!activeAttemptId || missingCheckBusy) return;
+    missingCheckBusy = true;
+    try {
+      const client = liveDb();
+      if (!client) return deactivate();
+      const { data, error } = await client.rpc("get_exam_attempt_payload", { p_attempt_id: activeAttemptId });
+      if (error) throw error;
+      if (data?.submitted_at) return deactivate();
+      if (!incidentOpen) startAway("app_navigation");
+      window.setTimeout(() => deactivate(), 180);
+    } catch (error) {
+      console.warn("AI-CLO attempt exit reconcile", error);
+      deactivate();
+    } finally {
+      missingCheckBusy = false;
+    }
+  }
 
   window.setInterval(() => {
     const current = page();
@@ -342,6 +460,7 @@
       activate(current.dataset.attemptId || "unknown");
       ensureAttemptFullscreenButton();
       renderPanel();
+      sendHeartbeat();
       return;
     }
     if (!activeAttemptId) return;
@@ -349,13 +468,14 @@
       missingSince = Date.now();
       return;
     }
-    if (Date.now() - missingSince >= LEAVE_GRACE_MS) deactivate();
+    if (Date.now() - missingSince >= LEAVE_GRACE_MS) reconcileMissingPage();
   }, POLL_MS);
 
   window.AICLO_ATTEMPT_MONITOR = Object.freeze({
-    version: "frontend-only-4",
+    version: "12.6.34",
     activeAttemptId: () => activeAttemptId,
     snapshot: () => (activeAttemptId ? readState(activeAttemptId) : null),
     requestFullscreen,
+    syncLive: () => sendHeartbeat(true),
   });
 })();
