@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V11.6.7 — compact question-bank toolbar, drawers and active filter chips. */
+/* AI-CLO PTITHCM V12.6.29-kiemnghiem — compact question-bank toolbar, drawers, filters and selection mode. */
 .qbank-primary-actions{display:grid;grid-template-columns:1.25fr 1.05fr .8fr .85fr;gap:10px;margin:0 0 12px}
 .qbank-primary-actions>button{width:100%;min-height:48px;margin:0!important;font-weight:800;white-space:nowrap}
 .qbank-primary-actions>#generateAI{font-size:15px}
@@ -22,6 +22,14 @@
 .qbank-filter-clear-all:hover{background:#fff0f2}
 .qbank-count-row{min-height:24px;display:flex;align-items:center;margin:0 0 8px}
 .qbank-count-row>#questionCount{margin:0!important;padding:0!important;text-align:left!important}
+
+/* Chỉ một nút Chọn nằm ngoài panel Chức năng. Ma trận và Kiểm tra trùng chỉ còn trong panel Chức năng. */
+.qbank-selection-actions{display:flex;align-items:center;gap:8px;margin:0 0 12px}
+.qbank-selection-toggle{min-width:160px;min-height:44px;background:#fff!important;border:1px solid #d8dee8!important;color:#26364d!important;font-weight:800;box-shadow:0 2px 6px #1018280b}
+.qbank-selection-toggle:hover{background:#f8fafc!important;border-color:#b9c3d1!important}
+.qbank-selection-toggle.active{background:#fff1f3!important;border-color:#d79ba5!important;color:var(--red)!important}
+.qbank-standalone-hidden{display:none!important}
+.v105-question-table:not(.selection-mode) .select-col{display:none!important}
 
 /* Các select gốc vẫn ở DOM để giữ nguyên logic lọc/persistence nhưng không chiếm không gian. */
 .qbank-hidden-filter-source{display:none!important}
@@ -50,6 +58,14 @@
 @media(max-width:1000px){
  .qbank-primary-actions{grid-template-columns:1fr 1fr}
 }
+@media(max-width:760px){
+ .v105-question-table:not(.selection-mode) tr{grid-template-columns:minmax(0,1fr)!important}
+ .v105-question-table:not(.selection-mode) td.q-code-cell{grid-column:1!important;grid-row:1!important}
+ .v105-question-table:not(.selection-mode) td.q-content-cell{grid-column:1!important;grid-row:2!important}
+ .v105-question-table:not(.selection-mode) td.q-structure-cell{grid-column:1!important;grid-row:3!important}
+ .v105-question-table:not(.selection-mode) td.q-class-cell{grid-column:1!important;grid-row:4!important}
+ .v105-question-table:not(.selection-mode) td.row-actions{grid-column:1!important;grid-row:5!important}
+}
 @media(max-width:700px){
  .qbank-primary-actions{grid-template-columns:1fr 1fr;gap:8px}
  .qbank-primary-actions>button{min-height:44px;font-size:13px!important;padding-left:9px;padding-right:9px}
@@ -58,6 +74,7 @@
  .qbank-filter-grid{grid-template-columns:1fr}
  .qbank-filter-field:first-child,.qbank-filter-field:nth-child(2){grid-column:auto}
  .qbank-filter-chip,.qbank-filter-clear-all{font-size:11px;min-height:28px}
+ .qbank-selection-toggle{min-width:132px;min-height:42px}
 }
 @media(max-width:430px){
  .qbank-primary-actions{grid-template-columns:1fr 1fr}
@@ -65,4 +82,6 @@
  .qbank-filter-button{width:100%}
  .qbank-filter-actions{display:grid;grid-template-columns:1fr 1fr}
  .qbank-filter-actions button{min-width:0}
+ .qbank-selection-actions{display:grid;grid-template-columns:1fr}
+ .qbank-selection-toggle{width:100%}
 }
