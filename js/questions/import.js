@@ -1,9 +1,11 @@
-/* AI-CLO PTITHCM — bulk question import from Excel with preview and safe per-question rollback. */
+/* AI-CLO PTITHCM V12.6.39 — bulk question import from Excel with symmetric create workspace, preview and safe rollback. */
 (() => {
 'use strict';
 
 const MAX_ROWS = 1000;
 const OPTION_KEYS = ['A','B','C','D'];
+const TEMPLATE_HEADERS = ['Chương','Chủ đề','CLO','Nội dung','A','B','C','D','Đáp án','Lời giải','Ngân hàng','Trạng thái'];
+const TEMPLATE_WIDTHS = [28,34,10,58,30,30,30,30,10,46,24,16];
 
 const normalize = value => String(value ?? '')
   .normalize('NFD')
@@ -140,27 +142,45 @@ function flagDuplicates(parsed, existingItems = []) {
   });
 }
 
+function setSheetWidths(sheet, widths) {
+  sheet['!cols'] = (widths || []).map(wch => ({wch}));
+  return sheet;
+}
+
+function templateDataSheet(XLSX) {
+  const sheet = XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS]);
+  setSheetWidths(sheet, TEMPLATE_WIDTHS);
+  sheet['!autofilter'] = {ref: `A1:L1`};
+  return sheet;
+}
+
 async function downloadTemplate(sets) {
   const XLSX = await getXLSX();
   const fallbackScope = activeBank();
   const firstChapter = sets.ch?.[0];
   const firstTopic = sets.topics?.find(topic => topic.chapter_id === firstChapter?.id);
+  const firstClo = sets.clos?.[0];
   const sample = [{
     'Chương': firstChapter?.name || 'Chương 1',
     'Chủ đề': firstTopic?.name || 'Mục 1.1',
-    'CLO': sets.clos?.[0]?.code || 'CLO1',
-    'Nội dung': 'Nội dung câu hỏi',
+    'CLO': firstClo?.code || 'CLO1',
+    'Nội dung': 'Ví dụ: Nội dung câu hỏi',
     'A': 'Phương án A',
     'B': 'Phương án B',
     'C': 'Phương án C',
     'D': 'Phương án D',
     'Đáp án': 'A',
-    'Lời giải': 'Giải thích ngắn',
+    'Lời giải': 'Giải thích ngắn (không bắt buộc)',
     'Ngân hàng': bankLabel(fallbackScope),
     'Trạng thái': 'Bản nháp'
   }];
+
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sample), 'Cau_hoi');
+  XLSX.utils.book_append_sheet(wb, templateDataSheet(XLSX), 'Cau_hoi');
+
+  const exampleSheet = XLSX.utils.json_to_sheet(sample, {header: TEMPLATE_HEADERS});
+  setSheetWidths(exampleSheet, TEMPLATE_WIDTHS);
+  XLSX.utils.book_append_sheet(wb, exampleSheet, 'Vi_du');
 
   const chapterTopicRows = [];
   for (const chapter of sets.ch || []) {
@@ -168,17 +188,45 @@ async function downloadTemplate(sets) {
       chapterTopicRows.push({'Chương': chapter.name, 'Chủ đề': topic.name});
     }
   }
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(chapterTopicRows), 'Chuong_Chu_de');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet((sets.clos || []).map(clo => ({
+  const chapterSheet = XLSX.utils.json_to_sheet(chapterTopicRows, {header:['Chương','Chủ đề']});
+  setSheetWidths(chapterSheet, [32,42]);
+  XLSX.utils.book_append_sheet(wb, chapterSheet, 'Chuong_Chu_de');
+
+  const cloSheet = XLSX.utils.json_to_sheet((sets.clos || []).map(clo => ({
     'CLO': clo.code,
     'Mô tả': clo.description || '',
     'Mô tả ngắn': clo.short_description || ''
-  }))), 'CLO');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([
-    {'Ngân hàng': 'Luyện tập - kiểm tra', 'Giá trị': 'practice'},
-    {'Ngân hàng': 'Đề thi - bảo mật', 'Giá trị': 'secure_exam'},
-    {'Ngân hàng': 'Cả hai', 'Giá trị': 'both'}
-  ]), 'Huong_dan');
+  })), {header:['CLO','Mô tả','Mô tả ngắn']});
+  setSheetWidths(cloSheet, [12,58,42]);
+  XLSX.utils.book_append_sheet(wb, cloSheet, 'CLO');
+
+  const catalogue = [
+    {'Trường':'Ngân hàng','Giá trị hiển thị':'Luyện tập - kiểm tra','Giá trị kỹ thuật':'practice','Ghi chú':'Dùng cho luyện tập và bài kiểm tra trực tuyến.'},
+    {'Trường':'Ngân hàng','Giá trị hiển thị':'Đề thi - bảo mật','Giá trị kỹ thuật':'secure_exam','Ghi chú':'Chỉ dùng cho đề thi cuối kỳ/chính thức.'},
+    {'Trường':'Ngân hàng','Giá trị hiển thị':'Cả hai','Giá trị kỹ thuật':'both','Ghi chú':'Xuất hiện ở cả hai ngân hàng.'},
+    {'Trường':'Trạng thái','Giá trị hiển thị':'Bản nháp','Giá trị kỹ thuật':'draft','Ghi chú':'Mặc định nếu để trống.'},
+    {'Trường':'Trạng thái','Giá trị hiển thị':'Chờ duyệt','Giá trị kỹ thuật':'pending','Ghi chú':'Lưu ở trạng thái chờ duyệt.'},
+    {'Trường':'Trạng thái','Giá trị hiển thị':'Đã duyệt','Giá trị kỹ thuật':'approved','Ghi chú':'Lưu ở trạng thái đã duyệt theo quyền hiện tại.'}
+  ];
+  const catalogueSheet = XLSX.utils.json_to_sheet(catalogue);
+  setSheetWidths(catalogueSheet, [16,28,20,48]);
+  XLSX.utils.book_append_sheet(wb, catalogueSheet, 'Danh_muc');
+
+  const guide = [
+    {'Mục':'Sheet nhập dữ liệu','Hướng dẫn':'Chỉ nhập câu hỏi tại sheet Cau_hoi. Sheet Vi_du chỉ để tham khảo; không cần xóa.'},
+    {'Mục':'Cột bắt buộc','Hướng dẫn':'Chương, Chủ đề, CLO, Nội dung, A, B, C, D và Đáp án.'},
+    {'Mục':'Đáp án','Hướng dẫn':'Chỉ ghi A, B, C hoặc D.'},
+    {'Mục':'Chương · Chủ đề','Hướng dẫn':'Nên sao chép đúng tên từ sheet Chuong_Chu_de. Chương cũng chấp nhận số thứ tự chương.'},
+    {'Mục':'CLO','Hướng dẫn':'Ghi đúng mã trong sheet CLO, ví dụ CLO1.'},
+    {'Mục':'Lời giải','Hướng dẫn':'Không bắt buộc. Có thể để trống.'},
+    {'Mục':'Ngân hàng','Hướng dẫn':`Không bắt buộc. Nếu để trống, hệ thống dùng ngân hàng đang mở: ${bankLabel(fallbackScope)}.`},
+    {'Mục':'Trạng thái','Hướng dẫn':'Không bắt buộc. Nếu để trống, hệ thống dùng Bản nháp.'},
+    {'Mục':'Nguồn câu hỏi','Hướng dẫn':'Không nhập trong Excel. Sau khi xem trước, chọn nguồn cho toàn bộ danh sách trên AI-CLO.'},
+    {'Mục':'Giới hạn','Hướng dẫn':`Mỗi lần nhập tối đa ${MAX_ROWS} câu. Mã câu do hệ thống tự sinh, không cần nhập.`}
+  ];
+  const guideSheet = XLSX.utils.json_to_sheet(guide);
+  setSheetWidths(guideSheet, [24,92]);
+  XLSX.utils.book_append_sheet(wb, guideSheet, 'Huong_dan');
 
   XLSX.writeFile(wb, `Mau-nhap-cau-hoi-${safeFileName(activeSubject()?.name)}.xlsx`);
 }
@@ -270,11 +318,12 @@ async function importRows(parsed, subjectId, button, preview) {
 async function readWorkbook(file, sets, subjectId, preview) {
   const XLSX = await getXLSX();
   const workbook = XLSX.read(await file.arrayBuffer(), {type: 'array'});
-  const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+  const preferredName = workbook.SheetNames.find(name => ['cau_hoi','cau hoi'].includes(normalize(name)));
+  const firstSheet = workbook.Sheets[preferredName || workbook.SheetNames[0]];
   if (!firstSheet) throw new Error('File Excel không có sheet dữ liệu.');
   const rows = XLSX.utils.sheet_to_json(firstSheet, {defval: ''})
     .filter(row => Object.values(row).some(value => String(value).trim()));
-  if (!rows.length) throw new Error('Không tìm thấy dòng câu hỏi nào trong file.');
+  if (!rows.length) throw new Error('Không tìm thấy dòng câu hỏi nào trong sheet Cau_hoi.');
   if (rows.length > MAX_ROWS) throw new Error(`File có ${rows.length} dòng. Mỗi lần chỉ nhập tối đa ${MAX_ROWS} câu.`);
 
   const fallbackScope = activeBank();
@@ -285,33 +334,38 @@ async function readWorkbook(file, sets, subjectId, preview) {
   if (button) button.onclick = () => importRows(parsed, subjectId, button, preview);
 }
 
+function bulkModeSwitchHtml() {
+  return `<div id="questionCreateMode" class="question-create-mode wide" role="tablist" aria-label="Cách tạo câu hỏi">
+    <button id="questionSingleCreateMode" type="button" class="question-create-mode-btn" aria-pressed="false">● Tạo một câu</button>
+    <button id="questionBulkUploadMode" type="button" class="question-create-mode-btn active" aria-pressed="true">⇧ Tải hàng loạt</button>
+  </div>`;
+}
+
 function open(sets) {
   if (!sets || !state.subjectId) return toast('Hãy chọn học phần trước khi nhập câu hỏi.', true);
   captureQuestionFilters?.();
   const subjectId = state.subjectId;
-  const content = $('#content');
-  if (!content) return;
+  if (typeof questionWorkspace !== 'function') return toast('Không mở được trang tạo câu hỏi.', true);
 
-  $('#pageTitle').textContent = 'Nhập hàng loạt câu hỏi';
-  $('#pageSub').textContent = `${activeSubject()?.name || 'Học phần hiện tại'} · Kiểm tra trước khi lưu vào ngân hàng`;
-  content.innerHTML = `<div class="question-import-workspace">
-    <div class="question-import-workspace-head">
-      <button id="questionImportBack" class="secondary" type="button">← Ngân hàng câu hỏi</button>
-      <div><small>NGÂN HÀNG CÂU HỎI</small><h3>Nhập hàng loạt từ Excel</h3><p>Chuẩn bị nhiều câu hỏi trong một file, kiểm tra toàn bộ trước khi lưu.</p></div>
-    </div>
-    <section class="panel question-import-start">
-      <div class="question-import-step"><span>1</span><div><h4>Tải file mẫu</h4><p>Mẫu đã có sẵn Chương, Chủ đề và CLO của học phần hiện tại.</p></div></div>
-      <button id="downloadQuestionImportTemplate" class="secondary" type="button">↓ Tải Excel mẫu</button>
-      <div class="question-import-step"><span>2</span><div><h4>Chọn file đã điền</h4><p>Mỗi dòng gồm Chương, Chủ đề, CLO, nội dung, A–D, đáp án; Lời giải, Ngân hàng và Trạng thái có thể điền thêm.</p></div></div>
-      <label class="file-button question-import-file">Chọn file Excel<input id="questionImportFile" type="file" accept=".xlsx,.xls" hidden></label>
-    </section>
-    <section class="panel question-import-preview-section">
-      <div class="panel-head"><div><h3>Xem trước và kiểm tra</h3><p class="hint">Chưa có dữ liệu nào được lưu cho đến khi bạn xác nhận nhập.</p></div></div>
-      <div id="questionImportPreview" class="question-import-preview-empty"><b>Chưa chọn file Excel</b><span>Sau khi chọn file, các dòng hợp lệ và dòng lỗi sẽ hiển thị tại đây.</span></div>
-    </section>
-  </div>`;
+  questionWorkspace(
+    'Thêm câu hỏi',
+    'Chọn tạo một câu hoặc tải nhiều câu từ Excel; dữ liệu luôn được kiểm tra trước khi lưu.',
+    `<div class="question-import-workspace question-edit-page">
+      ${bulkModeSwitchHtml()}
+      <section class="panel question-import-start">
+        <div class="question-import-step"><span>1</span><div><h4>Tải file mẫu</h4><p>Sheet <b>Cau_hoi</b> để nhập dữ liệu; các sheet còn lại cung cấp ví dụ, Chương · Chủ đề, CLO và danh mục hợp lệ.</p></div></div>
+        <button id="downloadQuestionImportTemplate" class="secondary" type="button">↓ Tải Excel mẫu</button>
+        <div class="question-import-step"><span>2</span><div><h4>Chọn file đã điền</h4><p>Mỗi dòng cần Chương, Chủ đề, CLO, nội dung, A–D và đáp án. Lời giải, Ngân hàng và Trạng thái có thể để trống.</p></div></div>
+        <label class="file-button question-import-file">Chọn file Excel<input id="questionImportFile" type="file" accept=".xlsx,.xls" hidden></label>
+      </section>
+      <section class="panel question-import-preview-section">
+        <div class="panel-head"><div><h3>Xem trước và kiểm tra</h3><p class="hint">Chưa có dữ liệu nào được lưu cho đến khi bạn xác nhận nhập.</p></div></div>
+        <div id="questionImportPreview" class="question-import-preview-empty"><b>Chưa chọn file Excel</b><span>Sau khi chọn file, các dòng hợp lệ và dòng lỗi sẽ hiển thị tại đây.</span></div>
+      </section>
+    </div>`
+  );
 
-  $('#questionImportBack').onclick = returnToBank;
+  $('#questionSingleCreateMode')?.addEventListener('click', () => window.v96QuestionForm?.(null, sets));
   $('#downloadQuestionImportTemplate').onclick = async () => {
     try { await downloadTemplate(sets); }
     catch (error) { err(error); }
