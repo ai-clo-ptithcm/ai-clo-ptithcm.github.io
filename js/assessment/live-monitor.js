@@ -62,7 +62,7 @@
 
     function rowState(row) {
       if (row.submitted_at) return { code: "submitted", label: "Đã nộp", className: "green" };
-      if (Number(row.remaining_seconds) === 0) return { code: "expired", label: "Hết giờ", className: "red" };
+      if (row.remaining_seconds != null && Number(row.remaining_seconds) === 0) return { code: "expired", label: "Hết giờ", className: "red" };
       const since = secondsSince(row.last_seen_at);
       if (since == null) return { code: "waiting", label: "Chưa có tín hiệu", className: "" };
       if (since * 1000 > DISCONNECTED_MS) return { code: "disconnected", label: "Mất kết nối", className: "red" };
@@ -317,7 +317,7 @@
           summary.addRow([
             index+1,row.mssv||"",row.full_name||row.email||"",row.attempt_number||1,
             row.started_at?formatDateTime(row.started_at):"—",
-            row.submitted_at?formatDateTime(row.submitted_at):(Number(row.remaining_seconds)===0?"Hết giờ":"Chưa nộp"),
+            row.submitted_at?formatDateTime(row.submitted_at):(row.remaining_seconds != null&&Number(row.remaining_seconds)===0?"Hết giờ":"Chưa nộp"),
             `${Number(row.answered_count||0)}/${Number(row.total_questions||0)}`,
             row.current_question_number||"—",Number(row.violations||0),fmtAway(effectiveAwayMs(row)),
             count("fullscreen_exit"),count("tab_hidden"),leaveCount,row.submitted_at&&row.score!=null?Number(row.score):null,
