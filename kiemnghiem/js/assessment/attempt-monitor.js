@@ -132,7 +132,7 @@
         </div>
       </div>
     `;
-    document.body.appendChild(overlay);
+    (document.querySelector("#app") || document.body).appendChild(overlay);
     returnOverlay = overlay;
 
     const dismiss = () => {
