@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.5.0 — Assessment single-owner engine.
+/* AI-CLO PTITHCM V12.6.34 — Assessment single-owner engine.
    Assessment workspaces register with the shared subpage persistence layer; child modules remain single-owner. */
 (() => {
   "use strict";
@@ -12,7 +12,7 @@
     if (root) runtime.root = root;
     return getAssessmentRoot();
   };
-  const VERSION = "12.5.0";
+  const VERSION = "12.6.34";
   const {
     qs,
     qsa,
@@ -228,12 +228,29 @@
   if (!onlineBuilderModule) throw new Error("Assessment Online Builder module was not loaded");
   const { openExamBuilder } = onlineBuilderModule;
 
+  const liveMonitorModule = window.AICLO_ASSESSMENT_MODULES?.createLiveMonitorModule?.({
+    db,
+    getAssessmentRoot,
+    fetchExamById,
+    openExamDetail: (...args) => openExamDetailTracked(...args),
+    escapeHtml,
+    formatDateTime,
+    notify,
+    showError,
+    qs,
+    qsa,
+    openDrawer: typeof openDrawer === "function" ? openDrawer : null,
+  });
+  if (!liveMonitorModule) throw new Error("Assessment Live Monitor module was not loaded");
+  const { attachDetailButton, openExamLive, stopRefresh: stopAssessmentLiveRefresh } = liveMonitorModule;
+
   async function openExamDetailTracked(examOrId) {
     const id = typeof examOrId === "string" ? examOrId : examOrId?.id || "";
     const result = await openExamDetail(examOrId);
     const page = document.querySelector(".assessment-detail-v122");
     if (page && id) {
       page.dataset.assessmentExamId = String(id);
+      attachDetailButton(page, id);
       window.AICLO_SUBPAGE_STATE?.remember?.("assessment-detail", {
         entityType: "exam",
         entityId: String(id),
@@ -242,6 +259,7 @@
     return result;
   }
   async function openExamBuilderTracked(exam) {
+    stopAssessmentLiveRefresh?.();
     const result = await openExamBuilder(exam || null);
     const page = document.querySelector(".assessment-builder-v122");
     if (page) {
@@ -318,6 +336,7 @@
    * SECTION 7/7 — Public Assessment entry points and single runtime ownership
    * ============================================================ */
   async function exams(c) {
+    stopAssessmentLiveRefresh?.();
     c = setAssessmentRoot(c);
     if (!subjectId()) {
       c?.replaceChildren?.(
@@ -331,6 +350,7 @@
     return isTeacher() ? teacherExamList(c) : studentExamList(c);
   }
   async function results(c) {
+    stopAssessmentLiveRefresh?.();
     c = setAssessmentRoot(c);
     try {
       if (!subjectId()) {
@@ -396,6 +416,24 @@
         }
         await openExamDetailTracked(exam);
         return activeEntity(".assessment-detail-v122", x.entityId, "assessment-detail");
+      },
+    });
+
+    persistence.register("assessment-live", {
+      detect() {
+        const page = document.querySelector(".assessment-live-page[data-assessment-exam-id]");
+        const id = page?.dataset.assessmentExamId || "";
+        return id ? { entityType: "exam", entityId: id } : null;
+      },
+      isActive: (x) => activeEntity(".assessment-live-page", x.entityId, "assessment-live"),
+      async restore(x) {
+        const exam = await fetchExamById(x.entityId);
+        if (!exam) {
+          persistence.clear();
+          return false;
+        }
+        await openExamLive(exam);
+        return activeEntity(".assessment-live-page", x.entityId, "assessment-live");
       },
     });
 
@@ -582,6 +620,12 @@
             entityId: detail.dataset.v122Detail,
           });
 
+        if (target?.closest?.("#aicloLiveButton")) {
+          const page = document.querySelector(".assessment-detail-v122[data-assessment-exam-id]");
+          const id = page?.dataset.assessmentExamId || null;
+          if (id) persistence.remember("assessment-live", { entityType: "exam", entityId: id });
+        }
+
         const studentDetail = target?.closest?.("[data-v125-student-detail],[data-v125-open-detail]");
         const studentExamId = studentDetail?.dataset.v125StudentDetail || studentDetail?.dataset.v125OpenDetail;
         if (studentExamId)
@@ -704,6 +748,7 @@
     openStudentAttempt,
     openStudentAttemptResult,
     openExamDetail: openExamDetailTracked,
+    openExamLive,
     openFinalExamDetail,
     version: VERSION,
   });
