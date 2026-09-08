@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.6.32 — Student Assessment list, detail and attempt module. */
+/* AI-CLO PTITHCM V12.6.33 — Student Assessment list, detail and attempt module. */
 (() => {
   "use strict";
   window.AICLO_ASSESSMENT_MODULES = window.AICLO_ASSESSMENT_MODULES || {};
@@ -114,16 +114,8 @@
       window.AICLO_SUBPAGE_STATE?.clear?.();
     }
 
-    function attemptExpired(exam, attempt, nowMs = Date.now()) {
-      if (!attempt || attempt.submitted_at) return false;
-      const duration = Number(exam?.duration_minutes);
-      const started = Date.parse(attempt.started_at || attempt.created_at || "");
-      if (!Number.isFinite(duration) || duration <= 0 || !Number.isFinite(started)) return false;
-      return nowMs >= started + duration * 60 * 1000;
-    }
-
     function attemptStatus(exam, mine) {
-      const open = mine.find((a) => !a.submitted_at && !attemptExpired(exam, a));
+      const open = mine.find((a) => !a.submitted_at && !a._expired);
       const done = mine.filter((a) => a.submitted_at);
       const s = statusMeta(exam);
       const max = Math.max(1, Number(exam.max_attempts || 1));
@@ -142,30 +134,38 @@
       return data || [];
     }
 
-    async function finalizeExpiredAttempts(items, attempts) {
-      const examById = new Map((items || []).map((exam) => [String(exam.id), exam]));
-      const expired = (attempts || []).filter((attempt) => {
-        const exam = examById.get(String(attempt.exam_id));
-        return exam && attemptExpired(exam, attempt);
-      });
-      if (!expired.length) return attempts || [];
+    async function reconcileOpenAttempts(attempts) {
+      const open = (attempts || []).filter((attempt) => !attempt.submitted_at);
+      if (!open.length) return attempts || [];
 
-      let finalized = false;
+      let changed = false;
       await Promise.all(
-        expired.map(async (attempt) => {
+        open.map(async (attempt) => {
           try {
-            const { error } = await db.rpc("finalize_exam_attempt", {
+            const payload = await db.rpc("get_exam_attempt_payload", {
               p_attempt_id: attempt.id,
             });
-            if (error) throw error;
-            finalized = true;
+            if (payload.error) throw payload.error;
+            if (payload.data?.submitted_at) {
+              changed = true;
+              clearAttemptLocal(attempt.id);
+              return;
+            }
+            if (payload.data?.remaining_seconds !== 0) return;
+
+            attempt._expired = true;
+            const finalized = await db.rpc("finalize_exam_attempt", {
+              p_attempt_id: attempt.id,
+            });
+            if (finalized.error) throw finalized.error;
+            changed = true;
             clearAttemptLocal(attempt.id);
           } catch (error) {
-            console.warn("Không thể tự hoàn tất lượt đã hết giờ", attempt.id, error);
+            console.warn("Không thể đồng bộ lượt làm đang mở", attempt.id, error);
           }
         }),
       );
-      return finalized ? fetchStudentAttempts() : attempts || [];
+      return changed ? fetchStudentAttempts() : attempts || [];
     }
 
     async function loadStudentExamData() {
@@ -173,7 +173,7 @@
         fetchExams(),
         fetchStudentAttempts(),
       ]);
-      const rows = await finalizeExpiredAttempts(items, initialAttempts);
+      const rows = await reconcileOpenAttempts(initialAttempts);
       const visible = items.filter(
         (exam) => exam.status === "active" || rows.some((a) => a.exam_id === exam.id),
       );
@@ -279,7 +279,7 @@
             <div class="panel-head"><div><h3>Các lượt làm của bạn</h3><p class="hint">Câu hỏi của lượt đã nộp chỉ mở trong panel khi bạn chọn “Xem câu hỏi”.</p></div></div>
             <div class="student-attempt-history">
               ${mine.map((a) => {
-                const expired = !a.submitted_at && attemptExpired(exam, a);
+                const expired = !a.submitted_at && a._expired;
                 return `<article class="student-attempt-history-row">
                 <div><small>Lần</small><b>${a.attempt_number || 1}</b></div>
                 <div><small>Bắt đầu</small><b>${formatDateTime(a.started_at)}</b></div>
