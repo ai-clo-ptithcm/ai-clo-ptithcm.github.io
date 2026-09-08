@@ -35,10 +35,10 @@ function clearSelectedQuestions(){
 }
 function updateSelectionButton(){
  const btn=document.querySelector('#toggleQuestionSelection');if(!btn)return;
- const active=selectionMode();
+ const active=selectionMode(),label=active?'✓ Đang chọn':'☑ Chọn';
  btn.classList.toggle('active',active);
  btn.setAttribute('aria-pressed',String(active));
- btn.innerHTML=active?'✓ Đang chọn':'☑ Chọn';
+ setTextIfNeeded(btn,label);
  btn.title=active?'Đóng chế độ chọn câu hỏi':'Hiện ô chọn để thao tác nhiều câu';
 }
 function setSelectionMode(active){
