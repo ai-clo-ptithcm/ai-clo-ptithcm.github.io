@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.6.34 — Teacher Live monitoring for online assessments. */
+/* AI-CLO PTITHCM V12.6.37 — Teacher Live monitoring for online assessments. */
 (() => {
   "use strict";
   window.AICLO_ASSESSMENT_MODULES = window.AICLO_ASSESSMENT_MODULES || {};
@@ -39,7 +39,10 @@
     const effectiveAwayMs = (row) => {
       const base = Number(row?.total_away_ms || 0);
       const start = parseMs(row?.away_started_at);
-      return base + (start ? Math.max(0, nowMs() - start) : 0);
+      if (!start || row?.submitted_at) return base;
+      if (row?.page_visible === false) return base + Math.max(0, nowMs() - start);
+      const seen = parseMs(row?.last_seen_at);
+      return base + (seen ? Math.max(0, seen - start) : 0);
     };
     const secondsSince = (value) => {
       const t = parseMs(value);
@@ -348,6 +351,6 @@
       finally { if (button) { button.disabled = false; button.textContent = old || "Tải lịch sử Excel"; } }
     }
 
-    return Object.freeze({ attachDetailButton, openExamLive, stopRefresh, version: "12.6.34" });
+    return Object.freeze({ attachDetailButton, openExamLive, stopRefresh, version: "12.6.37" });
   };
 })();
