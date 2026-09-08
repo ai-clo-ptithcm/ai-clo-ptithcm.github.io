@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V11.6.7 — stable compact question-bank actions, filter drawer and active filter chips. */
+/* AI-CLO PTITHCM V12.6.29-kiemnghiem — compact question-bank actions, filters and explicit selection mode. */
 (()=>{
 'use strict';
 
@@ -26,6 +26,60 @@ function updateFilterButton(){
  }
  if(btn.classList.contains('active')!==(count>0))btn.classList.toggle('active',count>0);
  btn.title=count?`Đang áp dụng ${count} bộ lọc`:'Lọc danh sách câu hỏi';
+}
+
+function selectionTable(){return document.querySelector('.v105-question-table')}
+function selectionMode(){return !!selectionTable()?.classList.contains('selection-mode')}
+function clearSelectedQuestions(){
+ [...document.querySelectorAll('#qrows [data-select-question]:checked')].forEach(box=>box.click());
+}
+function updateSelectionButton(){
+ const btn=document.querySelector('#toggleQuestionSelection');if(!btn)return;
+ const active=selectionMode();
+ btn.classList.toggle('active',active);
+ btn.setAttribute('aria-pressed',String(active));
+ btn.innerHTML=active?'✓ Đang chọn':'☑ Chọn';
+ btn.title=active?'Đóng chế độ chọn câu hỏi':'Hiện ô chọn để thao tác nhiều câu';
+}
+function setSelectionMode(active){
+ const table=selectionTable();if(!table)return;
+ if(!active)clearSelectedQuestions();
+ table.classList.toggle('selection-mode',!!active);
+ updateSelectionButton();
+}
+function ensureSelectionAction(){
+ const countRow=document.querySelector('#questionCountRow');if(!countRow)return;
+ let row=document.querySelector('#questionSelectionActions');
+ if(!row){
+  row=document.createElement('div');
+  row.id='questionSelectionActions';
+  row.className='qbank-selection-actions';
+  countRow.insertAdjacentElement('afterend',row);
+ }else if(row.previousElementSibling!==countRow){
+  countRow.insertAdjacentElement('afterend',row);
+ }
+ let btn=document.querySelector('#toggleQuestionSelection');
+ if(!btn){
+  btn=document.createElement('button');
+  btn.id='toggleQuestionSelection';
+  btn.type='button';
+  btn.className='secondary qbank-selection-toggle';
+  btn.setAttribute('aria-pressed','false');
+  btn.addEventListener('click',()=>setSelectionMode(!selectionMode()));
+ }
+ moveIfNeeded(btn,row);
+ updateSelectionButton();
+}
+function hideStandaloneDuplicateActions(){
+ document.querySelector('#questionBankMatrix')?.classList.add('qbank-standalone-hidden');
+ document.querySelector('#scanDuplicates')?.classList.add('qbank-standalone-hidden');
+}
+function bindSelectionReset(){
+ document.querySelectorAll('[data-bank-tab]').forEach(btn=>{
+  if(btn.dataset.aicloSelectionReset==='1')return;
+  btn.dataset.aicloSelectionReset='1';
+  btn.addEventListener('click',()=>setSelectionMode(false));
+ });
 }
 
 function clearFilter(id,{capture=true}={}){
@@ -232,8 +286,12 @@ function enhance(){
  if(!isBankView())return;
  compactMainActions();
  compactSearchAndFilters();
+ ensureSelectionAction();
+ hideStandaloneDuplicateActions();
+ bindSelectionReset();
  bindFilterState();
  updateFilterState();
+ updateSelectionButton();
 }
 function queueEnhance(){
  if(enhanceQueued)return;
