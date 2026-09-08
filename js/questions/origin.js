@@ -1,8 +1,10 @@
-/* AI-CLO PTITHCM V12.6.38 — question provenance and Academy verification. */
+/* AI-CLO PTITHCM V12.6.40 — question provenance and Academy verification. */
 (() => {
 'use strict';
 const label=value=>value==='gemini'?'✦ AI hỗ trợ':value==='academy'?'🏛 Câu hỏi Học viện':'✍️ Giảng viên biên soạn';
 const status=x=>x.origin_type==='academy'?(x.is_official?'Đã được Admin xác nhận':'Chờ Admin xác nhận'):'';
+const listOrigins=new Map();
+let listSubjectId=null;
 
 function bindOriginField(form,x){
  const target=form.querySelector('.v105-scope-chooser')||form.querySelector('.option-grid');if(!target)return;
@@ -55,11 +57,40 @@ function syncOriginBadge(cell,x){
  }else official?.remove();
 }
 
+function syncVisibleList(){
+ if(state.view!=='questions'||!state.subjectId||listSubjectId!==state.subjectId)return;
+ const rows=document.querySelectorAll('#qrows tr');
+ for(const row of rows){
+  const button=row.querySelector('[data-detail]');
+  const x=button?listOrigins.get(button.dataset.detail):null;
+  if(!x)continue;
+  if(x.is_official)row.querySelector('[data-select-question]')?.remove();
+  syncOriginBadge(row.querySelector('.q-code-cell'),x);
+ }
+}
+
 async function decorateList(){
- if(state.view!=='questions'||!state.subjectId)return;const creatorAll=$('#qcreatorFilter option[value="all"]');if(creatorAll)creatorAll.textContent='Tất cả người nhập';const {data,error}=await contentFilter(db.from('questions').select('id,origin_type,is_official,display_code'));if(error)return;
- for(const x of data||[]){const button=document.querySelector(`#qrows [data-detail="${CSS.escape(x.id)}"]`);if(!button)continue;const row=button.closest('tr'),cell=row?.querySelector('.q-code-cell');if(x.is_official)row?.querySelector('[data-select-question]')?.remove();syncOriginBadge(cell,x)}
+ if(state.view!=='questions'||!state.subjectId)return;
+ const creatorAll=$('#qcreatorFilter option[value="all"]');if(creatorAll)creatorAll.textContent='Tất cả người nhập';
+ const subjectId=state.subjectId;
+ const {data,error}=await contentFilter(db.from('questions').select('id,origin_type,is_official,display_code'));if(error||state.subjectId!==subjectId)return;
+ if(listSubjectId!==subjectId){listOrigins.clear();listSubjectId=subjectId}
+ for(const x of data||[])listOrigins.set(String(x.id),x);
+ syncVisibleList();
 }
 const oldQuestions=window.questions;window.questions=async function(c){await oldQuestions(c);await decorateList()};
 
-window.AICLO_QUESTION_ORIGIN=Object.freeze({label,status});
+/* Danh sách có phân trang: mỗi lần bank.js dựng lại #qrows hoặc bộ phân trang
+   phục hồi HTML đã cache, chuẩn hóa lại nhãn nguồn bằng owner hiện tại. */
+const previousRenderMath=window.renderMath;
+if(typeof previousRenderMath==='function')window.renderMath=function(container=document.body){
+ const result=previousRenderMath(container);
+ if(container?.id==='qrows')queueMicrotask(syncVisibleList);
+ return result;
+};
+document.addEventListener('click',event=>{
+ if(event.target?.closest?.('[data-qpage]'))setTimeout(syncVisibleList,0);
+},true);
+
+window.AICLO_QUESTION_ORIGIN=Object.freeze({label,status,syncVisibleList,decorateList});
 })();
