@@ -38,6 +38,18 @@ Không dùng học phần có sinh viên thật để thử chức năng mới.
 
 Nguyên tắc chính: **một hành vi chỉ có một runtime owner**. Legacy layer không được render thêm UI hoặc giành lại behavior nếu canonical owner đã tồn tại.
 
+## Điều hướng và giữ nguyên màn hình — cập nhật 08/09/2026
+
+- `js/ui/navigation.js` tiếp tục là owner duy nhất của điều hướng top-level và nút **Quay lại** trên header.
+- `js/ui/subpage-state.js` chỉ sở hữu trạng thái/workspace trang con theo từng `space + view + subjectId`; không tạo history engine thứ hai.
+- Khi chuyển mục bằng sidebar, trang con đang làm **không bị coi là đã đóng**. Trong cùng phiên/tab, các workspace toàn trang quan trọng được tạm giữ nguyên DOM sống để bảo toàn dữ liệu chưa lưu, event handler và vị trí cuộn.
+- Khi quay lại đúng mục bằng sidebar, workspace đang làm được phục hồi trước; nếu không còn DOM sống thì mới dùng snapshot/restore của module.
+- Nút **Quay lại** trên header ưu tiên quay khỏi trang con hiện tại trước (Builder → Chi tiết → Danh sách), sau đó mới dùng history top-level.
+- Đổi học phần qua selector cũng đi qua canonical Navigation để lưu đúng workspace của học phần cũ và khôi phục workspace của học phần mới nếu có.
+- `state.view` được lưu bằng `aiclo_view` để reload quay về đúng mục cha trước khi khôi phục trang con.
+- Không dùng MutationObserver/history wrapper mới cho cơ chế này; không thay đổi Supabase.
+- Backup trước thay đổi: `backup-before-kiemnghiem-navigation-persistence-20260908`.
+
 ## Giám sát phiên làm bài — frontend-only
 
 Bản staging hiện có cơ chế **Giám sát phiên làm bài** chỉ ở frontend:
