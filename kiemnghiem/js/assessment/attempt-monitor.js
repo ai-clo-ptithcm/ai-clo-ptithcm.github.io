@@ -320,10 +320,17 @@
     ensureAttemptFullscreenButton();
     if (!activeAttemptId) return;
     if (!document.fullscreenElement && requestedFullscreen && Date.now() >= suppressUntil) {
-      startAway("fullscreen_exit");
       window.setTimeout(() => {
-        if (document.hasFocus() && !document.hidden) endAway();
-      }, 250);
+        if (!activeAttemptId || incidentOpen || Date.now() < suppressUntil) return;
+        if (document.hidden) {
+          startAway("tab_hidden");
+          return;
+        }
+        startAway("fullscreen_exit");
+        window.setTimeout(() => {
+          if (document.hasFocus() && !document.hidden) endAway();
+        }, 250);
+      }, 150);
     }
     renderPanel();
   });
