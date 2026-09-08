@@ -1,0 +1,38 @@
+#app>aside .attempt-monitor{margin:auto 12px 12px;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:14px;background:rgba(255,255,255,.055);display:grid;gap:10px;color:#f6f7fb;box-shadow:none}
+#app>aside .attempt-monitor[hidden]{display:none!important}
+#app>aside .attempt-monitor.warning{border-color:rgba(255,106,123,.75);background:rgba(170,28,48,.15)}
+.attempt-monitor-head{display:flex;align-items:flex-start;gap:9px;min-width:0}.attempt-monitor-head>div{min-width:0}.attempt-monitor-head b{display:block;font-size:13px;line-height:1.3}.attempt-monitor-head small{display:block;margin-top:3px;color:#b7c0cf;font-size:11px;line-height:1.35}.attempt-monitor.warning .attempt-monitor-head small{color:#ffb4bd;font-weight:700}
+.attempt-monitor-dot{width:9px;height:9px;margin-top:4px;border-radius:50%;background:#48bf83;box-shadow:0 0 0 4px rgba(72,191,131,.13);flex:0 0 auto}.attempt-monitor.warning .attempt-monitor-dot{background:#ff6678;box-shadow:0 0 0 4px rgba(255,102,120,.13)}
+.attempt-monitor-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}.attempt-monitor-stats span{display:grid;gap:2px;padding:7px 8px;border:1px solid rgba(255,255,255,.09);border-radius:10px;background:rgba(255,255,255,.04)}.attempt-monitor-stats small{font-size:10px;color:#9ea9ba}.attempt-monitor-stats b{font-size:12px;color:#fff;white-space:nowrap}
+#app>aside .attempt-monitor button{width:100%;min-height:34px;border-color:rgba(255,255,255,.16);background:rgba(255,255,255,.08);color:#fff;font-size:11px}#app>aside .attempt-monitor button:hover{background:rgba(255,255,255,.13)}
+
+/* Fullscreen is owned by the attempt monitor and targets the visible app, not the whole document. */
+#app:fullscreen{width:100vw!important;height:100vh!important;max-width:none!important;overflow:auto;background:var(--bg,#f4f6f9)}
+#app:fullscreen>main{min-height:100vh}
+.student-attempt-page-head:has(.attempt-fullscreen-button){grid-template-columns:auto minmax(0,1fr) auto!important}
+.student-attempt-page-head .attempt-fullscreen-button{justify-self:end;width:auto!important;min-height:30px;padding:6px 10px!important;white-space:nowrap;font-size:12px}
+.student-attempt-page-head .attempt-fullscreen-button:disabled{opacity:1;cursor:default;background:#eef8f2;color:#087a55;border-color:#b9dfca}
+
+/* Returning from another tab/window blocks answer interaction until the student acknowledges it. */
+.attempt-return-overlay{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;padding:24px;background:rgba(15,23,42,.62);backdrop-filter:blur(3px);box-sizing:border-box;overflow:auto}
+.attempt-return-card{width:min(520px,100%);display:grid;gap:12px;padding:22px;border:2px solid #e5b54c;border-radius:18px;background:#fff;box-shadow:0 24px 70px rgba(15,23,42,.28);color:var(--ink,#172033)}
+.attempt-return-overlay.strong .attempt-return-card{border-color:#c72b43;box-shadow:0 24px 70px rgba(116,16,32,.3)}
+.attempt-return-icon{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;background:#fff4d6;color:#8a5b00;font-size:22px;font-weight:900}
+.attempt-return-overlay.strong .attempt-return-icon{background:#fff0f2;color:#b51f36}
+.attempt-return-card>small{font-size:10px;font-weight:900;letter-spacing:.09em;color:#8a5b00}.attempt-return-overlay.strong .attempt-return-card>small{color:#b51f36}
+.attempt-return-card h3{margin:0;font-size:22px;line-height:1.25}.attempt-return-card p{margin:0;color:#536174;line-height:1.55;font-size:13px}
+.attempt-return-stats{display:grid;grid-template-columns:1fr 1fr;gap:9px}.attempt-return-stats span{display:grid;gap:3px;padding:11px 12px;border:1px solid #e4e8ee;border-radius:11px;background:#f8fafc}.attempt-return-stats small{font-size:10px;color:#748095}.attempt-return-stats b{font-size:16px;color:#172033;font-variant-numeric:tabular-nums}
+.attempt-return-note{padding:10px 12px;border-radius:10px;background:#f6f8fb}.attempt-return-alert{padding:10px 12px;border:1px solid #f0bac3;border-radius:10px;background:#fff3f5;color:#9d1b31!important;font-weight:750}
+.attempt-return-actions{display:grid;grid-template-columns:1fr 1.25fr;gap:9px;padding-top:2px}.attempt-return-actions button{min-height:42px;margin:0!important}
+
+@media(max-width:760px){
+ #app>aside .attempt-monitor{margin:8px 10px 10px}.attempt-monitor-head small{font-size:10.5px}.attempt-monitor-stats span{padding:6px 7px}
+ .student-attempt-page-head:has(.attempt-fullscreen-button){grid-template-columns:auto minmax(0,1fr) auto!important}
+ .student-attempt-page-head .attempt-fullscreen-button{font-size:11px;padding-inline:8px!important}
+ .attempt-return-overlay{padding:14px}.attempt-return-card{padding:18px;border-radius:15px}.attempt-return-card h3{font-size:20px}
+}
+@media(max-width:520px){
+ .student-attempt-page-head:has(.attempt-fullscreen-button){grid-template-columns:auto minmax(0,1fr)!important}
+ .student-attempt-page-head .attempt-fullscreen-button{grid-column:1/-1;justify-self:stretch;width:100%!important}
+ .attempt-return-stats,.attempt-return-actions{grid-template-columns:1fr}.attempt-return-actions button{width:100%}
+}
