@@ -5,7 +5,6 @@
   const POLL_MS = 500;
   const LEAVE_GRACE_MS = 1200;
   const SUPPRESS_MS = 900;
-  const LAUNCH_TIMEOUT_MS = 15000;
   const STORAGE_PREFIX = "aiclo:attempt-monitor:";
 
   let activeAttemptId = null;
@@ -14,11 +13,10 @@
   let incidentOpen = false;
   let suppressUntil = 0;
   let requestedFullscreen = false;
-  let launchPending = false;
-  let launchTimer = null;
   let panel = null;
 
   const page = () => document.querySelector(".student-attempt-page[data-attempt-id]");
+  const fullscreenTarget = () => document.querySelector("#app") || document.documentElement;
   const storageKey = (attemptId) => `${STORAGE_PREFIX}${attemptId}`;
 
   function readState(attemptId) {
@@ -56,6 +54,30 @@
     return `${Math.floor(sec / 60)} phút ${sec % 60} giây`;
   }
 
+  function ensureAttemptFullscreenButton() {
+    const current = page();
+    if (!current) return null;
+    const head = current.querySelector(".student-attempt-page-head");
+    if (!head) return null;
+    let button = head.querySelector("#attemptPageFullscreen");
+    if (!button) {
+      button = document.createElement("button");
+      button.id = "attemptPageFullscreen";
+      button.type = "button";
+      button.className = "secondary compact attempt-fullscreen-button";
+      button.addEventListener("click", () => requestFullscreen());
+      head.appendChild(button);
+    }
+    const active = !!document.fullscreenElement;
+    button.textContent = active ? "✓ Đang toàn màn hình" : "⛶ Mở toàn màn hình";
+    button.disabled = active;
+    button.setAttribute("aria-pressed", String(active));
+    button.title = active
+      ? "Đang ở chế độ toàn màn hình. Nhấn Esc để thoát."
+      : "Mở giao diện làm bài ở chế độ toàn màn hình";
+    return button;
+  }
+
   function ensurePanel() {
     if (panel?.isConnected) return panel;
     const sidebar = document.querySelector("#app > aside");
@@ -74,7 +96,7 @@
         <span><small>Rời màn hình</small><b id="attemptMonitorCount">0</b></span>
         <span><small>Tổng thời gian</small><b id="attemptMonitorAway">0 giây</b></span>
       </div>
-      <button id="attemptMonitorFullscreen" type="button" class="secondary compact">Bật lại toàn màn hình</button>
+      <button id="attemptMonitorFullscreen" type="button" class="secondary compact">Bật toàn màn hình</button>
     `;
     const foot = sidebar.querySelector(".aside-foot");
     if (foot) sidebar.insertBefore(panel, foot);
@@ -85,6 +107,7 @@
 
   function renderPanel(message = "") {
     if (!activeAttemptId) return;
+    ensureAttemptFullscreenButton();
     const box = ensurePanel();
     if (!box) return;
     const state = readState(activeAttemptId);
@@ -113,11 +136,6 @@
 
   function activate(attemptId) {
     if (!attemptId) return;
-    launchPending = false;
-    if (launchTimer) {
-      clearTimeout(launchTimer);
-      launchTimer = null;
-    }
     if (String(activeAttemptId) === String(attemptId)) {
       renderPanel();
       return;
@@ -126,7 +144,6 @@
     missingSince = 0;
     awayStartedAt = null;
     incidentOpen = false;
-    if (document.fullscreenElement) requestedFullscreen = true;
     renderPanel();
   }
 
@@ -176,59 +193,29 @@
     renderPanel();
   }
 
-  async function requestFullscreen({ launch = false } = {}) {
+  async function requestFullscreen() {
+    if (!activeAttemptId || !page()) return false;
     if (document.fullscreenElement) {
-      requestedFullscreen = true;
+      renderPanel();
       return true;
     }
-    const target = document.documentElement;
-    if (!target.requestFullscreen) {
-      if (activeAttemptId) renderPanel("Trình duyệt này không hỗ trợ toàn màn hình từ trang web.");
+    const target = fullscreenTarget();
+    if (!target?.requestFullscreen) {
+      renderPanel("Trình duyệt này không hỗ trợ toàn màn hình từ trang web.");
       return false;
     }
     suppressUntil = Date.now() + SUPPRESS_MS;
     try {
       await target.requestFullscreen();
       requestedFullscreen = true;
-      if (launch) launchPending = true;
-      if (activeAttemptId) renderPanel();
+      renderPanel();
       return true;
-    } catch {
-      if (activeAttemptId) renderPanel("Không thể bật toàn màn hình. Hệ thống vẫn tiếp tục theo dõi việc rời màn hình.");
+    } catch (error) {
+      console.warn("AI-CLO attempt fullscreen", error);
+      renderPanel("Không thể bật toàn màn hình. Hãy thử lại bằng nút Mở toàn màn hình trên bài làm.");
       return false;
     }
   }
-
-  function prepareAttemptLaunch() {
-    launchPending = true;
-    requestFullscreen({ launch: true });
-    if (launchTimer) clearTimeout(launchTimer);
-    launchTimer = window.setTimeout(async () => {
-      launchTimer = null;
-      if (!launchPending || activeAttemptId || page()) return;
-      launchPending = false;
-      await exitRequestedFullscreen();
-      requestedFullscreen = false;
-    }, LAUNCH_TIMEOUT_MS);
-  }
-
-  document.addEventListener("click", (event) => {
-    const launch = event.target?.closest?.("[data-v122-start], [data-v122-resume]");
-    if (launch) {
-      prepareAttemptLaunch();
-      return;
-    }
-    if (launchPending && event.target?.closest?.("#confirmCancel")) {
-      launchPending = false;
-      if (launchTimer) {
-        clearTimeout(launchTimer);
-        launchTimer = null;
-      }
-      exitRequestedFullscreen().finally(() => {
-        requestedFullscreen = false;
-      });
-    }
-  });
 
   document.addEventListener("visibilitychange", () => {
     if (!activeAttemptId) return;
@@ -250,6 +237,7 @@
   });
 
   document.addEventListener("fullscreenchange", () => {
+    ensureAttemptFullscreenButton();
     if (!activeAttemptId) return;
     if (!document.fullscreenElement && requestedFullscreen && Date.now() >= suppressUntil) {
       startAway("fullscreen_exit");
@@ -265,6 +253,7 @@
     if (current) {
       missingSince = 0;
       activate(current.dataset.attemptId || "unknown");
+      ensureAttemptFullscreenButton();
       renderPanel();
       return;
     }
@@ -277,10 +266,9 @@
   }, POLL_MS);
 
   window.AICLO_ATTEMPT_MONITOR = Object.freeze({
-    version: "frontend-only-2",
+    version: "frontend-only-3",
     activeAttemptId: () => activeAttemptId,
     snapshot: () => (activeAttemptId ? readState(activeAttemptId) : null),
     requestFullscreen,
-    prepareAttemptLaunch,
   });
 })();
