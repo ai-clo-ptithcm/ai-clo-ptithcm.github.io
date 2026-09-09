@@ -1,11 +1,12 @@
-/* AI-CLO PTITHCM V12.6.49 — persistent top error notice. */
+/* AI-CLO PTITHCM V12.6.51 — persistent top error notice without observer feedback loops. */
 (()=>{
 'use strict';
 
 const STYLE_ID='aiclo-error-notice-style';
 const PINNED='errorPinned';
 let pinnedMessage='';
-let internalChange=false;
+let observer=null;
+let toastNode=null;
 
 function ensureStyle(){
  if(document.getElementById(STYLE_ID))return;
@@ -21,55 +22,61 @@ function ensureStyle(){
  document.head.appendChild(style);
 }
 
+function observe(){
+ if(!observer||!toastNode)return;
+ observer.observe(toastNode,{attributes:true,attributeFilter:['class'],childList:true,characterData:true});
+}
+function mutateSafely(fn){
+ observer?.disconnect();
+ try{fn()}finally{observe()}
+}
+
 function renderPinned(toast){
  if(!toast||!pinnedMessage)return;
- internalChange=true;
- toast.dataset[PINNED]='1';
- toast.className='toast show error aiclo-error-notice';
- toast.replaceChildren();
- const message=document.createElement('span');
- message.className='aiclo-error-message';
- message.textContent=pinnedMessage;
- const ok=document.createElement('button');
- ok.type='button';
- ok.className='aiclo-error-ok';
- ok.textContent='OK';
- ok.setAttribute('aria-label','Đóng thông báo lỗi');
- ok.addEventListener('click',()=>dismiss(toast),{once:true});
- toast.append(message,ok);
- internalChange=false;
+ const current=toast.querySelector('.aiclo-error-message')?.textContent||'';
+ if(toast.dataset[PINNED]==='1'&&toast.classList.contains('aiclo-error-notice')&&current===pinnedMessage&&toast.querySelector('.aiclo-error-ok'))return;
+ mutateSafely(()=>{
+  toast.dataset[PINNED]='1';
+  toast.className='toast show error aiclo-error-notice';
+  const message=document.createElement('span');
+  message.className='aiclo-error-message';
+  message.textContent=pinnedMessage;
+  const ok=document.createElement('button');
+  ok.type='button';
+  ok.className='aiclo-error-ok';
+  ok.textContent='OK';
+  ok.setAttribute('aria-label','Đóng thông báo lỗi');
+  ok.addEventListener('click',()=>dismiss(toast),{once:true});
+  toast.replaceChildren(message,ok);
+ });
 }
 
 function dismiss(toast){
  pinnedMessage='';
- internalChange=true;
- delete toast.dataset[PINNED];
- toast.className='toast';
- toast.textContent='';
- internalChange=false;
+ mutateSafely(()=>{
+  delete toast.dataset[PINNED];
+  toast.className='toast';
+  toast.textContent='';
+ });
 }
 
 function inspect(toast){
- if(internalChange||!toast)return;
- const isError=toast.classList.contains('error');
- if(isError){
-  const raw=toast.querySelector('.aiclo-error-message')?.textContent||toast.textContent||'Có lỗi xảy ra';
-  if(raw.trim())pinnedMessage=raw.trim();
-  renderPinned(toast);
-  return;
- }
- if(toast.dataset[PINNED]==='1'&&pinnedMessage){
-  renderPinned(toast);
- }
+ if(!toast)return;
+ if(toast.dataset[PINNED]==='1'&&toast.classList.contains('aiclo-error-notice'))return;
+ if(!toast.classList.contains('error'))return;
+ const raw=(toast.textContent||'Có lỗi xảy ra').trim();
+ if(!raw)return;
+ pinnedMessage=raw;
+ renderPinned(toast);
 }
 
 function boot(){
  ensureStyle();
- const toast=document.getElementById('toast');
- if(!toast)return;
- const observer=new MutationObserver(()=>inspect(toast));
- observer.observe(toast,{attributes:true,attributeFilter:['class'],childList:true,subtree:true,characterData:true});
- inspect(toast);
+ toastNode=document.getElementById('toast');
+ if(!toastNode)return;
+ observer=new MutationObserver(()=>inspect(toastNode));
+ observe();
+ inspect(toastNode);
 }
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
