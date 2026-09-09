@@ -1,0 +1,63 @@
+/* AI-CLO PTITHCM — shared layout for public subpages.
+   Home (index.html) and app.html intentionally do not load this file. */
+:root{
+  --public-subpage-width:1040px;
+  --public-subpage-gutter:32px;
+  --public-subpage-red:#a61d2d;
+  --public-subpage-ink:#18212f;
+  --public-subpage-muted:#667085;
+  --public-subpage-line:#e5e9ef;
+  --public-subpage-soft:#fff4f5;
+}
+
+.public-subpage-width{
+  width:min(var(--public-subpage-width),calc(100% - var(--public-subpage-gutter)))!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+}
+
+.public-subpage-hero{
+  max-width:760px!important;
+  margin-left:auto!important;
+  margin-right:auto!important;
+  text-align:center!important;
+}
+
+.public-subpage-kicker{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-height:28px;
+  padding:5px 10px!important;
+  border:1px solid #f0d7db!important;
+  border-radius:999px!important;
+  background:var(--public-subpage-soft)!important;
+  color:var(--public-subpage-red)!important;
+  font-size:12px!important;
+  font-weight:800!important;
+  line-height:1.2!important;
+  letter-spacing:.1em!important;
+  text-transform:uppercase;
+}
+
+.public-subpage-title{
+  margin:10px 0 0!important;
+  color:var(--public-subpage-ink)!important;
+  font-size:clamp(30px,5vw,42px)!important;
+  line-height:1.12!important;
+  letter-spacing:-.025em!important;
+}
+
+.public-subpage-lead{
+  max-width:720px!important;
+  margin:10px auto 0!important;
+  color:var(--public-subpage-muted)!important;
+  font-size:16px!important;
+  line-height:1.65!important;
+}
+
+@media(max-width:620px){
+  :root{--public-subpage-gutter:22px}
+  .public-subpage-title{font-size:clamp(28px,9vw,36px)!important}
+  .public-subpage-lead{font-size:15px!important}
+}
