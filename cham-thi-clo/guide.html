@@ -15,8 +15,9 @@
   <style>
     :root{--red:#a61d2d;--ink:#18212f;--muted:#667085;--line:#e5e9ef;--bg:#f5f6f8;--card:#fff}
     *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,"Segoe UI",Arial,sans-serif;line-height:1.65}
-    .guide-shell{min-height:100vh;display:flex;flex-direction:column}.guide-main{width:min(1080px,calc(100% - 32px));margin:0 auto;padding:46px 0 70px;flex:1}.guide-hero{background:linear-gradient(145deg,#fff,#fff5f6);border:1px solid var(--line);border-radius:18px;padding:30px;box-shadow:0 18px 50px rgba(48,24,28,.06)}.guide-hero small{color:var(--red);font-weight:850;letter-spacing:.12em}.guide-hero h1{margin:8px 0 10px;font-size:clamp(34px,6vw,56px);line-height:1.08}.guide-hero p{margin:0;color:var(--muted);max-width:820px;font-size:17px}.guide-back{display:inline-flex;margin-top:18px;padding:10px 14px;border-radius:9px;background:var(--red);color:#fff;text-decoration:none;font-weight:800}.guide-grid{display:grid;grid-template-columns:260px minmax(0,1fr);gap:22px;margin-top:24px}.toc{position:sticky;top:94px;align-self:start;background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px}.toc b{display:block;margin-bottom:10px}.toc a{display:block;padding:7px 0;color:#596273;text-decoration:none;font-weight:650}.toc a:hover{color:var(--red)}.guide-content{display:grid;gap:18px}.guide-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px}.guide-card h2{margin:0 0 10px;font-size:23px}.guide-card h3{margin:22px 0 8px;font-size:17px}.guide-card p{color:#596273}.guide-card ul,.guide-card ol{padding-left:22px}.guide-card li{margin:7px 0;color:#596273}.notice{border-left:4px solid var(--red);background:#fff6f7;padding:13px 15px;border-radius:8px;color:#64313a;margin:14px 0}.tip{border-left:4px solid #2f7d58;background:#f2fbf6;padding:13px 15px;border-radius:8px;color:#285943;margin:14px 0}.mini-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}.mini-table th,.mini-table td{border:1px solid var(--line);padding:9px 10px;text-align:left}.mini-table th{background:#faf4f5}.flow{font-weight:800;color:#384152;background:#f7f8fa;border-radius:10px;padding:14px}.public-footer{margin-top:0}@media(max-width:820px){.guide-grid{grid-template-columns:1fr}.toc{position:static}.guide-main{padding-top:28px}.guide-hero{padding:22px}}
+    .guide-shell{min-height:100vh;display:flex;flex-direction:column}.guide-main{margin:0 auto;padding:46px 0 70px;flex:1}.guide-hero{background:linear-gradient(145deg,#fff,#fff5f6);border:1px solid var(--line);border-radius:18px;padding:30px;box-shadow:0 18px 50px rgba(48,24,28,.06)}.guide-back{display:inline-flex;margin-top:18px;padding:10px 14px;border-radius:9px;background:var(--red);color:#fff;text-decoration:none;font-weight:800}.guide-grid{display:grid;grid-template-columns:260px minmax(0,1fr);gap:22px;margin-top:24px}.toc{position:sticky;top:94px;align-self:start;background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px}.toc b{display:block;margin-bottom:10px}.toc a{display:block;padding:7px 0;color:#596273;text-decoration:none;font-weight:650}.toc a:hover{color:var(--red)}.guide-content{display:grid;gap:18px}.guide-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px}.guide-card h2{margin:0 0 10px;font-size:23px}.guide-card h3{margin:22px 0 8px;font-size:17px}.guide-card p{color:#596273}.guide-card ul,.guide-card ol{padding-left:22px}.guide-card li{margin:7px 0;color:#596273}.notice{border-left:4px solid var(--red);background:#fff6f7;padding:13px 15px;border-radius:8px;color:#64313a;margin:14px 0}.tip{border-left:4px solid #2f7d58;background:#f2fbf6;padding:13px 15px;border-radius:8px;color:#285943;margin:14px 0}.mini-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}.mini-table th,.mini-table td{border:1px solid var(--line);padding:9px 10px;text-align:left}.mini-table th{background:#faf4f5}.flow{font-weight:800;color:#384152;background:#f7f8fa;border-radius:10px;padding:14px}.public-footer{margin-top:0}@media(max-width:820px){.guide-grid{grid-template-columns:1fr}.toc{position:static}.guide-main{padding-top:28px}.guide-hero{padding:22px}}
   </style>
+  <link rel="stylesheet" href="../css/public-subpage.css?v=1.0.0">
 </head>
 <body class="v107-public">
 <div class="guide-shell">
@@ -32,11 +33,11 @@
   </div>
 </header>
 
-<main class="guide-main">
-  <section class="guide-hero">
-    <small>HƯỚNG DẪN CHẤM THI CLO</small>
-    <h1>Chấm dữ liệu UnT và tổng hợp kết quả theo CLO</h1>
-    <p>Trang này hướng dẫn đúng quy trình hiện tại của công cụ Chấm thi CLO: tải nhiều file UnT, dùng đáp án từ Excel hoặc nhập trực tiếp, kiểm tra SBD/mã đề, ghép file khảo thí nếu có và xuất ba file kết quả.</p>
+<main class="guide-main public-subpage-width">
+  <section class="guide-hero public-subpage-hero">
+    <small class="public-subpage-kicker">HƯỚNG DẪN CHẤM THI CLO</small>
+    <h1 class="public-subpage-title">Chấm dữ liệu UnT và tổng hợp kết quả theo CLO</h1>
+    <p class="public-subpage-lead">Trang này hướng dẫn đúng quy trình hiện tại của công cụ Chấm thi CLO: tải nhiều file UnT, dùng đáp án từ Excel hoặc nhập trực tiếp, kiểm tra SBD/mã đề, ghép file khảo thí nếu có và xuất ba file kết quả.</p>
     <a class="guide-back" href="index.html">← Quay lại Chấm thi CLO</a>
   </section>
 
