@@ -1,10 +1,10 @@
-/* AI-CLO PTITHCM V12.6.46 — on-demand loader for independent utilities only.
+/* AI-CLO PTITHCM V12.6.47 — on-demand loader for independent utilities only.
    Assessment runtime is owned entirely by js/assessment.js. */
 (()=>{
 'use strict';
 const pending=new Map(),loaded=new Set();
 const APP_WINDOW_GEOMETRY='js/ui/app-window-geometry.js?v=11.8.6';
-const AI_CLONE='js/questions/ai-clone.js?v=12.6.46';
+const AI_CLONE='js/questions/ai-clone.js?v=12.6.47';
 function loadScript(src){if(loaded.has(src))return Promise.resolve();if(pending.has(src))return pending.get(src);const p=new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.async=false;s.dataset.aicloFeature=src;s.onload=()=>{loaded.add(src);pending.delete(src);resolve()};s.onerror=()=>{pending.delete(src);s.remove();reject(new Error(`Không tải được mô-đun ${src}.`))};document.head.appendChild(s)});pending.set(src,p);return p}
 async function loadMany(files){for(const f of files)await loadScript(f)}
 const lazyImport=async(...args)=>{await loadScript('js/questions/import.js?v=12.6.39');const fn=window.v102BulkImportQuestions;if(typeof fn!=='function'||fn===lazyImport)throw new Error('Không khởi tạo được chức năng nhập câu hỏi.');return fn(...args)};window.v102BulkImportQuestions=lazyImport;
