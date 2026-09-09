@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.6.46 — AI question variants with sequential review. */
+/* AI-CLO PTITHCM V12.6.47 — AI question variants with sequential review. */
 (() => {
   "use strict";
 
@@ -82,7 +82,7 @@
       explanation: item.explanation || null,
       correct_answer: item.correct_answer,
       created_by: state.user.id,
-      status: "draft",
+      status: "active",
       approval_status: "draft",
       question_scope: validScope(scope),
       origin_type: "gemini",
