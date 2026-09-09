@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.6.48 — question lifecycle: archive instead of physical delete. */
+/* AI-CLO PTITHCM V12.6.50 — question lifecycle: archive instead of physical delete. */
 (()=>{
 'use strict';
 
@@ -36,11 +36,14 @@ function syncLabels(root=document){
  root.querySelectorAll?.('.approval-badge').forEach(el=>{if(el.textContent.trim()==='Lưu trữ')el.textContent='Ngưng sử dụng'});
  root.querySelectorAll?.('[data-del]').forEach(btn=>{if(btn.textContent.trim()==='Xóa')btn.textContent='Ngưng sử dụng'});
  const detail=root.querySelector?.('#detailDeleteQuestion');
- if(detail){detail.textContent='Ngưng sử dụng';detail.title='Giữ nguyên dữ liệu lịch sử và không dùng câu này cho đề mới.'}
+ if(detail){
+  if(detail.textContent.trim()!=='Ngưng sử dụng')detail.textContent='Ngưng sử dụng';
+  detail.title='Giữ nguyên dữ liệu lịch sử và không dùng câu này cho đề mới.';
+ }
 }
 
-/* Existing bank code already asks for confirmation before calling removeQuestion(id).
-   Translate that confirmation to the lifecycle language, then archive instead of deleting. */
+/* Existing bank code asks once for confirmation before calling removeQuestion(id).
+   Only translate that confirmation; archiveOne itself never opens another dialog. */
 if(typeof originalConfirm==='function')window.confirmAction=function(title,message,options={}){
  if(title==='Xóa câu hỏi')return originalConfirm('Ngưng sử dụng câu hỏi','Câu hỏi sẽ được giữ nguyên để bảo toàn đề thi, bài làm và lịch sử; nhưng không còn được dùng cho bài kiểm tra hoặc đề mới. Tiếp tục?',{...options,confirmLabel:'Ngưng sử dụng',danger:true});
  return originalConfirm(title,message,options);
@@ -48,15 +51,20 @@ if(typeof originalConfirm==='function')window.confirmAction=function(title,messa
 window.removeQuestion=archiveOne;
 window.v96ApprovalLabel=label;
 
-const observer=new MutationObserver(records=>{
- for(const r of records)for(const node of r.addedNodes)if(node.nodeType===1)syncLabels(node);
-});
-
-function boot(){
- syncLabels(document);
- observer.observe(document.body,{childList:true,subtree:true});
+/* Do not observe the whole application DOM. The previous subtree MutationObserver
+   could repeatedly scan large question tables and make the UI appear frozen.
+   Labels are synchronized only when the question view is entered or explicitly requested. */
+function syncWhenQuestionViewChanges(){
+ if(state?.view!=='questions')return;
+ requestAnimationFrame(()=>syncLabels(document));
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
+
+document.addEventListener('DOMContentLoaded',()=>{
+ syncLabels(document);
+ document.getElementById('nav')?.addEventListener('click',e=>{
+  if(e.target.closest?.('[data-view="questions"]'))setTimeout(syncWhenQuestionViewChanges,0);
+ });
+},{once:true});
 
 window.AICLO_QUESTION_LIFECYCLE=Object.freeze({archive:archiveQuestions,archiveOne,label,syncLabels});
 })();
