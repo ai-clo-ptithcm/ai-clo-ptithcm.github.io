@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V11.6.19 — safe bulk delete using shared filtered selection. */
+/* AI-CLO PTITHCM V12.6.45 — safe single/bulk question deletion. */
 (() => {
 'use strict';
 
@@ -11,30 +11,34 @@ function ensureBulkAssets(){
  }
 }
 
-async function usedQuestionIds(ids){
- const used=new Set();
- if(!ids.length)return used;
- for(const table of ['exam_questions','exam_question_pool']){
-  try{
-   const {data,error}=await db.from(table).select('question_id').in('question_id',ids);
-   if(error)throw error;
-   (data||[]).forEach(r=>used.add(r.question_id));
-  }catch(ex){console.warn(`V11.6.19 usage check ${table}`,ex)}
- }
- return used;
+async function callSafeDelete(id){
+ const {data,error}=await db.rpc('safe_delete_question',{p_question_id:id});
+ if(error)throw error;
+ const result=data&&typeof data==='object'?data:{};
+ if(!['deleted','archived'].includes(result.action))throw new Error('Kết quả xóa câu hỏi không hợp lệ');
+ return result;
 }
 
-async function deleteUnusedQuestions(ids){
- if(!ids.length)return {deleted:0,failed:0};
- let deleted=0,failed=0;
- for(const id of ids){
-  try{
-   const a=await db.from('question_options').delete().eq('question_id',id);if(a.error)throw a.error;
-   const b=await db.from('questions').delete().eq('id',id);if(b.error)throw b.error;
-   deleted++;
-  }catch(ex){failed++;console.warn('V11.6.19 bulk delete',id,ex)}
+async function safeDeleteQuestion(id,{refresh=true,notify=true,silent=false}={}){
+ try{
+  const result=await callSafeDelete(id);
+  if(result.action==='archived'){
+   window.logActivity?.('archive','question',id,'Chuyển câu hỏi đã được sử dụng sang Lưu trữ','success',state.subjectId,{reason:result.reason||'referenced'});
+   if(notify)toast('Câu hỏi đã được sử dụng hoặc còn thuộc bài kiểm tra nên đã chuyển sang Lưu trữ.');
+  }else{
+   window.logActivity?.('delete','question',id,'Xóa vĩnh viễn câu hỏi chưa được sử dụng','success',state.subjectId);
+   if(notify)toast('Đã xóa câu hỏi');
+  }
+  if(refresh){
+   if(typeof backToQuestionList==='function')await backToQuestionList();
+   else await render();
+  }
+  return result;
+ }catch(ex){
+  if(silent)throw ex;
+  err(ex);
+  return null;
  }
- return {deleted,failed};
 }
 
 async function runBulkDelete(btn){
@@ -44,17 +48,29 @@ async function runBulkDelete(btn){
  if(!ids.length)return toast('Chưa chọn câu hỏi để xóa',true);
  const original=btn.textContent;btn.disabled=true;btn.textContent='Đang kiểm tra…';
  try{
-  const used=await usedQuestionIds(ids),allowed=ids.filter(id=>!used.has(id));
-  if(!allowed.length){await confirmAction('Không thể xóa',`${ids.length} câu đã chọn đều đã được sử dụng trong bài kiểm tra/đề và được giữ lại để bảo toàn dữ liệu.`,{confirmLabel:'Đóng'});return}
-  const message=used.size
-   ?`${allowed.length} câu có thể xóa; ${used.size} câu đã được sử dụng nên sẽ được giữ lại. Xóa ${allowed.length} câu có thể xóa?`
-   :`Xóa vĩnh viễn ${allowed.length} câu đã chọn và toàn bộ phương án? Thao tác không thể hoàn tác.`;
-  if(!await confirmAction('Xóa nhiều câu hỏi',message,{confirmLabel:`Xóa ${allowed.length} câu`,danger:true}))return;
-  const r=await deleteUnusedQuestions(allowed);
-  window.logActivity?.('delete','question',null,`Xóa hàng loạt ${r.deleted} câu hỏi`,'success',state.subjectId,{deleted:r.deleted,failed:r.failed,kept_used:used.size});
+  const message=`Xử lý ${ids.length} câu đã chọn? Câu chưa từng được sử dụng sẽ bị xóa vĩnh viễn; câu đã được dùng hoặc còn thuộc bài kiểm tra sẽ được chuyển sang trạng thái Lưu trữ.`;
+  if(!await confirmAction('Xóa nhiều câu hỏi',message,{confirmLabel:`Xử lý ${ids.length} câu`,danger:true}))return;
+  btn.textContent='Đang xử lý…';
+  let deleted=0,archived=0,failed=0;
+  for(const id of ids){
+   try{
+    const result=await callSafeDelete(id);
+    if(result.action==='deleted')deleted++;
+    else archived++;
+   }catch(ex){
+    failed++;
+    console.warn('V12.6.45 safe bulk delete',id,ex);
+   }
+  }
+  window.logActivity?.('delete','question',null,`Xử lý xóa hàng loạt ${ids.length} câu hỏi`,'success',state.subjectId,{deleted,archived,failed});
   window.AICLO_QUESTION_BULK_SELECTION?.clear?.();
-  toast(r.failed?`Đã xóa ${r.deleted} câu; ${r.failed} câu không xóa được.`:`Đã xóa ${r.deleted} câu hỏi`);
-  await render();
+  const parts=[];
+  if(deleted)parts.push(`xóa vĩnh viễn ${deleted} câu`);
+  if(archived)parts.push(`chuyển Lưu trữ ${archived} câu`);
+  if(failed)parts.push(`${failed} câu không xử lý được`);
+  toast(parts.length?`Đã ${parts.join('; ')}.`:'Không có câu hỏi nào được thay đổi.',failed>0&&deleted===0&&archived===0);
+  if(typeof backToQuestionList==='function')await backToQuestionList();
+  else await render();
  }catch(ex){err(ex)}finally{btn.disabled=false;btn.textContent=original}
 }
 
@@ -64,5 +80,10 @@ document.addEventListener('click',event=>{
 },true);
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ensureBulkAssets,{once:true});else ensureBulkAssets();
+
+/* Current question-detail code calls the legacy global removeQuestion().
+   Keep that public contract, but route it through the transactional RPC above. */
+window.removeQuestion=safeDeleteQuestion;
+window.AICLO_QUESTION_SAFE_DELETE=Object.freeze({run:safeDeleteQuestion,call:callSafeDelete});
 window.AICLO_QUESTION_BULK_DELETE=Object.freeze({run:runBulkDelete});
 })();
