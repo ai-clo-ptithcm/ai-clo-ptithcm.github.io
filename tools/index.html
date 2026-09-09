@@ -16,11 +16,8 @@
     *{box-sizing:border-box}
     body{margin:0;background:#f5f7fa;color:var(--tool-ink);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
     .tools-shell{min-height:100vh;display:flex;flex-direction:column}
-    .tools-content{width:min(1040px,calc(100% - 32px));margin:0 auto;flex:1;padding:42px 0 56px}
-    .tools-hero{max-width:720px;margin:0 auto;padding:28px 0 22px;text-align:center}
-    .tools-kicker{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:28px;padding:5px 10px;border:1px solid #f1d8dc;border-radius:999px;background:#fff0f2;color:var(--tool-red);font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
-    .tools-hero h1{margin:10px 0 10px;font-size:clamp(30px,5vw,42px);line-height:1.12;letter-spacing:-.025em}
-    .tools-hero p{max-width:720px;margin:10px auto 0;color:var(--tool-muted);font-size:16px;line-height:1.65}
+    .tools-content{margin:0 auto;flex:1;padding:42px 0 56px}
+    .tools-hero{padding:28px 0 22px}
     .tools-section-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:28px 0 14px}
     .tools-section-head h2{margin:0;font-size:21px}
     .tools-section-head span{color:var(--tool-muted);font-size:13px}
@@ -38,11 +35,12 @@
     .tool-card.placeholder h3,.tool-card.placeholder p{color:#8b93a1}
     .tool-card.placeholder .tool-card-footer{color:#98a0ad}
     .tools-footer{border-top:1px solid var(--tool-line);background:#fff}
-    .tools-footer-inner{width:min(1040px,calc(100% - 32px));margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:20px 0;color:var(--tool-muted);font-size:13px}
+    .tools-footer-inner{margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:20px 0;color:var(--tool-muted);font-size:13px}
     .tools-footer nav{display:flex;gap:16px;flex-wrap:wrap}.tools-footer a{color:inherit;text-decoration:none}.tools-footer a:hover{color:var(--tool-red)}
     @media(max-width:900px){.tools-grid{grid-template-columns:1fr 1fr}}
-    @media(max-width:620px){.tools-content{width:min(100% - 22px,1040px);padding-top:24px}.tools-grid{grid-template-columns:1fr}.tools-section-head{align-items:start;flex-direction:column}.tools-footer-inner{width:min(100% - 22px,1040px);align-items:flex-start;flex-direction:column}.tool-card{min-height:220px}}
+    @media(max-width:620px){.tools-content{padding-top:24px}.tools-grid{grid-template-columns:1fr}.tools-section-head{align-items:start;flex-direction:column}.tools-footer-inner{align-items:flex-start;flex-direction:column}.tool-card{min-height:220px}}
   </style>
+  <link rel="stylesheet" href="../css/public-subpage.css?v=1.0.0">
   <script defer src="../js/ai-chat.js"></script>
 </head>
 <body class="v107-public">
@@ -59,11 +57,11 @@
     </div>
   </header>
 
-  <main class="tools-content">
-    <section class="tools-hero">
-      <span class="tools-kicker">AI-CLO PTITHCM · Utilities</span>
-      <h1>Công cụ AI-CLO</h1>
-      <p>Nơi tập hợp các công cụ hỗ trợ giảng dạy, kiểm tra và đánh giá theo chuẩn đầu ra. Danh sách sẽ được bổ sung dần khi có công cụ mới.</p>
+  <main class="tools-content public-subpage-width">
+    <section class="tools-hero public-subpage-hero">
+      <span class="tools-kicker public-subpage-kicker">AI-CLO PTITHCM · Utilities</span>
+      <h1 class="public-subpage-title">Công cụ AI-CLO</h1>
+      <p class="public-subpage-lead">Nơi tập hợp các công cụ hỗ trợ giảng dạy, kiểm tra và đánh giá theo chuẩn đầu ra. Danh sách sẽ được bổ sung dần khi có công cụ mới.</p>
     </section>
 
     <section aria-labelledby="tool-list-title">
@@ -101,7 +99,7 @@
   </main>
 
   <footer class="tools-footer">
-    <div class="tools-footer-inner">
+    <div class="tools-footer-inner public-subpage-width">
       <span>© 2026 AI-CLO PTITHCM</span>
       <nav><a href="../index.html">Trang chính</a><a href="index.html">Công cụ CLO</a><a href="../huong-dan.html">Hướng dẫn sử dụng</a><a href="../app.html" target="_blank" rel="noopener">Vào hệ thống</a></nav>
     </div>
