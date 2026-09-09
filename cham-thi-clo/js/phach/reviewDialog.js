@@ -1,4 +1,5 @@
 import { normalizeExamCode } from '../untNormalizer.js';
+import { attachSbdAiReview } from './sbdAi.js';
 
 function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function normalize(v){const s=String(v??'').trim(); return /^\d+$/.test(s)?String(Number(s)):''}
@@ -6,13 +7,14 @@ function normalize(v){const s=String(v??'').trim(); return /^\d+$/.test(s)?Strin
 export function reviewAllSbd({container, students, imageMap=null, title='Kiểm tra danh sách SBD', allowCancel=true}){
   return new Promise((resolve,reject)=>{
     const objectUrls=[];
+    let aiController=null;
     const imageHtml=s=>{
       const info=imageMap?.get?.(s.sourceRow);
       if(!info?.blob) return '<span class="muted-cell">Không có ảnh</span>';
       const url=URL.createObjectURL(info.blob); objectUrls.push(url);
       return `<img class="phach-thumb-review" src="${url}" alt="Ảnh số phách dòng ${s.excelRow}">`;
     };
-    const cleanup=()=>objectUrls.forEach(u=>URL.revokeObjectURL(u));
+    const cleanup=()=>{aiController?.stop?.();objectUrls.forEach(u=>URL.revokeObjectURL(u))};
 
     const rows=students.map((s,i)=>`<tr data-i="${i}" class="${/^\d+$/.test(String(s.rawSbd??s.sbd??'').trim())?'':'row-error'}">
       <td>${s.excelRow}</td>
@@ -23,10 +25,12 @@ export function reviewAllSbd({container, students, imageMap=null, title='Kiểm 
       <td class="sbd-state">${/^\d+$/.test(String(s.sbd??'').trim())?'Hợp lệ':'Cần nhập'}</td></tr>`).join('');
 
     container.innerHTML=`<div class="result-box review-panel"><div class="result-head"><div><span class="section-kicker">KIỂM TRA DỮ LIỆU SINH VIÊN</span><h2 class="result-title">${esc(title)}</h2></div><span class="warning-pill">Có thể chỉnh sửa</span></div>
-      <p class="review-description">Hiển thị <b>toàn bộ sinh viên</b>. Có thể đối chiếu ảnh số phách ở cột B, sửa <b>Mã đề</b> và nhập SBD dạng 1, 25, 123...; không cần đủ 6 chữ số.</p>
+      <p class="review-description">Hiển thị <b>toàn bộ sinh viên</b>. Có thể đối chiếu ảnh số phách ở cột B, sửa <b>Mã đề</b> và nhập SBD dạng 1, 25, 123...; không cần đủ 6 chữ số. Nếu SBD trống/sai và có ảnh, AI sẽ hỗ trợ đọc từ cuối danh sách lên để không tranh ô đang nhập tay.</p>
       <div id="sbdReviewError" class="inline-error" hidden></div>
       <div class="table-wrapper review-table-wrapper"><table class="sbd-review-table"><thead><tr><th>Dòng Excel</th><th>Ảnh số phách (cột B)</th><th>Mã đề</th><th>SBD gốc</th><th>SBD xác nhận</th><th>Trạng thái</th></tr></thead><tbody>${rows}</tbody></table></div>
       <div class="review-actions">${allowCancel?'<button class="secondary-action" id="cancelSbdReview">Hủy xác nhận</button>':''}<button class="primary-inline-action" id="confirmSbdReview">Xác nhận danh sách</button></div></div>`;
+
+    aiController=attachSbdAiReview({container,students,imageMap,autoStart:true});
 
     const errBox=container.querySelector('#sbdReviewError');
     const show=m=>{errBox.hidden=false;errBox.innerHTML=m};
