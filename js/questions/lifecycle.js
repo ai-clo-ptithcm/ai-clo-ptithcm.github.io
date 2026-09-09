@@ -21,6 +21,16 @@ async function archiveQuestions(ids,{reason='Ngưng sử dụng câu hỏi'}={})
  return {count:ids.length};
 }
 
+async function archiveOne(id){
+ if(!id)return;
+ if(!await confirmAction('Ngưng sử dụng câu hỏi','Câu hỏi sẽ được giữ nguyên để bảo toàn đề thi, bài làm và lịch sử; nhưng không còn được dùng cho bài kiểm tra hoặc đề mới. Tiếp tục?',{confirmLabel:'Ngưng sử dụng',danger:true}))return;
+ try{
+  await archiveQuestions([id]);
+  toast('Đã chuyển câu hỏi sang Ngưng sử dụng');
+  if(typeof backToQuestionList==='function'&&state.view==='questions')await backToQuestionList();else await render();
+ }catch(ex){err(ex)}
+}
+
 function syncLabels(root=document){
  root.querySelectorAll?.('option[value="archived"]').forEach(o=>{if(o.textContent!=='Ngưng sử dụng')o.textContent='Ngưng sử dụng'});
  root.querySelectorAll?.('.approval-badge').forEach(el=>{if(el.textContent.trim()==='Lưu trữ')el.textContent='Ngưng sử dụng'});
@@ -28,33 +38,12 @@ function syncLabels(root=document){
  if(detail){detail.textContent='Ngưng sử dụng';detail.title='Giữ nguyên dữ liệu lịch sử và không dùng câu này cho đề mới.'}
 }
 
-if(typeof window.v96ApprovalLabel==='function')window.v96ApprovalLabel=label;
-
-async function handleSingleArchive(btn,event){
- event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
- const detail=btn.closest('#v105Detail');
- const code=(detail?.closest('.question-workspace')?.querySelector('.workspace-head h3')?.textContent||'câu hỏi').split(' · ')[0];
- if(!await confirmAction('Ngưng sử dụng câu hỏi',`${code} sẽ được giữ nguyên trong lịch sử nhưng không còn dùng cho bài kiểm tra hoặc đề mới. Tiếp tục?`,{confirmLabel:'Ngưng sử dụng',danger:true}))return;
- btn.disabled=true;btn.textContent='Đang cập nhật…';
- try{
-  const match=btn.closest('.question-workspace')?.querySelector('[data-question-id]')?.dataset.questionId;
-  const id=match||window.__aicloCurrentQuestionId||null;
-  if(!id)throw new Error('Không xác định được câu hỏi cần ngưng sử dụng.');
-  await archiveQuestions([id],{reason:`Ngưng sử dụng ${code}`});
-  toast('Đã chuyển câu hỏi sang Ngưng sử dụng');
-  if(typeof backToQuestionList==='function')await backToQuestionList();else await render();
- }catch(ex){err(ex);btn.disabled=false;btn.textContent='Ngưng sử dụng'}
-}
-
-document.addEventListener('click',event=>{
- const btn=event.target.closest?.('#detailDeleteQuestion');
- if(!btn)return;
- handleSingleArchive(btn,event);
-},true);
+/* bank.js and legacy code both call the global removeQuestion(id). Keep one lifecycle rule here. */
+window.removeQuestion=archiveOne;
+window.v96ApprovalLabel=label;
 
 const observer=new MutationObserver(records=>{
  for(const r of records)for(const node of r.addedNodes)if(node.nodeType===1)syncLabels(node);
- syncLabels(document);
 });
 
 function boot(){
@@ -63,5 +52,5 @@ function boot(){
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 
-window.AICLO_QUESTION_LIFECYCLE=Object.freeze({archive:archiveQuestions,label,syncLabels});
+window.AICLO_QUESTION_LIFECYCLE=Object.freeze({archive:archiveQuestions,archiveOne,label,syncLabels});
 })();
