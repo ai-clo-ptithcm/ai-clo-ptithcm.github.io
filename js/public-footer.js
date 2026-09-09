@@ -1,5 +1,9 @@
 (() => {
-  const host = document.querySelector('[data-public-footer]');
+  if (location.pathname.endsWith('/app.html') || location.pathname === '/app.html') return;
+
+  const host = document.querySelector('[data-public-footer]')
+    || document.querySelector('footer.public-footer, footer.landing-footer, footer.tools-footer, footer.info-footer, footer.tool-footer')
+    || document.querySelector('body > footer');
   if (!host) return;
 
   const links = [
@@ -19,7 +23,8 @@
     : path === '/chinh-sach.html' ? 'policy'
     : '';
 
-  host.className = `${host.className || ''} public-footer-shared`.trim();
+  host.className = 'public-footer-shared';
+  host.setAttribute('data-public-footer', '1');
   host.innerHTML = `
     <span>© 2026 AI-CLO PTITHCM</span>
     <nav aria-label="Liên kết cuối trang">
