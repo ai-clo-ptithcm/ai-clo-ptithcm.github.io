@@ -1,0 +1,36 @@
+/* AI-CLO PTITHCM — shared footer for all public pages except app.html */
+.public-footer-shared{
+  min-height:64px;
+  padding:16px clamp(20px,6vw,90px)!important;
+  background:#fff;
+  border-top:1px solid #e5e9ef!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:18px;
+  color:#667085!important;
+  font:500 12px/1.5 Inter,"Segoe UI",Arial,sans-serif;
+}
+.public-footer-shared nav{
+  display:flex!important;
+  gap:15px!important;
+  flex-wrap:wrap;
+  align-items:center;
+}
+.public-footer-shared a{
+  color:#667085!important;
+  text-decoration:none!important;
+  font-weight:700!important;
+}
+.public-footer-shared a:hover,
+.public-footer-shared a.active{
+  color:#a61d2d!important;
+}
+@media(max-width:760px){
+  .public-footer-shared{
+    align-items:flex-start!important;
+    flex-direction:column!important;
+    gap:8px!important;
+  }
+  .public-footer-shared nav{gap:8px 12px!important}
+}
