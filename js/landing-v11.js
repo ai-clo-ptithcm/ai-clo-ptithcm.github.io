@@ -2,6 +2,11 @@
 (() => {
 'use strict';
 
+function loadPublicFooter(){
+ if(document.querySelector('script[data-public-footer-script]'))return;
+ const script=document.createElement('script');script.src='/js/public-footer.js?v=1.0.0';script.defer=true;script.dataset.publicFooterScript='1';document.head.appendChild(script);
+}
+
 function setupPublicNav(){
  const header=document.querySelector('.public-nav'),nav=header?.querySelector('.public-nav-links'),ai=header?.querySelector('.public-ai-button');
  if(!header||!nav||!ai||header.dataset.unifiedNav==='1')return;
@@ -77,5 +82,5 @@ function setupLazyChat(){
  }));
 }
 
-document.addEventListener('DOMContentLoaded',()=>{setupPublicNav();setupCarousel();setupCounters();setupLazyChat()});
+document.addEventListener('DOMContentLoaded',()=>{loadPublicFooter();setupPublicNav();setupCarousel();setupCounters();setupLazyChat()});
 })();
