@@ -3,27 +3,55 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <meta name="description" content="AI-CLO PTITHCM - Chấm thi nhiều phòng, kiểm tra dữ liệu và tổng hợp kết quả theo CLO.">
+  <meta name="description" content="Các công cụ hỗ trợ giảng dạy, kiểm tra và đánh giá CLO của AI-CLO PTITHCM.">
   <link rel="icon" href="../assets/images/favicon.ico" sizes="any">
   <link rel="icon" type="image/png" href="../assets/images/favicon-32.png" sizes="32x32">
   <link rel="apple-touch-icon" href="../assets/images/favicon-180.png">
   <title>Công cụ AI-CLO | AI-CLO PTITHCM</title>
-  <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/ai-clo-theme.css">
-  <link rel="stylesheet" href="css/ai-clo-info-shell-v2.css?v=1.8.2">
   <link rel="stylesheet" href="../css/v107-public.css?v=10.7.2">
   <link rel="stylesheet" href="../css/public-nav-static.css?v=1.0.0">
   <link rel="stylesheet" href="../css/ai-chat.css">
+  <style>
+    :root{--tool-red:#b51f2e;--tool-red-dark:#8e1622;--tool-ink:#172033;--tool-muted:#667085;--tool-line:#e6e9ef;--tool-soft:#f7f8fb}
+    *{box-sizing:border-box}
+    body{margin:0;background:#f5f7fa;color:var(--tool-ink);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    .tools-shell{min-height:100vh;display:flex;flex-direction:column}
+    .tools-content{width:min(1180px,calc(100% - 32px));margin:0 auto;flex:1;padding:42px 0 56px}
+    .tools-hero{padding:28px 0 22px}
+    .tools-kicker{display:inline-flex;align-items:center;gap:8px;color:var(--tool-red);font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+    .tools-hero h1{margin:10px 0 10px;font-size:clamp(32px,5vw,52px);line-height:1.08;letter-spacing:-.035em}
+    .tools-hero p{max-width:720px;margin:0;color:var(--tool-muted);font-size:17px;line-height:1.65}
+    .tools-section-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:28px 0 14px}
+    .tools-section-head h2{margin:0;font-size:21px}
+    .tools-section-head span{color:var(--tool-muted);font-size:13px}
+    .tools-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+    .tool-card{position:relative;display:flex;flex-direction:column;min-height:245px;padding:22px;border:1px solid var(--tool-line);border-radius:18px;background:#fff;box-shadow:0 8px 24px rgba(18,31,53,.05);text-decoration:none;color:inherit;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+    .tool-card:hover{transform:translateY(-3px);box-shadow:0 14px 32px rgba(18,31,53,.1);border-color:#d7a2a8}
+    .tool-card-icon{width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:#fff0f2;color:var(--tool-red);font-size:23px;font-weight:900}
+    .tool-card h3{margin:18px 0 8px;font-size:21px}
+    .tool-card p{margin:0;color:var(--tool-muted);font-size:14px;line-height:1.6}
+    .tool-card-footer{margin-top:auto;padding-top:22px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .tool-card-badge{display:inline-flex;align-items:center;border-radius:999px;background:var(--tool-soft);padding:6px 10px;color:#4b5565;font-size:12px;font-weight:700}
+    .tool-card-open{color:var(--tool-red);font-size:13px;font-weight:800}
+    .tool-card.placeholder{border-style:dashed;background:rgba(255,255,255,.6);box-shadow:none;pointer-events:none}
+    .tool-card.placeholder .tool-card-icon{background:#f1f3f6;color:#8b93a1}
+    .tool-card.placeholder h3,.tool-card.placeholder p{color:#8b93a1}
+    .tool-card.placeholder .tool-card-footer{color:#98a0ad}
+    .tools-footer{border-top:1px solid var(--tool-line);background:#fff}
+    .tools-footer-inner{width:min(1180px,calc(100% - 32px));margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:20px 0;color:var(--tool-muted);font-size:13px}
+    .tools-footer nav{display:flex;gap:16px;flex-wrap:wrap}.tools-footer a{color:inherit;text-decoration:none}.tools-footer a:hover{color:var(--tool-red)}
+    @media(max-width:900px){.tools-grid{grid-template-columns:1fr 1fr}}
+    @media(max-width:620px){.tools-content{width:min(100% - 22px,1180px);padding-top:24px}.tools-grid{grid-template-columns:1fr}.tools-section-head{align-items:start;flex-direction:column}.tools-footer-inner{align-items:flex-start;flex-direction:column}.tool-card{min-height:220px}}
+  </style>
   <script defer src="../js/ai-chat.js"></script>
 </head>
 <body class="v107-public">
-<div class="tool-shell">
-
-  <header class="tool-header public-nav public-nav-unified" data-unified-nav="1">
-    <nav class="tool-nav public-nav-links">
+<div class="tools-shell">
+  <header class="public-nav public-nav-unified" data-unified-nav="1">
+    <nav class="public-nav-links">
       <a class="public-home-link" href="../index.html">Trang chủ</a>
       <a href="../huong-dan.html">Hướng dẫn AI-CLO</a>
-      <a class="active" href="index.html">Chấm thi CLO</a>
+      <a class="active" href="index.html">Công cụ</a>
     </nav>
     <div class="public-nav-actions">
       <button class="public-ai-button" type="button"><span class="chat-icon">💬</span><span>Hỏi AI-CLO</span></button>
@@ -31,26 +59,53 @@
     </div>
   </header>
 
-  <div class="tool-content">
-    <main class="page-shell">
-      <section class="app-card">
-        <header class="hero">
-          <div class="brand-badge">AI-CLO PTITHCM</div>
-          <h1>Công cụ AI-CLO</h1>
-          <p>Trang liệt kê các công cụ khác của web app: AI-CLO</p>
-        <!--
-          <a class="tool-guide-link" href="guide.html">📖 Hướng dẫn Chấm thi CLO</a>
-          -->
-        </header>
+  <main class="tools-content">
+    <section class="tools-hero">
+      <span class="tools-kicker">AI-CLO PTITHCM · Utilities</span>
+      <h1>Công cụ AI-CLO</h1>
+      <p>Nơi tập hợp các công cụ hỗ trợ giảng dạy, kiểm tra và đánh giá theo chuẩn đầu ra. Danh sách sẽ được bổ sung dần khi có công cụ mới.</p>
+    </section>
 
-      </section>
-    </main>
-  </div>
+    <section aria-labelledby="tool-list-title">
+      <div class="tools-section-head">
+        <h2 id="tool-list-title">Công cụ hiện có</h2>
+        <span>Các công cụ hoạt động độc lập với hệ thống chính.</span>
+      </div>
 
-  <footer class="tool-footer public-footer"><span>© 2026 AI-CLO PTITHCM</span><nav><a href="../index.html">Trang chính</a><a href="../gioi-thieu.html">Giới thiệu</a><a href="../huong-dan.html">Hướng dẫn sử dụng</a><a href="index.html">Chấm thi CLO</a><a href="../app.html" target="_blank" rel="noopener">Vào hệ thống</a></nav></footer>
+      <div class="tools-grid">
+        <a class="tool-card" href="../cham-thi-clo/">
+          <div class="tool-card-icon" aria-hidden="true">✓</div>
+          <h3>Chấm thi CLO</h3>
+          <p>Chấm bài trắc nghiệm, đối chiếu đáp án và tổng hợp điểm theo từng CLO; hỗ trợ xử lý dữ liệu Excel phục vụ đánh giá chuẩn đầu ra học phần.</p>
+          <div class="tool-card-footer">
+            <span class="tool-card-badge">Đang sử dụng</span>
+            <span class="tool-card-open">Mở công cụ →</span>
+          </div>
+        </a>
+
+        <div class="tool-card placeholder" aria-hidden="true">
+          <div class="tool-card-icon">＋</div>
+          <h3>Công cụ tiếp theo</h3>
+          <p>Các tiện ích mới của AI-CLO sẽ được bổ sung tại đây.</p>
+          <div class="tool-card-footer"><span class="tool-card-badge">Sắp có</span></div>
+        </div>
+
+        <div class="tool-card placeholder" aria-hidden="true">
+          <div class="tool-card-icon">＋</div>
+          <h3>Công cụ tiếp theo</h3>
+          <p>Khu vực dành cho các công cụ hỗ trợ giảng dạy và đánh giá trong tương lai.</p>
+          <div class="tool-card-footer"><span class="tool-card-badge">Sắp có</span></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="tools-footer">
+    <div class="tools-footer-inner">
+      <span>© 2026 AI-CLO PTITHCM</span>
+      <nav><a href="../index.html">Trang chính</a><a href="../gioi-thieu.html">Giới thiệu</a><a href="../huong-dan.html">Hướng dẫn sử dụng</a><a href="../app.html" target="_blank" rel="noopener">Vào hệ thống</a></nav>
+    </div>
+  </footer>
 </div>
-<script src="libs/xlsx.full.min.js"></script>
-<script src="libs/exceljs.min.js"></script>
-<script type="module" src="js/app.js?v=1.8.2"></script>
 </body>
 </html>
