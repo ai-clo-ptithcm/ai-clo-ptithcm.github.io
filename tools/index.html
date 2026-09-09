@@ -16,29 +16,29 @@
     *{box-sizing:border-box}
     body{margin:0;background:#f5f7fa;color:var(--tool-ink);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
     .tools-shell{min-height:100vh;display:flex;flex-direction:column}
-    .tools-content{margin:0 auto;flex:1;padding:42px 0 56px}
-    .tools-hero{padding:28px 0 22px}
-    .tools-section-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:28px 0 14px}
+    .tools-content{margin:0 auto;flex:1;padding:38px 0 56px}
+    .tools-hero{padding:24px 0 10px}
+    .tools-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:22px;margin:18px 0 14px}
+    .tools-section-head-copy{display:grid;gap:4px}
     .tools-section-head h2{margin:0;font-size:21px}
-    .tools-section-head span{color:var(--tool-muted);font-size:13px}
+    .tools-section-head span{color:var(--tool-muted);font-size:13px;line-height:1.45}
     .tools-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-    .tool-card{position:relative;display:flex;flex-direction:column;min-height:245px;padding:22px;border:1px solid var(--tool-line);border-radius:18px;background:#fff;box-shadow:0 8px 24px rgba(18,31,53,.05);text-decoration:none;color:inherit;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+    .tool-card{position:relative;display:flex;flex-direction:column;min-height:226px;padding:22px;border:1px solid var(--tool-line);border-radius:18px;background:#fff;box-shadow:0 8px 24px rgba(18,31,53,.05);text-decoration:none;color:inherit;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
     .tool-card:hover{transform:translateY(-3px);box-shadow:0 14px 32px rgba(18,31,53,.1);border-color:#d7a2a8}
     .tool-card-icon{width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:#fff0f2;color:var(--tool-red);font-size:23px;font-weight:900}
     .tool-card h3{margin:18px 0 8px;font-size:21px}
-    .tool-card p{margin:0;color:var(--tool-muted);font-size:14px;line-height:1.6}
-    .tool-card-footer{margin-top:auto;padding-top:22px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .tool-card p{margin:0;color:var(--tool-muted);font-size:14px;line-height:1.6;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden}
+    .tool-card-footer{margin-top:auto;padding-top:20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
     .tool-card-badge{display:inline-flex;align-items:center;border-radius:999px;background:var(--tool-soft);padding:6px 10px;color:#4b5565;font-size:12px;font-weight:700}
     .tool-card-open{color:var(--tool-red);font-size:13px;font-weight:800}
-    .tool-card.placeholder{border-style:dashed;background:rgba(255,255,255,.6);box-shadow:none;pointer-events:none}
-    .tool-card.placeholder .tool-card-icon{background:#f1f3f6;color:#8b93a1}
-    .tool-card.placeholder h3,.tool-card.placeholder p{color:#8b93a1}
-    .tool-card.placeholder .tool-card-footer{color:#98a0ad}
+    .tool-card.placeholder{border-style:dashed;background:rgba(255,255,255,.72);box-shadow:none;pointer-events:none}
+    .tool-card.placeholder .tool-card-icon{background:#f1f3f6;color:#7f8ba0}
+    .tool-card.placeholder h3{color:#7b8798}.tool-card.placeholder p{color:#8792a3}.tool-card.placeholder .tool-card-footer{color:#8f99a8}
     .tools-footer{border-top:1px solid var(--tool-line);background:#fff}
     .tools-footer-inner{margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:20px 0;color:var(--tool-muted);font-size:13px}
     .tools-footer nav{display:flex;gap:16px;flex-wrap:wrap}.tools-footer a{color:inherit;text-decoration:none}.tools-footer a:hover{color:var(--tool-red)}
     @media(max-width:900px){.tools-grid{grid-template-columns:1fr 1fr}}
-    @media(max-width:620px){.tools-content{padding-top:24px}.tools-grid{grid-template-columns:1fr}.tools-section-head{align-items:start;flex-direction:column}.tools-footer-inner{align-items:flex-start;flex-direction:column}.tool-card{min-height:220px}}
+    @media(max-width:620px){.tools-content{padding-top:24px}.tools-hero{padding-bottom:6px}.tools-grid{grid-template-columns:1fr}.tools-section-head{align-items:flex-start;flex-direction:column;gap:4px;margin-top:14px}.tools-footer-inner{align-items:flex-start;flex-direction:column}.tool-card{min-height:215px}}
   </style>
   <link rel="stylesheet" href="../css/public-subpage.css?v=1.0.0">
   <script defer src="../js/ai-chat.js"></script>
@@ -59,15 +59,17 @@
 
   <main class="tools-content public-subpage-width">
     <section class="tools-hero public-subpage-hero">
-      <span class="tools-kicker public-subpage-kicker">AI-CLO PTITHCM · Utilities</span>
+      <span class="tools-kicker public-subpage-kicker">AI-CLO PTITHCM</span>
       <h1 class="public-subpage-title">Công cụ AI-CLO</h1>
       <p class="public-subpage-lead">Nơi tập hợp các công cụ hỗ trợ giảng dạy, kiểm tra và đánh giá theo chuẩn đầu ra. Danh sách sẽ được bổ sung dần khi có công cụ mới.</p>
     </section>
 
     <section aria-labelledby="tool-list-title">
       <div class="tools-section-head">
-        <h2 id="tool-list-title">Công cụ hiện có</h2>
-        <span>Các công cụ hoạt động độc lập với hệ thống chính.</span>
+        <div class="tools-section-head-copy">
+          <h2 id="tool-list-title">Công cụ hiện có</h2>
+          <span>Các công cụ hoạt động độc lập với hệ thống chính.</span>
+        </div>
       </div>
 
       <div class="tools-grid">
