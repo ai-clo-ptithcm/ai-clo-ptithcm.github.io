@@ -2,6 +2,7 @@ import { buildMarkWorkbook } from './exportMark.js';
 import { buildDetailWorkbook } from './exportDetail.js';
 import { getExcelJS, saveWorkbook } from './exportCommon.js';
 import { addAnswerSheet } from './exportAnswerSheet.js';
+import { validateRoomsBeforeExport, getExportStudents } from './exportValidation.js';
 
 async function fetchBuffer(url){const r=await fetch(url,{cache:'no-store'});if(!r.ok) throw new Error('Không tải được mẫu Excel: '+url);return await r.arrayBuffer()}
 function safeName(name,used){
@@ -29,7 +30,6 @@ function rangeRows(range){
 export function copyOfficeHeaderRows(source,target,{detail=false,rowCount=9}={}){
   if(!source||!target)return;
 
-  // Bỏ các merge của mẫu trong vùng đầu để có thể chép đúng nguyên mẫu khảo thí.
   for(const merge of [...(target.model?.merges||[])]){
     const rr=rangeRows(merge);
     if(rr.min>0 && rr.min<=rowCount){try{target.unMergeCells(merge)}catch{}}
@@ -80,32 +80,18 @@ async function loadOfficeWorkbook(buffer){
   }
 }
 
-function prepareExportStudents(room){
-  const students=room.untData.students||[];
-  const by=new Map(students.map(s=>[String(Number(s.sbd)),s]));
-  const officeRows=room.officeSheet?.rows?.length
-    ? room.officeSheet.rows
-    : (room.officeSheet?.sbds||[]).map(sbd=>({sbd,note:''}));
-  if(!officeRows.length) return students;
-  return officeRows.map(entry=>{
-    const key=String(Number(entry.sbd));
-    const found=by.get(key);
-    if(found) return {...found,officeNote:entry.note??''};
-    return {sbd:key,result:null,isAbsent:true,officeNote:entry.note??''};
-  });
-}
-
 function officeWorksheetForRoom(officeWorkbook,room){
   if(!officeWorkbook||!room.officeSheet?.name)return null;
   return officeWorkbook.getWorksheet(room.officeSheet.name)||officeWorkbook.worksheets.find(ws=>ws.name===room.officeSheet.name)||null;
 }
 
 export async function exportMarkMulti(answerData, rooms, officeTemplateBuffer=null){
+  await validateRoomsBeforeExport(rooms);
   const ExcelJS=getExcelJS(), master=new ExcelJS.Workbook(), used=new Set();
   const template=await fetchBuffer('templates/MarksTemplate.xlsx');
   const officeWorkbook=await loadOfficeWorkbook(officeTemplateBuffer);
   for(const room of rooms){
-    room.untData.exportStudents=prepareExportStudents(room);
+    room.untData.exportStudents=getExportStudents(room);
     const wb=await buildMarkWorkbook(answerData,room.untData,template);
     const built=wb.worksheets[0];
     const officeSheet=officeWorksheetForRoom(officeWorkbook,room);
@@ -119,11 +105,12 @@ export async function exportMarkMulti(answerData, rooms, officeTemplateBuffer=nu
 }
 
 export async function exportDetailMulti(answerData,rooms,officeTemplateBuffer=null){
+  await validateRoomsBeforeExport(rooms);
   const ExcelJS=getExcelJS(), master=new ExcelJS.Workbook(), used=new Set();
   const template=await fetchBuffer('templates/DetailTemplate.xlsx');
   const officeWorkbook=await loadOfficeWorkbook(officeTemplateBuffer);
   for(const room of rooms){
-    room.untData.exportStudents=prepareExportStudents(room);
+    room.untData.exportStudents=getExportStudents(room);
     const wb=await buildDetailWorkbook(answerData,room.untData,template);
     const built=wb.worksheets[0];
     const officeSheet=officeWorksheetForRoom(officeWorkbook,room);
