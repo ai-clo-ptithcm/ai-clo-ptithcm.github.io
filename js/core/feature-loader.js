@@ -1,9 +1,10 @@
-/* AI-CLO PTITHCM V12.6.39 — on-demand loader for independent utilities only.
+/* AI-CLO PTITHCM V12.6.45 — on-demand loader for independent utilities only.
    Assessment runtime is owned entirely by js/assessment.js. */
 (()=>{
 'use strict';
 const pending=new Map(),loaded=new Set();
 const APP_WINDOW_GEOMETRY='js/ui/app-window-geometry.js?v=11.8.6';
+const AI_CLONE='js/questions/ai-clone.js?v=12.6.45';
 function loadScript(src){if(loaded.has(src))return Promise.resolve();if(pending.has(src))return pending.get(src);const p=new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.async=false;s.dataset.aicloFeature=src;s.onload=()=>{loaded.add(src);pending.delete(src);resolve()};s.onerror=()=>{pending.delete(src);s.remove();reject(new Error(`Không tải được mô-đun ${src}.`))};document.head.appendChild(s)});pending.set(src,p);return p}
 async function loadMany(files){for(const f of files)await loadScript(f)}
 const lazyImport=async(...args)=>{await loadScript('js/questions/import.js?v=12.6.39');const fn=window.v102BulkImportQuestions;if(typeof fn!=='function'||fn===lazyImport)throw new Error('Không khởi tạo được chức năng nhập câu hỏi.');return fn(...args)};window.v102BulkImportQuestions=lazyImport;
@@ -14,6 +15,7 @@ const lazyAiGenerate=async(...args)=>{await loadAiReviewFlow();await loadScript(
 const lazyDuplicateScan=async(...args)=>{await loadScript('js/questions/duplicate-scan.js?v=11.6.13');const fn=window.AICLO_DUPLICATE_SCAN?.open;if(typeof fn!=='function')throw new Error('Không khởi tạo được chức năng kiểm tra câu hỏi trùng.');return fn(...args)};window.openQuestionDuplicateScan=lazyDuplicateScan;
 async function ensureView(view){if(view==='exams'&&canTeach())await loadScript(APP_WINDOW_GEOMETRY)}
 function installNavigationGate(){const base=window.navigate;if(typeof base!=='function'||base.__aicloFeatureGate)return;const gated=async function(view,...args){try{await ensureView(view)}catch(e){console.error('AI-CLO utility load failed',e);window.toast?.('Không tải được tiện ích giao diện. Vui lòng thử lại.',true);throw e}return base.call(this,view,...args)};gated.__aicloFeatureGate=true;gated.__aicloBaseNavigate=base;window.navigate=gated}
-document.addEventListener('DOMContentLoaded',installNavigationGate);
+async function bootstrapIndependentFeatures(){installNavigationGate();try{await loadScript(AI_CLONE)}catch(e){console.error('AI-CLO AI clone module load failed',e)}}
+document.addEventListener('DOMContentLoaded',bootstrapIndependentFeatures);
 window.AICLO_FEATURES=Object.freeze({load:loadScript,loadMany,ensureView,loadAiReviewFlow,isLoaded:src=>loaded.has(src),pending:()=>[...pending.keys()]});
 })();
