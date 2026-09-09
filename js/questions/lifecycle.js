@@ -4,6 +4,7 @@
 
 const ARCHIVED='archived';
 const label=v=>({draft:'Bản nháp',pending:'Chờ duyệt',approved:'Đã duyệt',archived:'Ngưng sử dụng'}[v]||v||'Bản nháp');
+const originalConfirm=window.confirmAction;
 
 async function archiveQuestions(ids,{reason='Ngưng sử dụng câu hỏi'}={}){
  ids=[...new Set((ids||[]).filter(Boolean))];
@@ -23,7 +24,6 @@ async function archiveQuestions(ids,{reason='Ngưng sử dụng câu hỏi'}={})
 
 async function archiveOne(id){
  if(!id)return;
- if(!await confirmAction('Ngưng sử dụng câu hỏi','Câu hỏi sẽ được giữ nguyên để bảo toàn đề thi, bài làm và lịch sử; nhưng không còn được dùng cho bài kiểm tra hoặc đề mới. Tiếp tục?',{confirmLabel:'Ngưng sử dụng',danger:true}))return;
  try{
   await archiveQuestions([id]);
   toast('Đã chuyển câu hỏi sang Ngưng sử dụng');
@@ -34,11 +34,17 @@ async function archiveOne(id){
 function syncLabels(root=document){
  root.querySelectorAll?.('option[value="archived"]').forEach(o=>{if(o.textContent!=='Ngưng sử dụng')o.textContent='Ngưng sử dụng'});
  root.querySelectorAll?.('.approval-badge').forEach(el=>{if(el.textContent.trim()==='Lưu trữ')el.textContent='Ngưng sử dụng'});
+ root.querySelectorAll?.('[data-del]').forEach(btn=>{if(btn.textContent.trim()==='Xóa')btn.textContent='Ngưng sử dụng'});
  const detail=root.querySelector?.('#detailDeleteQuestion');
  if(detail){detail.textContent='Ngưng sử dụng';detail.title='Giữ nguyên dữ liệu lịch sử và không dùng câu này cho đề mới.'}
 }
 
-/* bank.js and legacy code both call the global removeQuestion(id). Keep one lifecycle rule here. */
+/* Existing bank code already asks for confirmation before calling removeQuestion(id).
+   Translate that confirmation to the lifecycle language, then archive instead of deleting. */
+if(typeof originalConfirm==='function')window.confirmAction=function(title,message,options={}){
+ if(title==='Xóa câu hỏi')return originalConfirm('Ngưng sử dụng câu hỏi','Câu hỏi sẽ được giữ nguyên để bảo toàn đề thi, bài làm và lịch sử; nhưng không còn được dùng cho bài kiểm tra hoặc đề mới. Tiếp tục?',{...options,confirmLabel:'Ngưng sử dụng',danger:true});
+ return originalConfirm(title,message,options);
+};
 window.removeQuestion=archiveOne;
 window.v96ApprovalLabel=label;
 
