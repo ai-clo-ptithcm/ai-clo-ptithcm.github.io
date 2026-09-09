@@ -10,6 +10,15 @@
   const $$ = (s, root = document) => [...root.querySelectorAll(s)];
   const ROLE_LABELS = { admin: "Quản trị viên", teacher: "Giảng viên", lecturer: "Giảng viên", giangvien: "Giảng viên", student: "Sinh viên" };
 
+  function loadPublicFooter() {
+    if (location.pathname.endsWith('/app.html') || document.querySelector('script[data-public-footer-script]')) return;
+    const script = document.createElement('script');
+    script.src = '/js/public-footer.js?v=1.0.0';
+    script.defer = true;
+    script.dataset.publicFooterScript = '1';
+    document.head.appendChild(script);
+  }
+
   function setupPublicNav() {
     const header = $(".public-nav");
     const nav = header?.querySelector(".public-nav-links");
@@ -228,6 +237,7 @@
 
   window.AICLO_CHAT = { open: openPanel, close: closePanel, ask };
   document.addEventListener("DOMContentLoaded", () => {
+    loadPublicFooter();
     setupPublicNav();
     ensurePanel();
     $$(".public-ai-button").forEach((btn) => btn.addEventListener("click", () => openPanel()));
