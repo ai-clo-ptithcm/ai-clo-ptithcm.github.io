@@ -40,15 +40,33 @@ export async function listSessions(examId){
   fail(error);return data||[];
 }
 
-export async function createSession(examId,payload){
-  const start=new Date(payload.starts_at);const end=new Date(payload.ends_at);
+function sessionRow(payload){
+  const start=new Date(payload.starts_at),end=new Date(payload.ends_at);
+  if(Number.isNaN(start.getTime())||Number.isNaN(end.getTime()))throw new Error('Ngày giờ ca thi không hợp lệ.');
+  if(end<=start)throw new Error('Giờ kết thúc phải sau giờ bắt đầu.');
   const duration=Math.max(1,Number(payload.duration_minutes||Math.round((end-start)/60000)));
-  const {data,error}=await supabase.from('exam_sessions').insert({exam_id:examId,name:payload.name.trim(),starts_at:start.toISOString(),ends_at:end.toISOString(),duration_minutes:duration,status:'draft',instructions_html:payload.instructions_html||null}).select().single();
+  return {name:payload.name.trim(),starts_at:start.toISOString(),ends_at:end.toISOString(),duration_minutes:duration,instructions_html:payload.instructions_html?.trim()||null};
+}
+
+export async function createSession(examId,payload){
+  const {data,error}=await supabase.from('exam_sessions').insert({exam_id:examId,...sessionRow(payload),status:'draft'}).select().single();
   fail(error);return data;
 }
 
+export async function updateSession(sessionId,payload){
+  const {data,error}=await supabase.from('exam_sessions').update(sessionRow(payload)).eq('id',sessionId).select().single();
+  fail(error);return data;
+}
+
+function roomRow(payload){return {name:payload.name.trim(),capacity:payload.capacity?Number(payload.capacity):null,location_note:payload.location_note?.trim()||null};}
+
 export async function createRoom(sessionId,payload){
-  const {data,error}=await supabase.from('exam_rooms').insert({session_id:sessionId,name:payload.name.trim(),capacity:payload.capacity?Number(payload.capacity):null,location_note:payload.location_note?.trim()||null}).select().single();
+  const {data,error}=await supabase.from('exam_rooms').insert({session_id:sessionId,...roomRow(payload)}).select().single();
+  fail(error);return data;
+}
+
+export async function updateRoom(roomId,payload){
+  const {data,error}=await supabase.from('exam_rooms').update(roomRow(payload)).eq('id',roomId).select().single();
   fail(error);return data;
 }
 

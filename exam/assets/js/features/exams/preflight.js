@@ -5,9 +5,10 @@ const levelLabel={error:'Lỗi cần xử lý',warning:'Cảnh báo'};
 
 export async function renderPreflight(ctx){
   const {host,exam}=ctx;
-  host.innerHTML=`<div class="card"><div class="toolbar"><div><div class="card-title">Kiểm tra trước ca thi</div><div class="muted">Kiểm tra dữ liệu, đề, mã sinh viên, phòng, giám thị và Storage bằng dữ liệu thật trên server.</div></div><button class="btn btn-primary" data-run>Chạy kiểm tra</button></div><div id="preflight-result" class="empty-state">Nhấn “Chạy kiểm tra” sau khi đã chuẩn bị kỳ thi.</div></div>`;
+  const allowDraftPapers=exam.status==='draft';
+  host.innerHTML=`<div class="card"><div class="toolbar"><div><div class="card-title">Kiểm tra trước ca thi</div><div class="muted">Kiểm tra dữ liệu, đề, mã sinh viên, phòng, giám thị và Storage bằng dữ liệu thật trên server.${allowDraftPapers?' Khi kỳ thi còn ở bản nháp, đề nháp vẫn được kiểm tra đầy đủ và sẽ tự khóa khi Chốt kỳ thi.':''}</div></div><button class="btn btn-primary" data-run>Chạy kiểm tra</button></div><div id="preflight-result" class="empty-state">Nhấn “Chạy kiểm tra” sau khi đã chuẩn bị kỳ thi.</div></div>`;
   const button=host.querySelector('[data-run]'),result=host.querySelector('#preflight-result');
-  const run=async()=>{button.disabled=true;button.textContent='Đang kiểm tra…';result.className='empty-state';result.textContent='Đang kiểm tra database, Storage và cấu trúc kỳ thi…';try{const report=await runPreflight(exam.id);renderReport(result,report);if(report.ready)toast('Preflight đạt: không còn lỗi chặn.','success');else toast(`Còn ${report.summary.errors} lỗi cần xử lý.`,'error',5000);}catch(e){result.className='alert alert-danger';result.textContent=errorMessage(e);toast(errorMessage(e),'error');}finally{button.disabled=false;button.textContent='Chạy lại';}};
+  const run=async()=>{button.disabled=true;button.textContent='Đang kiểm tra…';result.className='empty-state';result.textContent='Đang kiểm tra database, Storage và cấu trúc kỳ thi…';try{const report=await runPreflight(exam.id,{allowDraftPapers});renderReport(result,report);if(report.ready)toast(allowDraftPapers?'Kỳ thi đủ điều kiện để chốt.':'Preflight đạt: không còn lỗi chặn.','success');else toast(`Còn ${report.summary.errors} lỗi cần xử lý.`,'error',5000);}catch(e){result.className='alert alert-danger';result.textContent=errorMessage(e);toast(errorMessage(e),'error');}finally{button.disabled=false;button.textContent='Chạy lại';}};
   button.addEventListener('click',run);
   await run();
 }
