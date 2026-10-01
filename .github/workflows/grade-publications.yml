@@ -1,0 +1,32 @@
+name: Công bố điểm checks
+on:
+  push:
+    paths:
+      - 'tools/cong-bo-diem/**'
+      - 'supabase/functions/grade-publications/**'
+      - '.github/workflows/grade-publications.yml'
+  pull_request:
+    paths:
+      - 'tools/cong-bo-diem/**'
+      - 'supabase/functions/grade-publications/**'
+      - '.github/workflows/grade-publications.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate data handling
+        run: node tools/cong-bo-diem/tests/core.mjs
+      - name: Install browser test runtime
+        run: npm install --no-save --package-lock=false playwright@1.55.1
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Check browser workflows
+        run: node tools/cong-bo-diem/tests/browser.mjs
