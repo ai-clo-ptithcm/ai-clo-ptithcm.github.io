@@ -1,11 +1,6 @@
-/* Header cho các màn hình Công bố điểm PTITHCM. */
-header{background:#fff;border-bottom:1px solid #e5e7eb}
-header .shell,header .header-inner{width:min(1100px,calc(100% - 32px));margin:0 auto;min-height:56px;display:flex;align-items:center;justify-content:space-between;gap:20px}
-header .brand{font-size:22px;font-weight:700;color:#111827;white-space:nowrap}
-header .brand span{color:#2563eb}
-header a,header a:hover,header a:focus,header a:visited{text-decoration:none}
-header nav{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
-header nav a,header .tools-link{font-size:15px;color:#4b5563}
-header nav a:hover,header .tools-link:hover{color:#2563eb}
-header a:focus-visible{outline:2px solid #2563eb;outline-offset:4px;border-radius:3px}
-@media(max-width:560px){header .shell,header .header-inner{width:calc(100% - 22px);min-height:62px;gap:12px;flex-wrap:wrap;padding:12px 0}header .brand{font-size:20px}header nav{gap:10px;justify-content:flex-end}header nav a{font-size:14px}}
+/* Local tool navigation. Main header/footer are rendered by /js/public-shell.js. */
+.tool-navigation{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 24px;padding:0 0 14px;border-bottom:1px solid var(--border)}
+.tool-navigation a{padding:7px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;font-size:13px;text-decoration:none}
+.tool-navigation a:hover{background:#eef4ff;text-decoration:none}
+.tool-navigation a:focus-visible{outline:2px solid #2563eb;outline-offset:3px}
+body.aiclo-public-shell>.aiclo-public-footer{margin:0}

@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {dashboard,sheetRecords,csv,evidenceLinks} from '../js/core.js';
+const metrics=['sum','people','stock','ratio'].map(method=>({id:method,method,code:method,archived:false}));
+const rec=(method,month,effective={},status='approved',year=2026)=>({metric_id:method,month,year,status,effective:{quantity:1,...effective}});
+const data={metrics,plans:[],months:[],records:[rec('sum',1),rec('sum',2,{quantity:2}),rec('sum',2,{quantity:99},'pending'),rec('people',1,{dedup_key:'Alice'}),rec('people',2,{dedup_key:'alice'}),rec('people',2,{dedup_key:'Bob'}),rec('stock',12,{start_date:'2025-12-01',end_date:'2026-03-01'},'approved',2025),rec('stock',2,{start_date:'2026-02-10'})]};
+let rows=dashboard(data,2026,2);assert.equal(rows[0].cumulative,3);assert.equal(rows[0].percent,null);assert.equal(rows[1].cumulative,2);assert.equal(rows[1].current,1);assert.equal(rows[2].cumulative,2);assert.equal(rows[3].cumulative,null);
+assert.equal(dashboard(data,2026,3)[2].current,1);
+data.months.push({metric_id:'sum',year:2026,month:2,value:0},{metric_id:'ratio',year:2026,month:1,value:40},{metric_id:'ratio',year:2026,month:2,value:60});data.plans.push({metric_id:'sum',target:2,active:true});rows=dashboard(data,2026,3);assert.equal(rows[0].cumulative,1);assert.equal(rows[0].current,null);assert.equal(rows[0].percent,50);assert.equal(rows[3].cumulative,60);assert.equal(rows[3].current,null);
+data.plans[0].active=false;assert(!dashboard(data,2026,3).some(r=>r.id==='sum'));
+const header=['Dấu thời gian','Tên nội dung/Kết quả','Loại nội dung','Người khai báo','Thông tin thêm','Tải minh chứng'];
+const hash=async s=>s;const matrix=[header,[46297,'','Bài báo','Nam','','https://drive.google.com/file/d/1/view']];
+const imported=await sheetRecords(matrix,'sheet',hash);assert.equal(imported[0].effective.title,'Bài báo – Nam');assert.equal(imported[0].code,'II.1');assert.equal(imported[0].year,2026);const edited=await sheetRecords([header,[46297,'Sửa tên','Bài báo','Nam','','https://drive.google.com/file/d/1/view']],'sheet',hash);assert.equal(imported[0].source_key,edited[0].source_key);assert.notEqual(imported[0].source_hash,edited[0].source_hash);
+await assert.rejects(sheetRecords([['Wrong']], 'sheet',hash));await assert.rejects(sheetRecords([header,[46297,'','','Nam','','link']], 'sheet',hash));
+assert.deepEqual(evidenceLinks('javascript:alert(1) https://drive.google.com/a, https://drive.google.com/a'),['https://drive.google.com/a']);assert.equal(csv([['a"b',0,null]]),'\uFEFF"a""b","0",""');
+console.log('KPI core: passed (approval, snapshots, unique people, overrides, missing/zero, targets, Form mapping).');

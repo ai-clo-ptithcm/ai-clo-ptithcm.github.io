@@ -38,3 +38,9 @@
 - Fork này chưa bật GitHub Pages. Website ai-clo-ptithcm.github.io được triển khai từ repo gốc ai-clo-ptithcm/ai-clo-ptithcm.github.io.
 - Người dùng cần đưa commit từ fork vào repo gốc (pull/cherry-pick hoặc merge PR) và chờ GitHub Pages triển khai. Chỉ chỉnh fork theo phạm vi yêu cầu; chưa sửa repo gốc.
 - Supabase backend đã sẵn sàng, không cần chạy lại SQL. Sau website triển khai: vào LOGIN đặt mã chung; thêm JSON sau khi cần Google Sheets.
+
+## Đồng bộ nav PTITHCM
+- Cả bốn trang danh sách, quản lý, tra cứu và LOGIN dùng trực tiếp /css/public-shell.css và /js/public-shell.js của website.
+- Thay header/footer riêng bằng data-public-header/data-public-footer; không dựng bản sao nav trong JS công cụ.
+- Liên kết Công bố điểm, Quản lý công bố và LOGIN Admin giữ ở thanh điều hướng công cụ dưới nav chung.
+- css/header.css chỉ định dạng thanh điều hướng công cụ, không ghi đè nav toàn website; không sửa backend hoặc dữ liệu.

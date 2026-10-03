@@ -1,4 +1,3 @@
-
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import http from 'node:http';
@@ -43,6 +42,11 @@ await page.route('**/functions/v1/grade-publications',async route=>{
 try{
  await page.goto(origin+'/tools/cong-bo-diem/');
  await page.getByRole('heading',{name:'Toán cơ sở'}).waitFor();
+ assert.equal(await page.locator('header').count(),1);
+ assert.equal(await page.locator('header[data-unified-nav="1"]').count(),1);
+ assert.equal(await page.locator('header').getByRole('link',{name:'Công cụ CLO',exact:true}).count(),1);
+ assert.equal(await page.locator('header').getByRole('link',{name:'Hướng dẫn AI-CLO',exact:true}).count(),1);
+ assert.equal(await page.locator('.tool-navigation').getByRole('link',{name:'LOGIN Admin',exact:true}).count(),1);
  await page.locator('#openManage').click();await page.locator('#manageDialog').waitFor();
  await page.locator('#manageLink').fill('https://other.example/tools/cong-bo-diem/tra-cuu/?id='+id);await page.locator('#manageForm button[type=submit]').click();
  await page.locator('#status.error').waitFor();assert.equal(await page.locator('#manageLink').getAttribute('aria-invalid'),'true');
@@ -50,6 +54,7 @@ try{
  await page.locator('#manageLink').fill('https://ai-clo-ptithcm.github.io/tools/cong-bo-diem/tra-cuu/?id='+id);await page.locator('#manageForm button[type=submit]').click();
  await page.waitForURL('**/quan-ly/?id='+id);assert.ok(page.url().startsWith(origin));
  await page.goto(origin+'/tools/cong-bo-diem/');await page.getByRole('link',{name:'Tra cứu',exact:true}).click();
+ assert.equal(await page.locator('header[data-unified-nav="1"]').count(),1);
  await page.locator('[data-field="0"]').fill('002');await page.getByRole('button',{name:'Tra cứu kết quả'}).click();
  await page.locator('#status.error').waitFor();assert.equal(await page.locator('#resultPanel').isVisible(),false);
  await page.locator('[data-field="0"]').fill('001');await page.getByRole('button',{name:'Tra cứu kết quả'}).click();
@@ -57,6 +62,7 @@ try{
  assert.doesNotMatch(await page.locator('#result').innerText(),/Ngày sinh|MSSV/);
  await page.goto(origin+'/tools/cong-bo-diem/quan-ly/');
  await page.locator('#creationDialog').waitFor();
+ assert.equal(await page.locator('header[data-unified-nav="1"]').count(),1);
  const modal=await page.locator('#creationDialog').boundingBox(),screen=page.viewportSize();
  assert.ok(Math.abs(modal.x+modal.width/2-screen.width/2)<2);assert.ok(Math.abs(modal.y+modal.height/2-screen.height/2)<2);
  assert.equal(await page.locator('#gate').isVisible(),false);
@@ -96,6 +102,7 @@ try{
  await page.screenshot({path:'/tmp/ptithcm-grade-saved.png'});
  assert.equal(g.rows[0][1],'7.5');assert.equal(g.published,true);
  await page.goto(origin+'/tools/cong-bo-diem/login/');
+ assert.equal(await page.locator('header[data-unified-nav="1"]').count(),1);
  await page.locator('#email').fill('admin@example.test');await page.locator('#password').fill('password-test');await page.locator('#loginBtn').click();
  await page.locator('#adminPanel').waitFor();await page.locator('[data-reset]').waitFor();
  await page.locator('#code').fill('4321');await page.locator('#codeBtn').click();
@@ -108,5 +115,3 @@ try{
  assert.deepEqual(errors,[]);
  console.log('Browser workflows passed: list, private lookup, create, paste, preview, cell edit, save, admin login/settings.');
 }finally{await browser.close();server.close();}
-
-

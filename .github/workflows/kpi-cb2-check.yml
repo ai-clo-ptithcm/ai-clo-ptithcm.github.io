@@ -1,0 +1,33 @@
+name: KPI CB2 checks
+on:
+  push:
+    paths:
+      - 'tools/kpi-cb2/**'
+      - 'supabase/functions/kpi-cb2/**'
+      - '.github/workflows/kpi-cb2-check.yml'
+  pull_request:
+    paths:
+      - 'tools/kpi-cb2/**'
+      - 'supabase/functions/kpi-cb2/**'
+      - '.github/workflows/kpi-cb2-check.yml'
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node tools/kpi-cb2/tests/core.mjs
+      - run: cmp tools/kpi-cb2/js/core.js supabase/functions/kpi-cb2/core.js
+      - run: npm install --no-save --package-lock=false playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node tools/kpi-cb2/tests/browser.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: kpi-cb2-screenshots
+          path: /tmp/kpi-*.png
+          if-no-files-found: ignore

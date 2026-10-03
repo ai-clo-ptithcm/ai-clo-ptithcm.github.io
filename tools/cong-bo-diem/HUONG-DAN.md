@@ -77,3 +77,6 @@ Các SQL được sao chép theo thứ tự tên file 20261001*grade*.sql. Chỉ
 
 ## Trạng thái triển khai 01/10/2026
 SQL và Edge Function đã được triển khai trên rraooqedkpyhokattwdz. Không cần chạy lại SQL hoặc tự deploy backend cho lần sao chép này. Việc còn lại: LOGIN đặt mã chung, và thêm JSON khi cần Google Sheets.
+
+## Chỉnh sửa head/nav
+Bốn trang Công bố điểm dùng /js/public-shell.js và /css/public-shell.css, cùng header/footer với trang Công cụ PTITHCM. Nếu đổi nav toàn website, sửa hai file dùng chung này; không tạo header riêng trong công cụ. Thanh Công bố điểm / Quản lý công bố / LOGIN Admin bên dưới nav dùng tools/cong-bo-diem/css/header.css.
