@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.6.44 — Official Results module with sorting and Excel export. */
+/* AI-CLO PTITHCM V12.6.45 — Official Results module with sorting and Excel export. */
 (() => {
   "use strict";
   window.AICLO_ASSESSMENT_MODULES = window.AICLO_ASSESSMENT_MODULES || {};
@@ -221,7 +221,7 @@
         return `<div class="clo-results">${(metric.clos || [])
           .map(
             (x) =>
-              `<div class="${x.total && x.score < 4 ? "clo-below" : ""}"><b>${escapeHtml(x.code)}</b><strong>${x.total ? x.score.toFixed(2) : "—"}</strong><span>${x.total ? `${x.correct}/${x.total} câu đúng` : "Chưa có dữ liệu"}</span></div>`,
+              `<div class="${x.total && x.score < 4 ? "clo-below" : ""}"><b>${escapeHtml(x.code)}</b><strong>${x.total ? x.score.toFixed(1) : "—"}</strong><span>${x.total ? `${x.correct}/${x.total} câu đúng` : "Chưa có dữ liệu"}</span></div>`,
           )
           .join("")}</div>`;
       }
@@ -342,10 +342,10 @@
       function teacherRowsHtml(rows, clos) {
         return rows
           .map(({ profile: p, metric: m }, i) =>
-            `<tr><td>${i + 1}</td><td><b>${escapeHtml(p.full_name || p.email || "Sinh viên")}</b><br><small>${escapeHtml(p.mssv || p.email || "")}</small></td><td>${m ? `<b>${m.gpa.toFixed(2)}</b>` : "—"}</td>${clos
+            `<tr><td>${i + 1}</td><td><b>${escapeHtml(p.full_name || p.email || "Sinh viên")}</b><br><small>${escapeHtml(p.mssv || p.email || "")}</small></td><td>${m ? `<b>${m.gpa.toFixed(1)}</b>` : "—"}</td>${clos
               .map((clo) => {
                 const x = m?.clos.find((v) => v.code === clo.code);
-                return `<td class="${x?.total && x.score < 4 ? "score-low" : ""}">${x?.total ? x.score.toFixed(2) : "—"}</td>`;
+                return `<td class="${x?.total && x.score < 4 ? "score-low" : ""}">${x?.total ? x.score.toFixed(1) : "—"}</td>`;
               })
               .join("")}<td>${m?.attempts || 0}</td><td>${m?.attempts ? `<button class="ai-btn compact" data-v122-ai-student="${p.id}">✦ AI</button>` : "—"}</td></tr>`,
           )
@@ -374,11 +374,11 @@
               MSSV: p.mssv || "",
               "Họ và tên": p.full_name || "",
               Email: p.email || "",
-              GPA: m ? Number(m.gpa.toFixed(2)) : "",
+              GPA: m ? Number(m.gpa.toFixed(1)) : "",
             };
             for (const clo of clos) {
               const value = cloValue(m, clo.code);
-              row[clo.code] = value == null ? "" : Number(value.toFixed(2));
+              row[clo.code] = value == null ? "" : Number(value.toFixed(1));
             }
             row["Lượt chính thức"] = m?.attempts || 0;
             row["Số bài có dữ liệu"] = m?.examCount || 0;
@@ -416,7 +416,7 @@
           `<option value="attempts|desc">Lượt chính thức nhiều → ít</option>`,
         ].join("");
 
-        c.innerHTML = `<div class="assessment-results-v122"><div class="subpage-head"><div><small>KẾT QUẢ HỌC PHẦN</small><h3>Kết quả CLO</h3><p>Chỉ dùng các bài bật “Tính vào kết quả CLO học phần”; mỗi bài đã áp dụng đúng cách ghi nhận điểm.</p></div><button id="v122AiClass" class="ai-btn" ${classM.attempts ? "" : "disabled"}>✦ AI phân tích lớp</button></div><section class="panel"><div class="detail-grid"><div><small>SV có dữ liệu</small><b>${withData.length}/${profiles.length}</b></div><div><small>Bài được tính CLO</small><b>${bundle.exams.length}</b></div><div><small>Lượt chính thức</small><b>${classM.attempts}</b></div><div><small>GPA trung bình SV</small><b>${withData.length ? classM.gpa.toFixed(2) : "—"}</b></div></div><h4>CLO toàn lớp</h4>${resultCloCards(classM)}<details><summary>Quy tắc điểm đang áp dụng</summary><p class="hint">${examPolicyNote(bundle.exams)}</p></details></section><section class="panel"><div class="panel-head"><div><h3>Danh sách sinh viên</h3><p class="hint">Ngưỡng đạt CLO: 4.00/10.</p></div></div><div class="toolbar assessment-attempt-toolbar result-list-toolbar"><span class="hint">${profiles.length} sinh viên · sắp xếp không làm thay đổi dữ liệu điểm.</span><div class="assessment-attempt-tools"><label class="field compact-field">Sắp xếp<select id="v122ResultSort">${sortOptions}</select></label><button id="v122ExportClo" type="button" class="secondary">⇩ Tải kết quả Excel</button></div></div><div class="table-wrap"><table><thead><tr><th>STT</th><th>Sinh viên</th><th>GPA</th>${bundle.clos.map((x) => `<th>${escapeHtml(x.code)}</th>`).join("")}<th>Lượt chính thức</th><th></th></tr></thead><tbody id="v122ResultRows">${teacherRowsHtml(sortTeacherRows(teacherRows, defaultSort), bundle.clos) || `<tr><td colspan="${bundle.clos.length + 5}" class="empty">Chưa có sinh viên trong học phần.</td></tr>`}</tbody></table></div></section></div>`;
+        c.innerHTML = `<div class="assessment-results-v122"><div class="subpage-head"><div><small>KẾT QUẢ HỌC PHẦN</small><h3>Kết quả CLO</h3><p>Chỉ dùng các bài bật “Tính vào kết quả CLO học phần”; mỗi bài đã áp dụng đúng cách ghi nhận điểm.</p></div><button id="v122AiClass" class="ai-btn" ${classM.attempts ? "" : "disabled"}>✦ AI phân tích lớp</button></div><section class="panel"><div class="detail-grid"><div><small>SV có dữ liệu</small><b>${withData.length}/${profiles.length}</b></div><div><small>Bài được tính CLO</small><b>${bundle.exams.length}</b></div><div><small>Lượt chính thức</small><b>${classM.attempts}</b></div><div><small>GPA trung bình SV</small><b>${withData.length ? classM.gpa.toFixed(1) : "—"}</b></div></div><h4>CLO toàn lớp</h4>${resultCloCards(classM)}<details><summary>Quy tắc điểm đang áp dụng</summary><p class="hint">${examPolicyNote(bundle.exams)}</p></details></section><section class="panel"><div class="panel-head"><div><h3>Danh sách sinh viên</h3><p class="hint">Ngưỡng đạt CLO: 4.0/10.</p></div></div><div class="toolbar assessment-attempt-toolbar result-list-toolbar"><span class="hint">${profiles.length} sinh viên · sắp xếp không làm thay đổi dữ liệu điểm.</span><div class="assessment-attempt-tools"><label class="field compact-field">Sắp xếp<select id="v122ResultSort">${sortOptions}</select></label><button id="v122ExportClo" type="button" class="secondary">⇩ Tải kết quả Excel</button></div></div><div class="table-wrap"><table><thead><tr><th>STT</th><th>Sinh viên</th><th>GPA</th>${bundle.clos.map((x) => `<th>${escapeHtml(x.code)}</th>`).join("")}<th>Lượt chính thức</th><th></th></tr></thead><tbody id="v122ResultRows">${teacherRowsHtml(sortTeacherRows(teacherRows, defaultSort), bundle.clos) || `<tr><td colspan="${bundle.clos.length + 5}" class="empty">Chưa có sinh viên trong học phần.</td></tr>`}</tbody></table></div></section></div>`;
 
         const tbody = qs("#v122ResultRows", c);
         const sort = qs("#v122ResultSort", c);
@@ -450,7 +450,7 @@
           metrics.students.get(state.user.id) ||
           finishMetric(freshMetric(bundle.clos), bundle.clos);
         const rows = studentExamOfficialRows(bundle, state.user.id);
-        c.innerHTML = `<div class="assessment-results-v122"><div class="subpage-head"><div><small>KẾT QUẢ HỌC PHẦN</small><h3>Kết quả CLO của bạn</h3><p>Chỉ các bài được giảng viên chọn tính vào CLO mới xuất hiện ở đây.</p></div><button id="v122AiMe" class="ai-btn" ${m.attempts ? "" : "disabled"}>✦ AI nhận xét</button></div><section class="panel"><div class="detail-grid"><div><small>GPA</small><b>${m.attempts ? m.gpa.toFixed(2) : "—"}</b></div><div><small>Bài có dữ liệu</small><b>${m.examCount}</b></div><div><small>Lượt chính thức</small><b>${m.attempts}</b></div></div><h4>Kết quả theo CLO</h4>${resultCloCards(m)}</section><section class="panel"><div class="panel-head"><div><h3>Cách tính từ từng bài</h3><p class="hint">Điểm cao nhất/Lần cuối chọn một lượt; Trung bình sử dụng các lượt đã nộp của bài đó.</p></div></div><div class="table-wrap"><table><thead><tr><th>Bài kiểm tra</th><th>Quy tắc</th><th>Lượt dùng</th><th>Điểm quy đổi</th></tr></thead><tbody>${rows.map((x) => `<tr><td><b>${escapeHtml(x.exam.title || "Bài kiểm tra")}</b></td><td>${escapeHtml(scorePolicyLabel(x.exam.score_policy))}</td><td>${x.attempts}</td><td><b>${x.score.toFixed(2)}</b></td></tr>`).join("") || '<tr><td colspan="4" class="empty">Chưa có bài làm được tính vào kết quả CLO.</td></tr>'}</tbody></table></div></section></div>`;
+        c.innerHTML = `<div class="assessment-results-v122"><div class="subpage-head"><div><small>KẾT QUẢ HỌC PHẦN</small><h3>Kết quả CLO của bạn</h3><p>Chỉ các bài được giảng viên chọn tính vào CLO mới xuất hiện ở đây.</p></div><button id="v122AiMe" class="ai-btn" ${m.attempts ? "" : "disabled"}>✦ AI nhận xét</button></div><section class="panel"><div class="detail-grid"><div><small>GPA</small><b>${m.attempts ? m.gpa.toFixed(1) : "—"}</b></div><div><small>Bài có dữ liệu</small><b>${m.examCount}</b></div><div><small>Lượt chính thức</small><b>${m.attempts}</b></div></div><h4>Kết quả theo CLO</h4>${resultCloCards(m)}</section><section class="panel"><div class="panel-head"><div><h3>Cách tính từ từng bài</h3><p class="hint">Điểm cao nhất/Lần cuối chọn một lượt; Trung bình sử dụng các lượt đã nộp của bài đó.</p></div></div><div class="table-wrap"><table><thead><tr><th>Bài kiểm tra</th><th>Quy tắc</th><th>Lượt dùng</th><th>Điểm quy đổi</th></tr></thead><tbody>${rows.map((x) => `<tr><td><b>${escapeHtml(x.exam.title || "Bài kiểm tra")}</b></td><td>${escapeHtml(scorePolicyLabel(x.exam.score_policy))}</td><td>${x.attempts}</td><td><b>${x.score.toFixed(1)}</b></td></tr>`).join("") || '<tr><td colspan="4" class="empty">Chưa có bài làm được tính vào kết quả CLO.</td></tr>'}</tbody></table></div></section></div>`;
         qs("#v122AiMe", c)?.addEventListener("click", (e) =>
           requestAssessmentAi("student", state.user.id, e.currentTarget),
         );
