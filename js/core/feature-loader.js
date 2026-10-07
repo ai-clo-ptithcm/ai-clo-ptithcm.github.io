@@ -1,4 +1,4 @@
-/* AI-CLO PTITHCM V12.6.54 — on-demand loader for independent utilities only.
+/* AI-CLO PTITHCM V12.6.56 — on-demand loader for independent utilities only.
    Assessment runtime is owned entirely by js/assessment.js. */
 (()=>{
 'use strict';
@@ -10,17 +10,19 @@ async function loadMany(files){for(const f of files)await loadScript(f)}
 const lazyImport=async(...args)=>{await loadScript('js/questions/import.js?v=12.6.53');const fn=window.v102BulkImportQuestions;if(typeof fn!=='function'||fn===lazyImport)throw new Error('Không khởi tạo được chức năng nhập câu hỏi.');return fn(...args)};window.v102BulkImportQuestions=lazyImport;
 
 const isStructureAdmin=()=>typeof role==='function'&&role()==='admin';
-const requireStructureAdmin=message=>{if(isStructureAdmin())return true;toast(message||'Chỉ Admin được thay đổi cấu trúc học phần.',true);return false};
-function enforceStructureAdminUi(root=document){
- if(isStructureAdmin())return;
- root?.querySelectorAll?.('[data-topic],[data-edit-topic],[data-delete-topic],#addClo,[data-edit-clo],[data-delete-clo]').forEach(el=>el.remove());
+const isStructureTeacher=()=>typeof canTeach==='function'&&canTeach();
+const requireStructureAdmin=message=>{if(isStructureAdmin())return true;toast(message||'Chỉ Admin được thay đổi CLO.',true);return false};
+const requireStructureTeacher=message=>{if(isStructureTeacher())return true;toast(message||'Chỉ giảng viên phụ trách hoặc Admin được thay đổi Chương và Chủ đề.',true);return false};
+function enforceStructurePermissionsUi(root=document){
+ if(!isStructureTeacher())root?.querySelectorAll?.('[data-topic],[data-edit-topic]').forEach(el=>el.remove());
+ if(!isStructureAdmin())root?.querySelectorAll?.('[data-delete-chapter],[data-delete-topic],#addClo,[data-edit-clo],[data-delete-clo]').forEach(el=>el.remove());
 }
 const baseTopicForm=window.topicForm;
-if(typeof baseTopicForm==='function')window.topicForm=function(...args){if(!requireStructureAdmin('Chỉ Admin được thêm hoặc chỉnh sửa chủ đề.'))return;return baseTopicForm.apply(this,args)};
+if(typeof baseTopicForm==='function')window.topicForm=function(...args){if(!requireStructureTeacher('Chỉ giảng viên phụ trách hoặc Admin được thêm hoặc chỉnh sửa chủ đề.'))return;return baseTopicForm.apply(this,args)};
 const baseStructure=window.structure;
 if(typeof baseStructure==='function'){
- const guardedStructure=async function(c,...args){const result=await baseStructure.call(this,c,...args);enforceStructureAdminUi(c||document);return result};
- guardedStructure.__aicloStructureAdminGuard=true;
+ const guardedStructure=async function(c,...args){const result=await baseStructure.call(this,c,...args);enforceStructurePermissionsUi(c||document);return result};
+ guardedStructure.__aicloStructurePermissionGuard=true;
  window.structure=guardedStructure;
 }
 
@@ -37,7 +39,7 @@ const lazyAiGenerate=async(...args)=>{await loadAiReviewFlow();await loadScript(
 const lazyDuplicateScan=async(...args)=>{await loadScript('js/questions/duplicate-scan.js?v=11.6.13');const fn=window.AICLO_DUPLICATE_SCAN?.open;if(typeof fn!=='function')throw new Error('Không khởi tạo được chức năng kiểm tra câu hỏi trùng.');return fn(...args)};window.openQuestionDuplicateScan=lazyDuplicateScan;
 async function ensureView(view){if(view==='exams'&&canTeach())await loadScript(APP_WINDOW_GEOMETRY)}
 function installNavigationGate(){const base=window.navigate;if(typeof base!=='function'||base.__aicloFeatureGate)return;const gated=async function(view,...args){try{await ensureView(view)}catch(e){console.error('AI-CLO utility load failed',e);window.toast?.('Không tải được tiện ích giao diện. Vui lòng thử lại.',true);throw e}return base.call(this,view,...args)};gated.__aicloFeatureGate=true;gated.__aicloBaseNavigate=base;window.navigate=gated}
-async function bootstrapIndependentFeatures(){installNavigationGate();enforceStructureAdminUi(document);try{await loadScript(AI_CLONE)}catch(e){console.error('AI-CLO AI clone module load failed',e)}}
+async function bootstrapIndependentFeatures(){installNavigationGate();enforceStructurePermissionsUi(document);try{await loadScript(AI_CLONE)}catch(e){console.error('AI-CLO AI clone module load failed',e)}}
 document.addEventListener('DOMContentLoaded',bootstrapIndependentFeatures);
 window.AICLO_FEATURES=Object.freeze({load:loadScript,loadMany,ensureView,loadAiReviewFlow,isLoaded:src=>loaded.has(src),pending:()=>[...pending.keys()]});
 })();
