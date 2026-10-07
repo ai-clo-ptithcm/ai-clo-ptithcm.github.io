@@ -333,6 +333,7 @@
           event.started_at?formatDateTime(event.started_at):"—",event.ended_at?formatDateTime(event.ended_at):"Đang diễn ra",
           event.duration_ms==null?"Đang diễn ra":fmtAway(event.duration_ms),
         ]));
+        summary.getColumn(14).numFmt = "0.0";
         [summary,eventSheet].forEach((ws) => {
           ws.eachRow((row, rowNumber) => row.eachCell((cell) => {
             cell.font = { name: "Times New Roman", size: rowNumber===1 ? 13 : 11, bold: rowNumber===1 || (ws===summary&&rowNumber===5) };

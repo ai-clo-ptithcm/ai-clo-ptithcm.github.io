@@ -29,7 +29,7 @@
     }
     function maxScoreText(exam) {
       const value = examResultConfig(exam).maxScore;
-      return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+      return Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/0+$/, "").replace(/\.$/, "");
     }
     async function resolveResultExam(examOrId) {
       const id = typeof examOrId === "string" ? examOrId : examOrId?.id;
@@ -207,7 +207,7 @@
                 <div class="student-exam-row-main">
                   <div class="student-exam-row-title"><span class="badge ${meta.status.className}">${meta.status.label}</span><div><h4>${escapeHtml(exam.title || "Bài kiểm tra")}</h4><p>${escapeHtml(exam.description || "Không có mô tả.")}</p></div></div>
                 </div>
-                <div class="student-exam-row-meta"><span><b>${Number(exam.total_questions || 0)}</b><small>câu</small></span><span><b>${exam.duration_minutes || "—"}</b><small>phút</small></span><span><b>${meta.done.length}/${meta.max}</b><small>lượt đã nộp</small></span><span><b>${latest?.score == null ? "—" : `${scaleExamScore(latest.score, exam).toFixed(2)}/${maxScoreText(exam)}`}</b><small>điểm gần nhất</small></span></div>
+                <div class="student-exam-row-meta"><span><b>${Number(exam.total_questions || 0)}</b><small>câu</small></span><span><b>${exam.duration_minutes || "—"}</b><small>phút</small></span><span><b>${meta.done.length}/${meta.max}</b><small>lượt đã nộp</small></span><span><b>${latest?.score == null ? "—" : `${scaleExamScore(latest.score, exam).toFixed(1)}/${maxScoreText(exam)}`}</b><small>điểm gần nhất</small></span></div>
                 <div class="student-exam-row-end"><small>${escapeHtml(availabilityText(exam, meta))}</small><button type="button" class="secondary compact" data-v125-open-detail="${exam.id}">Chi tiết →</button></div>
               </article>`;
             }).join("") || '<div class="panel empty">Hiện chưa có bài kiểm tra nào.</div>'}
@@ -284,7 +284,7 @@
                 <div><small>Lần</small><b>${a.attempt_number || 1}</b></div>
                 <div><small>Bắt đầu</small><b>${formatDateTime(a.started_at)}</b></div>
                 <div><small>Nộp bài</small><b>${a.submitted_at ? formatDateTime(a.submitted_at) : expired ? "Hết giờ" : "Chưa nộp"}</b></div>
-                <div><small>Điểm</small><b>${a.submitted_at && a.score != null ? `${scaleExamScore(a.score, exam).toFixed(2)}/${maxScoreText(exam)}` : "—"}</b></div>
+                <div><small>Điểm</small><b>${a.submitted_at && a.score != null ? `${scaleExamScore(a.score, exam).toFixed(1)}/${maxScoreText(exam)}` : "—"}</b></div>
                 <div><span class="badge ${a.submitted_at ? "green" : expired ? "red" : ""}">${a.submitted_at ? "Đã nộp" : expired ? "Hết giờ" : "Đang làm"}</span></div>
                 <div class="student-attempt-history-actions">${a.submitted_at
                   ? `<button type="button" class="secondary compact" data-v125-view-questions="${a.id}" data-exam-id="${exam.id}">Xem câu hỏi</button>`
@@ -608,9 +608,9 @@
           ? `<div class="result-ai-actions"><button type="button" class="ai-btn" data-v123-ai-attempt="${escapeHtml(result.attempt_id)}">✦ AI nhận xét bài làm</button></div><div data-v123-ai-output="${escapeHtml(result.attempt_id)}"></div>`
           : "";
       const clo = showCloScores
-        ? `<h4>Kết quả theo CLO</h4><div class="clo-results">${(result.clo_scores || []).map((x) => `<div><b>${escapeHtml(x.code || "CLO")}</b><strong>${scaleExamScore(x.score, exam).toFixed(2)} / ${maxScoreText(exam)}</strong><span>${x.correct}/${x.total} câu đúng</span></div>`).join("") || "<p>Chưa có dữ liệu CLO.</p>"}</div>`
+        ? `<h4>Kết quả theo CLO</h4><div class="clo-results">${(result.clo_scores || []).map((x) => `<div><b>${escapeHtml(x.code || "CLO")}</b><strong>${scaleExamScore(x.score, exam).toFixed(1)} / ${maxScoreText(exam)}</strong><span>${x.correct}/${x.total} câu đúng</span></div>`).join("") || "<p>Chưa có dữ liệu CLO.</p>"}</div>`
         : '<p class="hint">Giảng viên không cho phép hiển thị điểm theo CLO của bài kiểm tra này.</p>';
-      return `<div class="preview-result result-v122"><div class="result-score"><small>Điểm tổng</small><b>${scaleExamScore(result.score, exam).toFixed(2)} / ${maxScoreText(exam)}</b><span>${Number(result.correct || 0)}/${Number(result.total || 0)} câu đúng</span></div>${clo}${ai}${detail}</div>`;
+      return `<div class="preview-result result-v122"><div class="result-score"><small>Điểm tổng</small><b>${scaleExamScore(result.score, exam).toFixed(1)} / ${maxScoreText(exam)}</b><span>${Number(result.correct || 0)}/${Number(result.total || 0)} câu đúng</span></div>${clo}${ai}${detail}</div>`;
     }
 
     document.addEventListener("click", (event) => {
@@ -655,7 +655,7 @@
           wide: true,
           eyebrow: "KẾT QUẢ BÀI LÀM",
         });
-      else notify(`Điểm: ${scaleExamScore(result.score, resolvedExam).toFixed(2)} / ${maxScoreText(resolvedExam)}`);
+      else notify(`Điểm: ${scaleExamScore(result.score, resolvedExam).toFixed(1)} / ${maxScoreText(resolvedExam)}`);
     }
 
     async function openStudentAttemptResult(attemptId, options = {}) {
@@ -682,7 +682,7 @@
             wide: true,
             eyebrow: "CÂU HỎI / KẾT QUẢ BÀI LÀM",
           });
-        else notify(`Điểm: ${scaleExamScore(data.score, exam).toFixed(2)} / ${maxScoreText(exam)}`);
+        else notify(`Điểm: ${scaleExamScore(data.score, exam).toFixed(1)} / ${maxScoreText(exam)}`);
       } catch (e) {
         showError(e);
       }
