@@ -1,0 +1,38 @@
+/* Public user guide | AI-CLO PTITHCM | 2026-10-14.
+   Owner: css/guide-v2.css. Scope intentionally limited to .guide-page. */
+.guide-page{width:min(1120px,calc(100% - 40px));padding-top:36px;padding-bottom:72px}
+.guide-hero{margin-bottom:24px}
+.guide-hero .public-subpage-lead{max-width:760px}
+.guide-version{font-size:13px!important;color:#64748b!important;margin:12px auto 0!important}
+.guide-toc{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;margin:0 auto 16px;padding:18px;background:#fff;border:1px solid #e5e9ef;border-radius:16px;box-shadow:0 10px 30px rgba(17,24,39,.03)}
+.guide-toc a{display:inline-flex;align-items:center;gap:7px;padding:11px 13px;border:1px solid #e5e9ef;border-radius:10px;background:#f8fafc;font-size:13px;font-weight:750;line-height:1.3;text-align:center;color:#263044;text-decoration:none;transition:background .15s,border-color .15s}
+.guide-toc a:hover,.guide-toc a:focus-visible{background:#fff0f2;border-color:#d9959e;color:#9b1c30}
+.guide-toc a span{color:#a61d2d}
+.guide-context{margin:0 0 46px;font-size:13px;text-align:center;color:#677285}
+.guide-section{scroll-margin-top:110px;margin:0 0 52px}
+.guide-section-head{margin:0 0 20px;padding:0 3px}
+.guide-section-head .guide-kicker{font-size:12px;font-weight:800;letter-spacing:.13em;color:#a61d2d;margin:0 0 9px}
+.guide-section-head h2{font-size:clamp(24px,3.2vw,32px);letter-spacing:-.025em;line-height:1.2;color:#18212f;margin:0 0 8px}
+.guide-section-head>p:last-child{font-size:15px;line-height:1.65;color:#667085;margin:0;max-width:840px}
+.guide-entries{display:grid;gap:18px}
+.guide-entry{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);align-items:center;gap:26px;background:#fff;border:1px solid #e5e9ef;border-radius:16px;padding:22px;box-shadow:0 5px 25px rgba(16,24,40,.025)}
+.guide-entry--plain{grid-template-columns:1fr;background:#fff}
+.guide-entry-body{min-width:0}
+.guide-entry-body h3{font-size:19px;line-height:1.3;margin:0 0 12px;letter-spacing:-.01em;color:#172033}
+.guide-entry-body p{font-size:15px;line-height:1.78;color:#515f74;margin:0}
+.guide-entry-body ul{margin:12px 0 0;padding-left:21px;color:#586579;font-size:14px;line-height:1.7}
+.guide-entry-body li+li{margin-top:5px}
+.guide-entry-body b{color:#273246}
+.guide-figure{margin:0;min-width:0;max-width:100%}
+.guide-figure>a{display:flex;align-items:center;justify-content:center;background:#f8fafc;border:1px solid #e2e6ee;border-radius:12px;overflow:hidden;min-height:145px;max-height:370px;transition:border-color .2s,box-shadow .2s}
+.guide-figure>a:hover,.guide-figure>a:focus-visible{border-color:#b95a69;box-shadow:0 0 0 3px rgba(166,29,45,.08)}
+.guide-figure img{display:block;width:100%;max-width:100%;height:auto;max-height:368px;object-fit:contain}
+.guide-figure figcaption{margin:8px 1px 0;color:#6b7587;font-size:12px;line-height:1.5}
+.guide-action{display:inline-flex;align-items:center;gap:8px;margin-top:16px;padding:10px 16px;background:#a61d2d;color:#fff!important;border-radius:9px;text-decoration:none;font-size:14px;font-weight:800}
+.guide-action:hover{background:#891724}
+.guide-end{text-align:center;color:#667085;padding:10px 0}
+.guide-end a{font-size:14px;color:#a61d2d;font-weight:800;text-decoration:none}
+.guide-end a:hover{text-decoration:underline}
+@media(max-width:800px){.guide-page{width:min(100% - 28px,760px);padding-top:24px}.guide-entry{grid-template-columns:1fr;gap:16px;padding:18px}.guide-entry--plain{grid-template-columns:1fr}.guide-figure>a{min-height:90px;max-height:480px}.guide-figure img{max-height:470px}.guide-section{margin-bottom:42px;scroll-margin-top:90px}.guide-toc{justify-content:flex-start;padding:12px}}
+@media(max-width:480px){.guide-page{width:calc(100% - 24px)}.guide-toc{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.guide-toc a{justify-content:center;padding:10px 6px;font-size:12px}.guide-entry{border-radius:12px;padding:15px}.guide-entry-body h3{font-size:18px}.guide-entry-body p{font-size:14px}.guide-section-head h2{font-size:23px}}
+@media(prefers-reduced-motion:reduce){.guide-toc a,.guide-figure>a{transition:none}}
