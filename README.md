@@ -4,6 +4,12 @@
 
 AI-CLO PTITHCM là hệ thống web hỗ trợ quản lý học phần, ngân hàng câu hỏi, xây dựng bài đánh giá theo CLO, làm bài trực tuyến, theo dõi phiên làm bài, phân tích kết quả và các tác vụ AI theo yêu cầu người dùng.
 
+## Giấy phép và quyền sử dụng mã nguồn
+
+**Proprietary — All Rights Reserved (Bảo lưu mọi quyền).** AI-CLO PTITHCM không cấp phép cho bên thứ ba tự ý sao chép, sửa đổi, phát hành lại hoặc triển khai mã nguồn thuộc quyền sở hữu của dự án. Xem [`LICENSE.md`](LICENSE.md).
+
+Ngoại lệ: các thành phần có giấy phép riêng và các quyền đã được cấp hợp lệ tiếp tục được tôn trọng. Riêng [`tools/exam-shuffler/`](tools/exam-shuffler/LICENCE.MD) có giấy phép MIT. Việc sử dụng website chính thức của người dùng khác với quyền sử dụng lại mã nguồn.
+
 ## Checkpoint hiện tại
 
 - Frontend checkpoint: **V12.6.53**

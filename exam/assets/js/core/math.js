@@ -1,3 +1,4 @@
+import '../../../../js/core/question-tables.js';
 let loader;
 export async function ensureMathJax(){
   if(window.MathJax?.typesetPromise)return window.MathJax;
@@ -7,4 +8,4 @@ export async function ensureMathJax(){
   }
   return loader;
 }
-export async function typesetMath(elements){try{const mj=await ensureMathJax();await mj.typesetPromise(elements?Array.from(elements):undefined);}catch(e){console.warn('MathJax unavailable',e);}}
+export async function typesetMath(elements){try{const nodes=elements?Array.from(elements):[document.body];nodes.forEach(node=>window.AICLO_QUESTION_TABLES?.formatTablesInNode(node));const mj=await ensureMathJax();await mj.typesetPromise(elements?nodes:undefined);}catch(e){console.warn('MathJax unavailable',e);}}

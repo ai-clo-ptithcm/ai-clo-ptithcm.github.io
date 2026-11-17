@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Chuẩn hóa bảng Xác suất thống kê · AI-CLO</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#1f2937;background:#f4f7fb}
+*{box-sizing:border-box}body{margin:0}.wrap{max-width:1030px;margin:24px auto;padding:0 16px 32px}
+header{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+a{color:#1459a5;text-decoration:none}h1{font-size:1.55rem;margin:18px 0 8px}h2{font-size:1.1rem}
+p{line-height:1.65}.muted{color:#596579}
+.panel{background:#fff;border:1px solid #e0e7ef;border-radius:12px;padding:18px;margin-top:15px;box-shadow:0 2px 10px #18304409}
+button{cursor:pointer;background:#1359a5;color:#fff;border:0;border-radius:8px;padding:11px 15px;font-weight:600;font-size:14px}
+button:disabled{opacity:.5;cursor:default}.secondary{background:#edf3fa;color:#184979}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+#status{padding:12px 15px;border-left:3px solid #417db7;background:#f4f8fd;border-radius:4px}
+#status.error{border-color:#aa3840;background:#fff5f5}
+#status.success{border-color:#258158;background:#effaf4}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f8fafc;padding:10px;border-radius:6px;border:1px solid #ebeff5;line-height:1.5}
+.card{padding:12px 0;border-bottom:1px solid #eef1f5}.card:last-child{border-bottom:0}
+.badge{background:#edf3fa;color:#234a7a;padding:3px 7px;border-radius:6px;font-size:12px}
+small{color:#596579}
+#log{max-height:340px;overflow:auto}.hidden{display:none!important}
+</style>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
+<script defer src="../../js/config.js"></script>
+<script defer src="../../js/core/question-tables.js?v=1.0.1"></script>
+<script defer src="./app.js?v=1.0.0"></script>
+</head>
+<body>
+<div class="wrap">
+<header><strong>AI-CLO · Công cụ quản trị ngân hàng câu hỏi</strong><a href="../../app.html">Về hệ thống AI-CLO</a></header>
+<h1>Chuẩn hóa bảng — Xác suất thống kê</h1>
+<p class="muted">Chỉ sửa nội dung trình bày của câu hỏi gốc. Giữ nguyên mã câu, đáp án, phương án, chương, chủ đề và CLO. Bản cũ được lưu vào lịch sử chỉnh sửa nhờ hàm quản trị đang có trong Supabase.</p>
+<div class="panel">
+ <div id="status" role="status" aria-live="polite">Đang xác minh phiên đăng nhập quản trị…</div>
+ <div class="actions">
+ <button id="scan" class="secondary" disabled>Rà soát ngân hàng</button>
+ <button id="apply" disabled>Áp dụng các thay đổi đã kiểm tra</button>
+ </div>
+ <p class="muted"><small>Yêu cầu đăng nhập AI-CLO bằng tài khoản Admin. Mỗi câu được cập nhật riêng, có lưu bản trước chỉnh sửa và kiểm tra lại sau khi ghi. Không sửa bài đã nộp hoặc bản sao đề thi.</small></p>
+</div>
+<section id="preview" class="panel hidden"><h2>Danh sách dự kiến cập nhật</h2><p id="count"></p><div id="items"></div></section>
+<section id="results" class="panel hidden"><h2>Kết quả cập nhật</h2><div id="log" role="log"></div></section>
+</div></body></html>

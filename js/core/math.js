@@ -40,7 +40,9 @@ function load(){
 
 window.AICLO_MATH=Object.freeze({load,hasMath,isReady:()=>!!window.MathJax?.typesetPromise});
 window.renderMath=function(container=document.body){
- if(!container||!hasMath(container))return Promise.resolve();
+ if(!container)return Promise.resolve();
+ window.AICLO_QUESTION_TABLES?.formatTablesInNode(container);
+ if(!hasMath(container))return Promise.resolve();
  queue=queue.then(async()=>{
   const math=window.MathJax?.typesetPromise?window.MathJax:await load();
   math.typesetClear?.([container]);
