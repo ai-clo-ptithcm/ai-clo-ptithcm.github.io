@@ -12,11 +12,14 @@ function addAllWorkSheet(wb,answerData,rooms){
   const cloPairs=clos.map((raw,i)=>({raw,label:cloDisplayName(raw,i)}));
   const headers=['Phòng / File','SBD','Mã đề',...Array.from({length:total},(_,i)=>`Câu ${i+1}`),'Số câu đúng','GPA',...cloPairs.map(x=>x.label)];
   ws.addRow(headers);styleSection(ws.getRow(1));
-  for(const room of rooms){
-    for(const s of room.untData.students||[]){
-      const row=[room.displayName||room.fileName,exportSbdValue(s.sbd),s.examCode,...(s.answers||[]).slice(0,total),s.result?.correct??null,s.result?.marks?.GPA??null,...cloPairs.map(c=>s.result?.marks?.[c.raw]??null)];
-      ws.addRow(row);
-    }
+  const entries=rooms.flatMap(room=>(room.untData.students||[]).map(s=>({room,s})));
+  entries.sort((a,b)=>{
+    const x=BigInt(String(a.s.sbd||'0')),y=BigInt(String(b.s.sbd||'0'));
+    return x<y?-1:x>y?1:0;
+  });
+  for(const {room,s} of entries){
+    const row=[room.displayName||room.fileName,exportSbdValue(s.sbd),s.examCode,...(s.answers||[]).slice(0,total),s.result?.correct??null,s.result?.marks?.GPA??null,...cloPairs.map(c=>s.result?.marks?.[c.raw]??null)];
+    ws.addRow(row);
   }
   ws.views=[{state:'frozen',xSplit:3,ySplit:1}];
   ws.getColumn(1).width=26;ws.getColumn(2).width=10;ws.getColumn(3).width=10;
@@ -26,7 +29,7 @@ function addAllWorkSheet(wb,answerData,rooms){
   return {ws,headers,clos,total,cloPairs};
 }
 
-function addBm33Sheet(wb,answerData,allInfo){
+function addBm33Sheet(wb,answerData,allInfo,review={}){
   const ws=wb.addWorksheet('BM33 - Báo cáo');
   const {headers,clos,cloPairs,total}=allInfo; const dataSheet="'Toàn bộ bài làm'"; const first=2,last=Math.max(2,allInfo.ws.rowCount);
   const idx=(name)=>headers.indexOf(name)+1;
@@ -59,7 +62,7 @@ function addBm33Sheet(wb,answerData,allInfo){
   r++;
 
   ws.getCell(r,1).value='2.1 Phân bố điểm thi theo xếp loại';ws.getCell(r,2).value='Số lượng';ws.getCell(r,3).value='Tỷ lệ';styleSection(ws.getRow(r));r++;
-  const cats=[['Yếu',`COUNTIF(${gpaRange},"<4")`],['Kém',`COUNTIFS(${gpaRange},">=4",${gpaRange},"<5")`],['Trung bình',`COUNTIFS(${gpaRange},">=5",${gpaRange},"<7")`],['Khá',`COUNTIFS(${gpaRange},">=7",${gpaRange},"<8")`],['Giỏi',`COUNTIFS(${gpaRange},">=8",${gpaRange},"<9")`],['Xuất sắc',`COUNTIF(${gpaRange},">=9")`]];
+  const cats=[['Kém',`COUNTIF(${gpaRange},"<4")`],['Yếu',`COUNTIFS(${gpaRange},">=4",${gpaRange},"<5")`],['Trung bình',`COUNTIFS(${gpaRange},">=5",${gpaRange},"<7")`],['Khá',`COUNTIFS(${gpaRange},">=7",${gpaRange},"<8")`],['Giỏi',`COUNTIFS(${gpaRange},">=8",${gpaRange},"<9")`],['Xuất sắc',`COUNTIF(${gpaRange},">=9")`]];
   const catStart=r;for(const [n,f] of cats){ws.getCell(r,1).value=n;ws.getCell(r,2).value={formula:f};ws.getCell(r,3).value={formula:`IFERROR(B${r}/COUNT(${gpaRange}),0)`};ws.getCell(r,3).numFmt='0.0%';r++}
   r++;
 
@@ -90,18 +93,84 @@ function addBm33Sheet(wb,answerData,allInfo){
   for(let rr=3;rr<=8;rr++){ws.getCell(rr,2).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFF7D6'}}}
   for(let rr=weightStart;rr<weightStart+clos.length+1;rr++){ws.getCell(rr,2).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFF7D6'}}}
   ws.views=[{state:'frozen',ySplit:1}];
+  applyBm33Review(ws,review);
   return ws;
 }
 
-export function buildReportWorkbook(answerData,rooms){
+function applyBm33Review(ws,review={}){
+  const notes=review.notes||{},meta=review.metadata||{},stats=review.stats||{};
+  const fieldRows={courseName:3,courseCode:4,credits:5,semester:6,teacher:7,department:8};
+  for(const [name,row] of Object.entries(fieldRows))if(meta[name])ws.getCell(row,2).value=String(meta[name]).slice(0,160);
+  const find=(label)=>{
+    for(let r=1;r<=ws.rowCount;r++)if(String(ws.getCell(r,1).value||'')===label)return r;
+    return -1;
+  };
+  const weights=review.weights||{};
+  const weightHeading=find('Tỷ trọng theo học phần (%) - giảng viên nhập');
+  if(weightHeading>0){
+    for(const [i,clo] of (stats.clos||[]).entries()){
+      if(Object.hasOwn(weights,clo.raw))ws.getCell(weightHeading+1+i,2).value=Number(weights[clo.raw]);
+    }
+    if(Object.hasOwn(weights,'GPA'))ws.getCell(weightHeading+1+(stats.clos||[]).length,2).value=Number(weights.GPA);
+  }
+  // The existing report has template placeholders. Fill only reviewed text cells.
+  const setNext=(heading,key,index=0)=>{
+    const r=find(heading);if(r>0 && notes[key])ws.getCell(r+1+index,2).value=String(notes[key]).slice(0,1800);
+  };
+  setNext('5. Nhận xét của giảng viên chấm thi/giảng dạy','alignment',0);
+  setNext('5. Nhận xét của giảng viên chấm thi/giảng dạy','coverage',1);
+  setNext('5. Nhận xét của giảng viên chấm thi/giảng dạy','incidents',2);
+  setNext('6. Khuyến nghị cải tiến','bank',0);
+  setNext('6. Khuyến nghị cải tiến','teaching',1);
+  setNext('6. Khuyến nghị cải tiến','curriculum',2);
+  const section3=find('3. Phân tích độ khó & độ phân hóa');
+  for(const [i,clo] of (stats.itemsByClo||[]).entries()){
+    const r=section3+1+i;if(section3<0||r>ws.rowCount)continue;
+    if(clo.rate!=null)ws.getCell(r,3).value=Number(clo.rate);
+    if(clo.rate!=null)ws.getCell(r,4).value=clo.rate>=.8?'Tương đối dễ':clo.rate<.3?'Tương đối khó':'Trung bình';
+    if(clo.discrimination!=null)ws.getCell(r,5).value=Number(clo.discrimination);
+    else ws.getCell(r,5).value='Chưa đủ mẫu';
+    if(notes.difficulty)ws.getCell(r,6).value=String(notes.difficulty).slice(0,1800);
+  }
+  const section4=find('4. Mức độ đạt chuẩn đầu ra (CLO)');
+  if(section4>0){
+    for(const [i,clo] of (stats.clos||[]).entries()){
+      if(clo.passRate!=null){
+        ws.getCell(section4+1+i,2).value=Number(clo.passRate);
+        ws.getCell(section4+1+i,2).numFmt='0.0%';
+      }
+      if(notes.clo)ws.getCell(section4+1+i,4).value=String(notes.clo).slice(0,1800);
+    }
+  }
+  const last=ws.rowCount+2;
+  ws.getCell(last,1).value='Lưu ý';
+  ws.getCell(last,2).value='Các nhận xét AI chỉ là gợi ý; giảng viên chịu trách nhiệm kiểm duyệt. Thống kê và điểm không do AI quyết định.';
+  ws.mergeCells(last,2,last,7);
+}
+
+function addItemAnalysis(wb,stats){
+  if(!Array.isArray(stats?.items)||!stats.items.length)return;
+  const ws=wb.addWorksheet('Phân tích câu hỏi');
+  ws.addRow(['Mã đề','Câu','CLO','Số bài','Số đúng','Tỷ lệ đúng','Độ phân hóa D']);
+  styleSection(ws.getRow(1));
+  for(const item of stats.items){
+    const row=ws.addRow([item.code,item.question,item.clo,item.responses,item.correct,item.rate,item.discrimination]);
+    row.getCell(6).numFmt='0.0%'; row.getCell(7).numFmt='0.000';
+  }
+  ws.columns=[{width:14},{width:10},{width:12},{width:14},{width:14},{width:18},{width:20}];
+  ws.views=[{state:'frozen',ySplit:1}];
+}
+
+export function buildReportWorkbook(answerData,rooms,review={}){
   const ExcelJS=getExcelJS(),wb=new ExcelJS.Workbook();wb.calcProperties={fullCalcOnLoad:true,forceFullCalc:true};
   addAnswerSheet(wb,answerData,{sheetName:'Đáp án'});
   const all=addAllWorkSheet(wb,answerData,rooms);
-  addBm33Sheet(wb,answerData,all);
+  addBm33Sheet(wb,answerData,all,review);
+  addItemAnalysis(wb,review.stats);
   return wb;
 }
 
-export async function exportReport(answerData,rooms){
-  const wb=buildReportWorkbook(answerData,rooms);
+export async function exportReport(answerData,rooms,review={}){
+  const wb=buildReportWorkbook(answerData,rooms,review);
   await saveWorkbook(wb,'Bao-cao-phan-tich-ket-qua-thi.xlsx');
 }

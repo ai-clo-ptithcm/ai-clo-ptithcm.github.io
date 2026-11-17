@@ -10,6 +10,7 @@
   <title>Chấm thi CLO | AI-CLO PTITHCM</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/ai-clo-theme.css">
+  <link rel="stylesheet" href="css/report-preview.css?v=1.9.0">
   <link rel="stylesheet" href="css/ai-clo-info-shell-v2.css?v=1.8.2">
   <link rel="stylesheet" href="../../css/public-shell.css?v=1.0.0">
   <link rel="stylesheet" href="../../css/ai-chat.css">
@@ -43,14 +44,58 @@
         <div class="primary-action"><button id="btnProcess"><span>Đọc dữ liệu và chấm bài</span></button><p>Câu bỏ trống hoặc chọn nhiều đáp án được tính sai, không xem là lỗi hệ thống.</p></div>
         <section class="result-section" aria-live="polite"><div id="result"></div></section>
         <section class="log-panel"><div class="log-head"><div><span class="section-kicker">NHẬT KÝ XỬ LÝ</span><h2>Log hệ thống</h2></div><div><button id="btnCopyLog" class="secondary-action">Sao chép log</button> <button id="btnClearLog" class="secondary-action">Xóa log</button></div></div><div id="logBox" class="log-box"></div></section>
-        <section class="export-panel"><div><span class="section-kicker">XUẤT KẾT QUẢ</span><h2>3 file Excel</h2><p>Bảng điểm phách • Bảng điểm chi tiết • Báo cáo tổng hợp BM33.</p></div><div class="export-actions export-actions--three"><button id="btnExportMark" disabled>Xuất bảng điểm phách</button><button id="btnExportDetail" disabled>Xuất bảng điểm chi tiết</button><button id="btnExportReport" disabled>Xuất báo cáo</button></div></section>
+        <section class="export-panel"><div><span class="section-kicker">XUẤT KẾT QUẢ</span><h2>3 file Excel</h2><p>Bảng điểm phách • Bảng điểm chi tiết • Báo cáo tổng hợp BM33.</p></div><div class="export-actions export-actions--three"><button id="btnExportMark" disabled>Xuất bảng điểm phách</button><button id="btnExportDetail" disabled>Xuất bảng điểm chi tiết</button><button id="btnExportReport" disabled>Xem / xuất BM33</button></div></section>
       </section>
     </main>
   </div>
   <footer data-public-footer></footer>
 </div>
+
+<dialog id="reportPreviewDialog" aria-labelledby="bm33DialogTitle">
+ <div class="bm33-dialog-head">
+  <div><small>EXAM-CLO · BM33</small><h2 id="bm33DialogTitle">Báo cáo phân tích kết quả thi</h2></div>
+  <button type="button" id="bm33Close" aria-label="Đóng báo cáo">Đóng ×</button>
+ </div>
+ <div class="bm33-dialog-body" tabindex="-1">
+  <section><h3>Thông tin học phần (giảng viên nhập)</h3>
+   <div class="bm33-metadata">
+    <label>Tên học phần<input id="bm33Meta-courseName" maxlength="160" placeholder="Tên học phần"></label>
+    <label>Mã học phần<input id="bm33Meta-courseCode" maxlength="50"></label>
+    <label>Số tín chỉ<input id="bm33Meta-credits" maxlength="12"></label>
+    <label>Học kỳ / Năm học<input id="bm33Meta-semester" maxlength="80"></label>
+    <label>Giảng viên phụ trách<input id="bm33Meta-teacher" maxlength="160"></label>
+    <label>Khoa / Bộ môn<input id="bm33Meta-department" maxlength="160"></label>
+   </div>
+  </section>
+  <section><h3>Tỷ trọng CLO/GPA theo học phần (không bắt buộc)</h3><div class="bm33-metadata" id="bm33Weights"></div>
+   <p class="bm33-data-note">Để trống nếu chưa có tỷ trọng quy định; các giá trị nhập được đưa vào BM33 Excel.</p></section>
+  <section><h3>1. Thống kê kết quả thi</h3><div id="bm33Summary"></div>
+   <p class="bm33-data-note">Tỷ lệ đạt điểm theo ngưỡng 4,0/10; tỷ lệ sinh viên đạt chuẩn CLO yêu cầu 70% — kiểm tra quy định học phần trước khi dùng chính thức.</p></section>
+  <div class="bm33-two-cols">
+   <section><h3>2.1. Phân bố điểm</h3><div class="bm33-table-wrap"><table><thead><tr><th>Khoảng điểm</th><th>Số bài</th><th>Tỷ lệ</th></tr></thead><tbody id="bm33Bands"></tbody></table></div></section>
+   <section><h3>2.2. Mức độ đạt CLO</h3><div class="bm33-table-wrap"><table><thead><tr><th>CLO</th><th>Điểm TB</th><th>Tỷ lệ ≥ 4</th><th>Đánh giá</th></tr></thead><tbody id="bm33Clo"></tbody></table></div></section>
+  </div>
+  <section><h3>3. Phân tích độ khó và độ phân hóa theo mã đề</h3><p class="bm33-data-note" id="bm33QuestionCount"></p>
+   <div class="bm33-table-wrap"><table><thead><tr><th>Mã đề / Câu</th><th>CLO</th><th>Tỷ lệ đúng</th><th>Phân hóa D</th></tr></thead><tbody id="bm33Questions"></tbody></table></div>
+   <p class="bm33-data-note">D = tỷ lệ làm đúng nhóm điểm cao 27% trừ nhóm điểm thấp 27%, tính trong từng mã đề; chỉ có khi mã đề đủ tối thiểu 12 bài. Cần đối chiếu nội dung câu hỏi trước khi kết luận.</p>
+  </section>
+  <section><h3>4–6. Nhận xét, đánh giá và khuyến nghị</h3>
+   <p>Thống kê tính tại trình duyệt. AI chỉ tạo gợi ý khi giảng viên bấm nút. Có thể sửa tất cả nhận xét trước khi xuất Excel.</p>
+   <label class="bm33-note-field">Thông tin đề cương cho AI đối chiếu (không bắt buộc)
+    <textarea id="bm33CourseContext" rows="2" maxlength="2000" placeholder="Dán tóm tắt đề cương, mục tiêu học phần; không nhập tên hoặc thông tin định danh sinh viên."></textarea></label>
+   <div id="bm33Notes" class="bm33-notes"></div>
+  </section>
+  <div id="bm33AiStatus" role="status" aria-live="polite"></div>
+ </div>
+ <div class="bm33-dialog-actions">
+  <button type="button" id="bm33AiAnalyze">✦ Phân tích bằng AI</button>
+  <button type="button" class="bm33-primary" id="bm33Download">Xuất BM33 Excel</button>
+ </div>
+</dialog>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="../../js/config.js" defer></script>
 <script src="libs/xlsx.full.min.js"></script>
 <script src="libs/exceljs.min.js"></script>
-<script type="module" src="js/app.js?v=1.8.2"></script>
+<script type="module" src="js/app.js?v=1.9.0"></script>
 </body>
 </html>

@@ -9,6 +9,7 @@ import { calculateAllScores } from './score.js';
 import { parseExamOfficeWorkbook, suggestOfficeSheet } from './examOffice.js';
 import { exportMarkMulti, exportDetailMulti } from './exportMulti.js';
 import { exportReport } from './exportReport.js';
+import { openReportPreview } from './reportPreview.js';
 import { initLog, addLog, clearLog, getLogText } from './log.js';
 import { buildAnswerDataFromDirect, storeFromAnswerData } from './directAnswer.js';
 import { createDirectAnswerGrid } from './directAnswerGrid.js';
@@ -167,6 +168,14 @@ btnProcess?.addEventListener('click',async()=>{
 
 btnMark?.addEventListener('click',async()=>{try{btnMark.disabled=true;addLog('Đang xuất Bảng điểm phách...','info');await exportMarkMulti(state.answerData,state.rooms,state.officeTemplateBuffer);addLog('Đã xuất Bảng điểm phách (có sheet Đáp án).')}catch(e){alert(e.message);addLog(e.message,'error')}finally{btnMark.disabled=false}});
 btnDetail?.addEventListener('click',async()=>{try{btnDetail.disabled=true;addLog('Đang xuất Bảng điểm chi tiết...','info');await exportDetailMulti(state.answerData,state.rooms,state.officeTemplateBuffer);addLog('Đã xuất Bảng điểm chi tiết.')}catch(e){alert(e.message);addLog(e.message,'error')}finally{btnDetail.disabled=false}});
-btnReport?.addEventListener('click',async()=>{try{btnReport.disabled=true;addLog('Đang xuất file Báo cáo...','info');await exportReport(state.answerData,state.rooms);addLog('Đã xuất Báo cáo: Đáp án + Toàn bộ bài làm + BM33 - Báo cáo.')}catch(e){alert(e.message);addLog(e.message,'error')}finally{btnReport.disabled=false}});
+btnReport?.addEventListener('click',()=>{
+ try{
+  if(!state.rooms.length||!state.answerData)throw new Error('Cần chấm bài trước khi xem BM33.');
+  openReportPreview({answerData:state.answerData,rooms:state.rooms,
+    onExport:(review)=>exportReport(state.answerData,state.rooms,review),
+    onLog:(message,level)=>addLog(message,level||'info')});
+  addLog('Đã mở cửa sổ xem trước BM33. Chỉ gọi AI khi giảng viên yêu cầu.');
+ }catch(e){alert(e.message);addLog(e.message,'error')}
+});
 
 syncAnswerModeUi();

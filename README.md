@@ -6,7 +6,7 @@ AI-CLO PTITHCM là hệ thống web hỗ trợ quản lý học phần, ngân h�
 
 ## Giấy phép và quyền sử dụng mã nguồn
 
-**Proprietary — All Rights Reserved (Bảo lưu mọi quyền).** AI-CLO PTITHCM không cấp phép cho bên thứ ba tự ý sao chép, sửa đổi, phát hành lại hoặc triển khai mã nguồn thuộc quyền sở hữu của dự án. Xem [`LICENSE.md`](LICENSE.md).
+**GNU GPL-2.0-or-later** đối với mã nguồn gốc thuộc phạm vi giấy phép; được quyền sử dụng, chỉnh sửa và phân phối lại theo các điều kiện của GPL v2 hoặc phiên bản mới hơn. Xem [`LICENSE.md`](LICENSE.md). Giấy phép không tự động cấp quyền đối với dữ liệu người dùng, bí mật hệ thống, nhãn hiệu hay tài sản thuộc bên thứ ba.
 
 Ngoại lệ: các thành phần có giấy phép riêng và các quyền đã được cấp hợp lệ tiếp tục được tôn trọng. Riêng [`tools/exam-shuffler/`](tools/exam-shuffler/LICENCE.MD) có giấy phép MIT. Việc sử dụng website chính thức của người dùng khác với quyền sử dụng lại mã nguồn.
 
@@ -185,9 +185,23 @@ Thay code Function trên GitHub không đồng nghĩa Supabase đã redeploy Fun
 
 Schema/RPC/RLS thay đổi phải có migration rõ ràng. Frontend-only phải nói rõ không cần thao tác Supabase.
 
-## Công cụ Chấm thi CLO
+## Công cụ Chấm thi CLO — EXAM-CLO BM33 v1.9
 
-`/cham-thi-clo/` là công cụ public độc lập, không yêu cầu đăng nhập. Luồng này không được trộn với Assessment online của AI-CLO.
+Công cụ public tại [`tools/cham-thi-clo/`](tools/cham-thi-clo/index.html) độc lập với Assessment online. Người dùng không cần đăng nhập để chấm, xem thống kê hoặc xuất file Excel.
+
+- Đọc một hoặc nhiều file UnT, một bộ đáp án + CLO, file khảo thí tùy chọn; vẫn kiểm tra SBD, mã đề và cho sửa dữ liệu trước khi chấm. **Không thay đổi thuật toán chấm điểm.**
+- Xuất Bảng điểm phách và Bảng điểm chi tiết như trước, nhưng sắp xếp SBD **tăng dần theo giá trị số** trong từng phòng; vẫn giữ các dòng phách vắng mặt khi có danh sách khảo thí.
+- Nút **Xem / xuất BM33** mở cửa sổ xem trước: tổng số bài, GPA, phân bố điểm, tỷ lệ đạt CLO, độ khó và độ phân hóa câu hỏi theo **từng mã đề**. Nhận xét có thể chỉnh trước khi xuất.
+- **Phân tích bằng AI** chỉ chạy khi người dùng chủ động bấm nút. Gửi **thống kê tổng hợp ẩn danh**, không gửi SBD, tên hoặc bài làm của sinh viên. Chỉ tài khoản giảng viên/quản trị viên đăng nhập mới dùng AI; không đăng nhập vẫn xuất thủ công bình thường.
+- AI viết gợi ý cho nhận xét/khuyến nghị BM33; **giảng viên kiểm duyệt** trước khi xuất. AI không quyết định điểm, không tự khẳng định có sự cố thi hay đề thi phù hợp với đề cương khi thiếu thông tin.
+- Xuất `Bao-cao-phan-tich-ket-qua-thi.xlsx` gồm sheet Đáp án, Toàn bộ bài làm, BM33 - Báo cáo và sheet phân tích từng nhóm câu hỏi/mã đề (nếu có).
+- Ngưỡng điểm đạt mặc định **4,0/10**, tỷ lệ sinh viên đạt CLO mặc định **70%**. Các ngưỡng phải được đối chiếu với quy định học phần/đơn vị trước khi dùng kết quả chính thức. Mức xếp loại Kém (`<4`) và Yếu (`4–<5`) đã được sửa lại theo thứ tự thông thường.
+
+**Source chính:** `tools/cham-thi-clo/js/reportPreview.js`, `exportMulti.js`, `exportReport.js`, `css/report-preview.css`.
+
+**Backend AI:** `supabase/functions/bm33-ai/index.ts`. Edge Function này tách biệt khỏi `analyze-assessment` (Assessment online); triển khai trên **project `rraooqedkpyhokattwdz`, organization `mefpbfoxonywucvftgqg`**. Cấu hình `verify_jwt=true` và secret `GEMINI_API_KEY` hoặc `GEMINI_LIVE_API_KEY`. Phải **deploy Edge Function lên Supabase**, vì GitHub chỉ lưu source. Có guard role giảng viên/quản trị, giới hạn tối đa 5 lượt/5 phút/người trong một instance (không thay thế rate-limit tập trung).
+
+Cần kiểm thử nghiệp vụ trên mẫu UnT/khảo thí thực tế trước khi đưa BM33 vào hồ sơ chính thức.
 
 ## Tài liệu cần đọc trước khi sửa dự án
 
