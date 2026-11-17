@@ -102,6 +102,14 @@ function applyBm33Review(ws,review={}){
     for(let r=1;r<=ws.rowCount;r++)if(String(ws.getCell(r,1).value||'')===label)return r;
     return -1;
   };
+  const weights=review.weights||{};
+  const weightHeading=find('Tỷ trọng theo học phần (%) - giảng viên nhập');
+  if(weightHeading>0){
+    for(const [i,clo] of (stats.clos||[]).entries()){
+      if(Object.hasOwn(weights,clo.raw))ws.getCell(weightHeading+1+i,2).value=Number(weights[clo.raw]);
+    }
+    if(Object.hasOwn(weights,'GPA'))ws.getCell(weightHeading+1+(stats.clos||[]).length,2).value=Number(weights.GPA);
+  }
   // The existing report has template placeholders. Fill only reviewed text cells.
   const setNext=(heading,key,index=0)=>{
     const r=find(heading);if(r>0 && notes[key])ws.getCell(r+1+index,2).value=String(notes[key]).slice(0,1800);
