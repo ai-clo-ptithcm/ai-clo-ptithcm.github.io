@@ -18,3 +18,12 @@ Bổ sung V1.9.1 (17/11/2026)
 - Tách rõ các mục 3, 4, 5 và 6 trên cửa sổ xem trước; mỗi mục có nhận xét có thể chỉnh trước khi xuất.
 - Sheet BM33 lưu nhận xét từng mục tại vị trí tương ứng, vẫn giữ các công thức thống kê.
 - Chỉ truyền thống kê tổng hợp ẩn danh đến Gemini; không gửi danh sách SBD/bài làm.
+
+Bổ sung V1.10 (17/11/2026)
+- Trong bước xác nhận SBD, Gemini đọc ảnh từ cuối lên; giảng viên có thể nhập từ đầu xuống song song.
+- Giữ ảnh từng dòng, nhấp để xem lớn; mọi số phách và mã đề đều sửa được, kể cả dòng AI đọc.
+- Gemini chỉ đề xuất; giảng viên duyệt từng dòng hoặc duyệt các gợi ý đã kiểm tra; không ghi đè ô người dùng nhập/focus.
+- Mỗi lô tối đa 4 ảnh, song song 2 lô; client timeout 22 giây; Edge Function timeout 17,5 giây.
+- Một lô lỗi không làm mất các gợi ý đã đọc; có Dừng AI, chạy lại và nhập thủ công.
+- Edge Function recognize-phach-batch chỉ nhận ảnh/số dòng, không nhận tên hay đáp án, không lưu ảnh.
+- Thuật toán chấm và ba nút xuất Excel giữ nguyên.
