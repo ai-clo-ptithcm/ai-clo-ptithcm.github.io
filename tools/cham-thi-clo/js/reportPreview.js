@@ -2,6 +2,8 @@
 import { orderedCloList, cloDisplayName } from './exportCommon.js';
 
 const NOTE_FIELDS = [
+  ['statistics','1. Nhận xét về thống kê điểm thi'],
+  ['distribution','2.1. Nhận xét về phân bố điểm thi'],
   ['difficulty','Độ khó và độ phân hóa'],
   ['clo','Mức độ đạt các CLO'],
   ['alignment','Mức độ phù hợp với đề cương'],
@@ -115,7 +117,10 @@ function noteUI(){
     const textarea=document.createElement('textarea');textarea.id='bm33Note-'+key;
     textarea.rows=3;textarea.maxLength=1800;textarea.placeholder=key==='incidents'?
       'Chỉ giảng viên ghi nhận sự cố thực tế (nếu có)':'Có thể sửa nhận xét hoặc yêu cầu AI gợi ý';
-    label.append(name,textarea);wrap.append(label);
+    label.append(name,textarea);
+    const host=key==='statistics' ? $('bm33NoteStatisticsHost') :
+      key==='distribution' ? $('bm33NoteDistributionHost') : wrap;
+    host.append(label);
   });
 }
 function safeStatsForAi(stats){
