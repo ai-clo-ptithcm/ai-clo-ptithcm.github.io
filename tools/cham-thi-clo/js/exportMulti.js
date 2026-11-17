@@ -83,11 +83,11 @@ async function loadOfficeWorkbook(buffer){
 // Compare SBD as integers; retain original rows when equal (stable Array.sort).
 export function compareSbdAscending(a,b){
   const sa=String(a?.sbd??'').trim(),sb=String(b?.sbd??'').trim();
-  if(/^\\d+$/.test(sa)&&/^\\d+$/.test(sb)){
+  if(/^\d+$/.test(sa)&&/^\d+$/.test(sb)){
     const x=BigInt(sa),y=BigInt(sb);return x<y?-1:x>y?1:0;
   }
-  if(/^\\d+$/.test(sa))return -1;
-  if(/^\\d+$/.test(sb))return 1;
+  if(/^\d+$/.test(sa))return -1;
+  if(/^\d+$/.test(sb))return 1;
   return sa.localeCompare(sb,'vi',{numeric:true});
 }
 
