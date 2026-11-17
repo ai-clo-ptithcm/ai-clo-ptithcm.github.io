@@ -157,7 +157,7 @@ export function reviewAllSbd({container,students,imageMap=null,title='Kiểm tra
           for(const item of batch){
             const i=item.i,input=inputs[i];
             // Recheck at the moment a result arrives: never overwrite teacher or existing values.
-            if(input.value.trim()||input.dataset.source==='human'||input.dataset.source==='existing')continue;
+            if(input.value.trim()||input.dataset.source==='human'||input.dataset.source==='existing'||document.activeElement===input)continue;
             const value=found.get(item.row)||'';
             if(valid(value)){
               input.value=value;input.dataset.source='ai';
