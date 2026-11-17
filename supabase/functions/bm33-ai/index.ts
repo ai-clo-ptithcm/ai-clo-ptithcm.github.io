@@ -57,7 +57,9 @@ Deno.serve(async(req:Request)=>{
       'Không suy diễn các mã đề có câu hỏi số thứ tự giống nhau là cùng nội dung.',
       'Khi không có đề cương, trường alignment bắt buộc nói chưa đủ cơ sở kết luận mức độ phù hợp.',
       'Không viết tên sinh viên, SBD, đáp án, không đưa ra quyết định thay giảng viên.',
-      'Trả về JSON object gồm các trường string difficulty, clo, alignment, coverage, bank, teaching, curriculum.',
+      'Nhận xét statistics cho mục 1 nêu đúng số bài, điểm trung bình, cao nhất/thấp nhất và tỷ lệ đạt; không suy diễn nguyên nhân.',
+      'Nhận xét distribution cho mục 2.1 dựa chính xác trên 6 khoảng điểm (count từng khoảng), xác định nhóm đông nhất, tránh suy diễn phân phối chuẩn nếu chưa kiểm định.',
+      'Trả về JSON object gồm các trường string statistics, distribution, difficulty, clo, alignment, coverage, bank, teaching, curriculum.',
       'Mỗi trường 1-3 câu có số liệu khi thích hợp, đánh giá khách quan, nêu đề xuất cải tiến.'
     ].join('\n');
     const context=short(request.context,2000);
@@ -70,7 +72,7 @@ Deno.serve(async(req:Request)=>{
     if(!gemini.ok)return json({success:false,error:'Gemini hiện không khả dụng (HTTP '+gemini.status+').'},502,origin);
     const output=(result.candidates?.[0]?.content?.parts||[]).map((p:any)=>p.text||'').join('');
     const parsed=JSON.parse(output);
-    const fields=['difficulty','clo','alignment','coverage','bank','teaching','curriculum'];
+    const fields=['statistics','distribution','difficulty','clo','alignment','coverage','bank','teaching','curriculum'];
     const analysis=Object.fromEntries(fields.map(k=>[k,short(parsed[k],1600)]));
     if(!fields.some(k=>analysis[k]))throw new Error('AI trả về JSON rỗng.');
     return json({success:true,analysis,model},200,origin);
