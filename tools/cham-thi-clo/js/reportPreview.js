@@ -83,6 +83,26 @@ function renderStats(stats){
   if(!stats.items.length)row(q,['Không có câu hỏi','—','—','—']);
   $('bm33QuestionCount').textContent='Hiển thị 25 câu có tỷ lệ đúng thấp nhất (nếu có); xuất Excel chứa toàn bộ '+stats.items.length+' nhóm câu theo mã đề.';
 }
+function renderWeights(stats){
+  const box=$('bm33Weights');clear(box);
+  const fields=[...stats.clos.map(c=>({key:c.raw,label:c.label})),{key:'GPA',label:'GPA'}];
+  fields.forEach(field=>{
+    const label=document.createElement('label');label.textContent=field.label+' (%)';
+    const input=document.createElement('input');input.type='number';input.min='0';input.max='100';input.step='0.1';
+    input.dataset.weightKey=field.key;input.placeholder='Để trống nếu chưa có';
+    label.append(input);box.append(label);
+  });
+}
+function getWeights(){
+  const out=Object.create(null);
+  for(const input of $('bm33Weights').querySelectorAll('input')){
+    if(input.value.trim()==='')continue;
+    const n=Number(input.value);
+    if(!Number.isFinite(n)||n<0||n>100)throw new Error('Tỷ trọng CLO/GPA phải nằm trong khoảng 0–100%.');
+    out[input.dataset.weightKey]=n;
+  }
+  return out;
+}
 function getNotes(){return Object.fromEntries(NOTE_FIELDS.map(([key])=>[key,$('bm33Note-'+key).value.trim()]))}
 function getMetadata(){return Object.fromEntries(['courseName','courseCode','credits','semester','teacher','department']
   .map(k=>[k,$('bm33Meta-'+k).value.trim()]))}
@@ -142,12 +162,12 @@ export function openReportPreview({answerData,rooms,onExport,onLog}){
   NOTE_FIELDS.forEach(([key])=>{$('bm33Note-'+key).value=''});
   const passScore=4,target=70;
   const stats=summarizeBm33(answerData,rooms,passScore,target);
-  renderStats(stats);$('bm33AiStatus').textContent='AI chỉ phân tích khi giảng viên bấm nút. Báo cáo đã có thống kê ngay cả khi không dùng AI.';
+  renderStats(stats);renderWeights(stats);$('bm33AiStatus').textContent='AI chỉ phân tích khi giảng viên bấm nút. Báo cáo đã có thống kê ngay cả khi không dùng AI.';
   $('bm33AiAnalyze').onclick=()=>aiAnalyze(stats);
   $('bm33Close').onclick=()=>dialog.close();
   $('bm33Download').onclick=async()=>{
     const button=$('bm33Download');button.disabled=true;
-    try{await onExport({metadata:getMetadata(),notes:getNotes(),stats});
+    try{await onExport({metadata:getMetadata(),notes:getNotes(),weights:getWeights(),stats});
       onLog?.('Đã xuất BM33 từ cửa sổ xem trước.');dialog.close();
     }catch(e){$('bm33AiStatus').textContent='Lỗi xuất Excel: '+e.message;onLog?.(e.message,'error')}
     finally{button.disabled=false}
