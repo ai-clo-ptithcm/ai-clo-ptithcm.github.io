@@ -81,12 +81,16 @@ function addBm33Sheet(wb,answerData,allInfo,review={}){
   ws.getCell(r,1).value='Điều kiện đạt các mức CLO';ws.getCell(r,2).value='Mức 0: <4';ws.getCell(r,3).value='Mức 1: 4–<5.5';ws.getCell(r,4).value='Mức 2: 5.5–<7';ws.getCell(r,5).value='Mức 3: 7–<8.5';ws.getCell(r,6).value='Mức 4: ≥8.5';styleSection(ws.getRow(r));r+=2;
 
   ws.getCell(r,1).value='3. Phân tích độ khó & độ phân hóa';ws.getCell(r,2).value='CLO';ws.getCell(r,3).value='Tỷ lệ trả lời đúng / đạt (%)';ws.getCell(r,4).value='Độ khó';ws.getCell(r,5).value='Độ phân hóa';ws.getCell(r,6).value='Nhận xét';styleSection(ws.getRow(r));r++;
-  for(const pair of cloPairs){const clo=pair.label; const c=colLetter(idx(clo)),range=`${dataSheet}!$${c}$${first}:$${c}$${last}`;ws.getCell(r,1).value='...';ws.getCell(r,2).value=clo;ws.getCell(r,3).value={formula:`IFERROR(AVERAGE(${range})/10,0)`};ws.getCell(r,3).numFmt='0.0%';ws.getCell(r,4).value='...';ws.getCell(r,5).value='...';ws.getCell(r,6).value='...';r++}
-  r++;
+  for(const pair of cloPairs){const clo=pair.label; const c=colLetter(idx(clo)),range=`${dataSheet}!${c}${first}:${c}${last}`;ws.getCell(r,1).value='...';ws.getCell(r,2).value=clo;ws.getCell(r,3).value={formula:`IFERROR(AVERAGE(${range})/10,0)`};ws.getCell(r,3).numFmt='0.0%';ws.getCell(r,4).value='...';ws.getCell(r,5).value='...';ws.getCell(r,6).value='';r++}
+  ws.getCell(r,1).value='Nhận xét mục 3';
+  ws.getCell(r,2).value=String(review.notes?.difficulty||'...').slice(0,1800);
+  ws.mergeCells(r,2,r,7);ws.getRow(r).height=75;r+=2;
 
   ws.getCell(r,1).value='4. Mức độ đạt chuẩn đầu ra (CLO)';ws.getCell(r,2).value='Tỷ lệ SV đạt (%)';ws.getCell(r,3).value='Mức độ đạt yêu cầu (≥70%)';ws.getCell(r,4).value='Nhận xét';styleSection(ws.getRow(r));r++;
-  for(const pair of cloPairs){const clo=pair.label; const c=colLetter(idx(clo)),range=`${dataSheet}!$${c}$${first}:$${c}$${last}`;ws.getCell(r,1).value=clo;ws.getCell(r,2).value={formula:`IFERROR(COUNTIF(${range},">=4")/COUNT(${range}),0)`};ws.getCell(r,2).numFmt='0.0%';ws.getCell(r,3).value={formula:`IF(B${r}>=70%,"Đạt","Chưa đạt")`};ws.getCell(r,4).value='...';r++}
-  r++;
+  for(const pair of cloPairs){const clo=pair.label; const c=colLetter(idx(clo)),range=`${dataSheet}!${c}${first}:${c}${last}`;ws.getCell(r,1).value=clo;ws.getCell(r,2).value={formula:`IFERROR(COUNTIF(${range},">=4")/COUNT(${range}),0)`};ws.getCell(r,2).numFmt='0.0%';ws.getCell(r,3).value={formula:`IF(B${r}>=70%,"Đạt","Chưa đạt")`};ws.getCell(r,4).value='';r++}
+  ws.getCell(r,1).value='Nhận xét mục 4';
+  ws.getCell(r,2).value=String(review.notes?.clo||'...').slice(0,1800);
+  ws.mergeCells(r,2,r,7);ws.getRow(r).height=75;r+=2;
   ws.getCell(r,1).value='5. Nhận xét của giảng viên chấm thi/giảng dạy';styleSection(ws.getRow(r));r++;
   ['Mức độ phù hợp giữa đề thi và đề cương học phần','Tính phân hóa, bao quát nội dung','Tình huống phát sinh trong thi/chấm thi'].forEach(t=>{ws.getCell(r,1).value=t;ws.getCell(r,2).value='...';ws.mergeCells(r,2,r,7);r++});
   r++;
@@ -161,7 +165,7 @@ function applyBm33Review(ws,review={}){
     if(clo.rate!=null)ws.getCell(r,4).value=clo.rate>=.8?'Tương đối dễ':clo.rate<.3?'Tương đối khó':'Trung bình';
     if(clo.discrimination!=null)ws.getCell(r,5).value=Number(clo.discrimination);
     else ws.getCell(r,5).value='Chưa đủ mẫu';
-    if(notes.difficulty)ws.getCell(r,6).value=String(notes.difficulty).slice(0,1800);
+
   }
   const section4=find('4. Mức độ đạt chuẩn đầu ra (CLO)');
   if(section4>0){
@@ -170,8 +174,17 @@ function applyBm33Review(ws,review={}){
         ws.getCell(section4+1+i,2).value=Number(clo.passRate);
         ws.getCell(section4+1+i,2).numFmt='0.0%';
       }
-      if(notes.clo)ws.getCell(section4+1+i,4).value=String(notes.clo).slice(0,1800);
+
     }
+  }
+  for(const title of [
+    'Mức độ phù hợp giữa đề thi và đề cương học phần',
+    'Tính phân hóa, bao quát nội dung',
+    'Tình huống phát sinh trong thi/chấm thi',
+    'Đối với ngân hàng đề thi','Đối với giảng dạy học phần','Đối với chương trình đào tạo'
+  ]){
+    const r=find(title);
+    if(r>0 && String(ws.getCell(r,2).value??'').trim()!=='...')ws.getRow(r).height=70;
   }
   const last=ws.rowCount+2;
   ws.getCell(last,1).value='Lưu ý';
