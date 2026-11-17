@@ -29,6 +29,17 @@ function addAllWorkSheet(wb,answerData,rooms){
   return {ws,headers,clos,total,cloPairs};
 }
 
+function addSectionNarrative(ws,row,label,value){
+  ws.getCell(row,1).value=label;
+  ws.getCell(row,2).value=String(value||'...').slice(0,1800);
+  ws.mergeCells(row,2,row,7);
+  const cell=ws.getCell(row,2);
+  cell.alignment={vertical:'top',wrapText:true};
+  cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF8FAFD'}};
+  ws.getRow(row).height=value?Math.min(105,Math.max(44,Math.ceil(String(value).length/105)*17+12)):30;
+  return row+1;
+}
+
 function addBm33Sheet(wb,answerData,allInfo,review={}){
   const ws=wb.addWorksheet('BM33 - Báo cáo');
   const {headers,clos,cloPairs,total}=allInfo; const dataSheet="'Toàn bộ bài làm'"; const first=2,last=Math.max(2,allInfo.ws.rowCount);
@@ -59,11 +70,13 @@ function addBm33Sheet(wb,answerData,allInfo,review={}){
     ['Tỷ lệ không đạt (<4.0/10)',{formula:`IFERROR(COUNTIF(${gpaRange},"<4")/COUNT(${gpaRange}),0)`}]
   ];
   for(const [k,v] of stats){ws.getCell(r,1).value=k;ws.getCell(r,2).value=v;if(String(k).startsWith('Tỷ lệ')) ws.getCell(r,2).numFmt='0.0%';else if(k!=='Số sinh viên dự thi') ws.getCell(r,2).numFmt='0.0';r++}
+  r=addSectionNarrative(ws,r,'Nhận xét mục 1',review.notes?.statistics);
   r++;
 
   ws.getCell(r,1).value='2.1 Phân bố điểm thi theo xếp loại';ws.getCell(r,2).value='Số lượng';ws.getCell(r,3).value='Tỷ lệ';styleSection(ws.getRow(r));r++;
   const cats=[['Kém',`COUNTIF(${gpaRange},"<4")`],['Yếu',`COUNTIFS(${gpaRange},">=4",${gpaRange},"<5")`],['Trung bình',`COUNTIFS(${gpaRange},">=5",${gpaRange},"<7")`],['Khá',`COUNTIFS(${gpaRange},">=7",${gpaRange},"<8")`],['Giỏi',`COUNTIFS(${gpaRange},">=8",${gpaRange},"<9")`],['Xuất sắc',`COUNTIF(${gpaRange},">=9")`]];
   const catStart=r;for(const [n,f] of cats){ws.getCell(r,1).value=n;ws.getCell(r,2).value={formula:f};ws.getCell(r,3).value={formula:`IFERROR(B${r}/COUNT(${gpaRange}),0)`};ws.getCell(r,3).numFmt='0.0%';r++}
+  r=addSectionNarrative(ws,r,'Nhận xét mục 2.1',review.notes?.distribution);
   r++;
 
   ws.getCell(r,1).value='2.2 Thống kê mức đạt theo CLO';for(let i=0;i<5;i++)ws.getCell(r,i+2).value=`Mức ${i}`;styleSection(ws.getRow(r));r++;
@@ -72,25 +85,17 @@ function addBm33Sheet(wb,answerData,allInfo,review={}){
     const fs=[`COUNTIF(${range},"<4")`,`COUNTIFS(${range},">=4",${range},"<5.5")`,`COUNTIFS(${range},">=5.5",${range},"<7")`,`COUNTIFS(${range},">=7",${range},"<8.5")`,`COUNTIF(${range},">=8.5")`];
     fs.forEach((f,i)=>ws.getCell(r,i+2).value={formula:`IFERROR(${f}/COUNT(${range}),0)`});for(let i=2;i<=6;i++)ws.getCell(r,i).numFmt='0.0%';r++;
   }
-  ws.getCell(r,1).value='Nhận xét mục 2.2';
-  ws.getCell(r,2).value=String(review.notes?.cloLevels||'...').slice(0,1800);
-  ws.mergeCells(r,2,r,7);
-  ws.getRow(r).height=72;
-  ws.getCell(r,2).alignment={vertical:'top',wrapText:true};
-  r+=2;
+  r=addSectionNarrative(ws,r,'Nhận xét mục 2.2',review.notes?.cloLevels);
+  r++;
   ws.getCell(r,1).value='Điều kiện đạt các mức CLO';ws.getCell(r,2).value='Mức 0: <4';ws.getCell(r,3).value='Mức 1: 4–<5.5';ws.getCell(r,4).value='Mức 2: 5.5–<7';ws.getCell(r,5).value='Mức 3: 7–<8.5';ws.getCell(r,6).value='Mức 4: ≥8.5';styleSection(ws.getRow(r));r+=2;
 
   ws.getCell(r,1).value='3. Phân tích độ khó & độ phân hóa';ws.getCell(r,2).value='CLO';ws.getCell(r,3).value='Tỷ lệ trả lời đúng / đạt (%)';ws.getCell(r,4).value='Độ khó';ws.getCell(r,5).value='Độ phân hóa';ws.getCell(r,6).value='Nhận xét';styleSection(ws.getRow(r));r++;
-  for(const pair of cloPairs){const clo=pair.label; const c=colLetter(idx(clo)),range=`${dataSheet}!${c}${first}:${c}${last}`;ws.getCell(r,1).value='...';ws.getCell(r,2).value=clo;ws.getCell(r,3).value={formula:`IFERROR(AVERAGE(${range})/10,0)`};ws.getCell(r,3).numFmt='0.0%';ws.getCell(r,4).value='...';ws.getCell(r,5).value='...';ws.getCell(r,6).value='';r++}
-  ws.getCell(r,1).value='Nhận xét mục 3';
-  ws.getCell(r,2).value=String(review.notes?.difficulty||'...').slice(0,1800);
-  ws.mergeCells(r,2,r,7);ws.getRow(r).height=75;r+=2;
+  for(const pair of cloPairs){const clo=pair.label; const c=colLetter(idx(clo)),range=`${dataSheet}!${c}${first}:${c}${last}`;ws.getCell(r,1).value='...';ws.getCell(r,2).value=clo;ws.getCell(r,3).value={formula:`IFERROR(AVERAGE(${range})/10,0)`};ws.getCell(r,3).numFmt='0.0%';ws.getCell(r,4).value='...';ws.getCell(r,5).value='...';ws.getCell(r,6).value='...';r++}
+  r++;
 
   ws.getCell(r,1).value='4. Mức độ đạt chuẩn đầu ra (CLO)';ws.getCell(r,2).value='Tỷ lệ SV đạt (%)';ws.getCell(r,3).value='Mức độ đạt yêu cầu (≥70%)';ws.getCell(r,4).value='Nhận xét';styleSection(ws.getRow(r));r++;
-  for(const pair of cloPairs){const clo=pair.label; const c=colLetter(idx(clo)),range=`${dataSheet}!${c}${first}:${c}${last}`;ws.getCell(r,1).value=clo;ws.getCell(r,2).value={formula:`IFERROR(COUNTIF(${range},">=4")/COUNT(${range}),0)`};ws.getCell(r,2).numFmt='0.0%';ws.getCell(r,3).value={formula:`IF(B${r}>=70%,"Đạt","Chưa đạt")`};ws.getCell(r,4).value='';r++}
-  ws.getCell(r,1).value='Nhận xét mục 4';
-  ws.getCell(r,2).value=String(review.notes?.clo||'...').slice(0,1800);
-  ws.mergeCells(r,2,r,7);ws.getRow(r).height=75;r+=2;
+  for(const pair of cloPairs){const clo=pair.label; const c=colLetter(idx(clo)),range=`${dataSheet}!${c}${first}:${c}${last}`;ws.getCell(r,1).value=clo;ws.getCell(r,2).value={formula:`IFERROR(COUNTIF(${range},">=4")/COUNT(${range}),0)`};ws.getCell(r,2).numFmt='0.0%';ws.getCell(r,3).value={formula:`IF(B${r}>=70%,"Đạt","Chưa đạt")`};ws.getCell(r,4).value='...';r++}
+  r++;
   ws.getCell(r,1).value='5. Nhận xét của giảng viên chấm thi/giảng dạy';styleSection(ws.getRow(r));r++;
   ['Mức độ phù hợp giữa đề thi và đề cương học phần','Tính phân hóa, bao quát nội dung','Tình huống phát sinh trong thi/chấm thi'].forEach(t=>{ws.getCell(r,1).value=t;ws.getCell(r,2).value='...';ws.mergeCells(r,2,r,7);r++});
   r++;
@@ -122,32 +127,6 @@ function applyBm33Review(ws,review={}){
     }
     if(Object.hasOwn(weights,'GPA'))ws.getCell(weightHeading+1+(stats.clos||[]).length,2).value=Number(weights.GPA);
   }
-  // Preserve formulas in A:B for section 1 and A:C for section 2.1.
-  // The right-side cells are intentionally unused in the original report.
-  const inlineNote=(title,key,firstCol,lastCol)=>{
-    const heading=find(title),value=String(notes[key]||'').trim();
-    if(heading<1||!value)return;
-    const labelRow=heading+1,bodyStart=heading+2,bodyEnd=heading+6;
-    ws.mergeCells(labelRow,firstCol,labelRow,lastCol);
-    const labelCell=ws.getCell(labelRow,firstCol);
-    labelCell.value='Nhận xét giảng viên / AI hỗ trợ';
-    labelCell.font={bold:true,size:10,color:{argb:'FF17365D'}};
-    labelCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFEAF1FA'}};
-    labelCell.alignment={wrapText:true,vertical:'middle'};
-    ws.mergeCells(bodyStart,firstCol,bodyEnd,lastCol);
-    const noteCell=ws.getCell(bodyStart,firstCol);
-    noteCell.value=value;
-    noteCell.font={size:11,color:{argb:'FF172033'}};
-    noteCell.alignment={wrapText:true,vertical:'top'};
-    noteCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF8FAFD'}};
-    const estimatedHeight=Math.max(22,Math.min(70,Math.ceil(value.length/70)*15/5+8));
-    for(let rr=bodyStart;rr<=bodyEnd;rr++){
-      const row=ws.getRow(rr);
-      row.height=Math.max(row.height||15,estimatedHeight);
-    }
-  };
-  inlineNote('1. Thống kê điểm thi','statistics',3,7);
-  inlineNote('2.1 Phân bố điểm thi theo xếp loại','distribution',4,7);
   // The existing report has template placeholders. Fill only reviewed text cells.
   const setNext=(heading,key,index=0)=>{
     const r=find(heading);if(r>0 && notes[key])ws.getCell(r+1+index,2).value=String(notes[key]).slice(0,1800);
@@ -165,7 +144,11 @@ function applyBm33Review(ws,review={}){
     if(clo.rate!=null)ws.getCell(r,4).value=clo.rate>=.8?'Tương đối dễ':clo.rate<.3?'Tương đối khó':'Trung bình';
     if(clo.discrimination!=null)ws.getCell(r,5).value=Number(clo.discrimination);
     else ws.getCell(r,5).value='Chưa đủ mẫu';
-
+    if(notes.difficulty){
+      ws.getCell(r,6).value=String(notes.difficulty).slice(0,1800);
+      ws.getCell(r,6).alignment={vertical:'top',wrapText:true};
+      ws.getRow(r).height=90;
+    }
   }
   const section4=find('4. Mức độ đạt chuẩn đầu ra (CLO)');
   if(section4>0){
@@ -174,7 +157,12 @@ function applyBm33Review(ws,review={}){
         ws.getCell(section4+1+i,2).value=Number(clo.passRate);
         ws.getCell(section4+1+i,2).numFmt='0.0%';
       }
-
+      if(notes.clo){
+        const r=section4+1+i;
+        ws.getCell(r,4).value=String(notes.clo).slice(0,1800);
+        ws.getCell(r,4).alignment={vertical:'top',wrapText:true};
+        ws.getRow(r).height=90;
+      }
     }
   }
   for(const title of [
