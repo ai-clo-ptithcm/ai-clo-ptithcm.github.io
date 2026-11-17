@@ -1,0 +1,29 @@
+
+/* BM33 report preview: isolated styles, no change to grading screens. */
+#reportPreviewDialog{border:1px solid #d6e1ed;border-radius:18px;padding:0;width:min(1080px,calc(100vw - 28px));max-height:92vh;box-shadow:0 30px 100px #0d234c35;color:#172033}
+#reportPreviewDialog::backdrop{background:rgba(17,34,58,.64)}
+.bm33-dialog-head{padding:18px 24px;border-bottom:1px solid #dce6f0;display:flex;align-items:center;justify-content:space-between;gap:20px;background:#f7faff}
+.bm33-dialog-head h2{font-size:22px;margin:2px 0}
+.bm33-dialog-head small{font-weight:800;letter-spacing:.08em;color:#1e5aa8}
+.bm33-dialog-body{padding:22px 24px;max-height:calc(92vh - 160px);overflow-y:auto;outline:0}
+.bm33-dialog-body section{margin:0 0 24px}
+.bm33-dialog-body h3{margin:0 0 10px;font-size:17px}
+.bm33-dialog-body p{margin:6px 0 10px;color:#586b85}
+.bm33-data-note{font-size:12px;color:#5b708c}
+.bm33-dialog-body table{width:100%;border-collapse:collapse;font-size:13px}
+.bm33-dialog-body th,.bm33-dialog-body td{border:1px solid #e0e7f0;padding:7px 10px;text-align:left}
+.bm33-dialog-body th{background:#eef5ff;color:#173a65}
+.bm33-table-wrap{overflow-x:auto;max-height:280px;overflow-y:auto}
+.bm33-two-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.bm33-metadata{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.bm33-metadata label,.bm33-note-field{display:flex;flex-direction:column;gap:5px;font-weight:650;font-size:13px}
+.bm33-metadata input,#bm33CourseContext,.bm33-note-field textarea{width:100%;border:1px solid #cbd6e6;border-radius:9px;padding:9px 11px;background:#fff;color:#172033;font:inherit}
+.bm33-note-field textarea{min-height:78px;resize:vertical;font-weight:400;line-height:1.5}
+.bm33-notes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.bm33-dialog-actions{border-top:1px solid #dce6f0;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:14px;background:#f7faff}
+.bm33-dialog-actions button,.bm33-dialog-head button{border:1px solid #afc4da;border-radius:9px;background:#fff;padding:9px 14px;font-weight:650;cursor:pointer}
+.bm33-dialog-actions .bm33-primary{background:#1e5aa8;border-color:#1e5aa8;color:#fff}
+.bm33-dialog-actions .bm33-primary:disabled,.bm33-dialog-actions button:disabled{opacity:.55;cursor:wait}
+#bm33AiStatus{min-height:24px;font-size:13px;color:#355573}
+#bm33Summary{font-weight:700;background:#f0f6ff;padding:13px;border-radius:9px}
+@media(max-width:760px){.bm33-two-cols,.bm33-metadata,.bm33-notes{grid-template-columns:1fr}.bm33-dialog-head,.bm33-dialog-actions{padding:12px 14px}.bm33-dialog-actions{flex-direction:column;align-items:stretch}.bm33-dialog-body{padding:14px}}
