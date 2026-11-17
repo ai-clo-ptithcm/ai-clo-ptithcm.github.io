@@ -113,6 +113,32 @@ function applyBm33Review(ws,review={}){
     }
     if(Object.hasOwn(weights,'GPA'))ws.getCell(weightHeading+1+(stats.clos||[]).length,2).value=Number(weights.GPA);
   }
+  // Preserve formulas in A:B for section 1 and A:C for section 2.1.
+  // The right-side cells are intentionally unused in the original report.
+  const inlineNote=(title,key,firstCol,lastCol)=>{
+    const heading=find(title),value=String(notes[key]||'').trim();
+    if(heading<1||!value)return;
+    const labelRow=heading+1,bodyStart=heading+2,bodyEnd=heading+6;
+    ws.mergeCells(labelRow,firstCol,labelRow,lastCol);
+    const labelCell=ws.getCell(labelRow,firstCol);
+    labelCell.value='Nhận xét giảng viên / AI hỗ trợ';
+    labelCell.font={bold:true,size:10,color:{argb:'FF17365D'}};
+    labelCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFEAF1FA'}};
+    labelCell.alignment={wrapText:true,vertical:'middle'};
+    ws.mergeCells(bodyStart,firstCol,bodyEnd,lastCol);
+    const noteCell=ws.getCell(bodyStart,firstCol);
+    noteCell.value=value;
+    noteCell.font={size:11,color:{argb:'FF172033'}};
+    noteCell.alignment={wrapText:true,vertical:'top'};
+    noteCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF8FAFD'}};
+    const estimatedHeight=Math.max(22,Math.min(70,Math.ceil(value.length/70)*15/5+8));
+    for(let rr=bodyStart;rr<=bodyEnd;rr++){
+      const row=ws.getRow(rr);
+      row.height=Math.max(row.height||15,estimatedHeight);
+    }
+  };
+  inlineNote('1. Thống kê điểm thi','statistics',3,7);
+  inlineNote('2.1 Phân bố điểm thi theo xếp loại','distribution',4,7);
   // The existing report has template placeholders. Fill only reviewed text cells.
   const setNext=(heading,key,index=0)=>{
     const r=find(heading);if(r>0 && notes[key])ws.getCell(r+1+index,2).value=String(notes[key]).slice(0,1800);
