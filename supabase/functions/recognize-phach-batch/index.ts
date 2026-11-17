@@ -107,7 +107,7 @@ Deno.serve(async(req:Request)=>{
       const row=item?.row,digits=item?.digits;
       if(!allowed.has(row)||seen.has(row))continue;
       seen.add(row);
-      results.push({row,digits:typeof digits==='string'&&/^\\d{1,12}$/.test(digits)?digits:''});
+      results.push({row,digits:typeof digits==='string'&&/^\d{1,12}$/.test(digits)?digits:''});
     }
     for(const x of images)if(!seen.has(x.row))results.push({row:x.row,digits:''});
     return respond({ok:true,results,model},200,origin);
