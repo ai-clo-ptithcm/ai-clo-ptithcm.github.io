@@ -1,0 +1,14 @@
+EXAM-CLO V1.9 — BM33 xem trước + AI hỗ trợ (17/11/2026)
+
+1. Sau khi chấm, nút "Xem / xuất BM33" mở cửa sổ báo cáo; không tải Excel ngay.
+2. Hiển thị số bài, điểm trung bình, mức phân bố điểm, tỷ lệ đạt từng CLO, câu khó và độ phân hóa theo từng mã đề.
+3. Độ phân hóa nhóm cao/thấp 27%, chỉ tính trong mã đề có ít nhất 12 bài; ghi "Chưa đủ mẫu" nếu thiếu.
+4. Nút "Phân tích bằng AI" gọi riêng Edge Function bm33-ai có xác thực teacher/admin tại Supabase AI-CLO.
+5. Chỉ gửi số liệu tổng hợp ẩn danh cho AI, không gửi SBD, tên sinh viên hay câu trả lời cá nhân.
+6. Giảng viên xem/sửa nhận xét, khuyến nghị trước khi xuất BM33 Excel; khi AI lỗi vẫn xuất thủ công được.
+7. Sắp xếp SBD tăng dần số học trong hai bảng điểm, vẫn giữ phách vắng mặt; sắp xếp sheet toàn bộ bài làm.
+8. Bổ sung sheet phân tích câu hỏi và hoàn thiện các ô nhận xét trong sheet BM33; sửa nhãn phân bố Kém <4, Yếu 4–<5.
+9. Không thay đổi thuật toán chấm điểm và không trộn công cụ với Assessment online.
+10. README cập nhật phạm vi GPL-2.0-or-later chính xác với LICENSE.md và ghi rõ tổ chức Supabase đích.
+
+Lưu ý: Ngưỡng 4.0 và 70% hiện là mặc định cần kiểm chứng theo quy định học phần. AI chỉ tạo gợi ý; giảng viên chịu trách nhiệm duyệt.
