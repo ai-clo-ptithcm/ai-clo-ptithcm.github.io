@@ -12,3 +12,9 @@ EXAM-CLO V1.9 — BM33 xem trước + AI hỗ trợ (17/11/2026)
 10. README cập nhật phạm vi GPL-2.0-or-later chính xác với LICENSE.md và ghi rõ tổ chức Supabase đích.
 
 Lưu ý: Ngưỡng 4.0 và 70% hiện là mặc định cần kiểm chứng theo quy định học phần. AI chỉ tạo gợi ý; giảng viên chịu trách nhiệm duyệt.
+
+Bổ sung V1.9.1 (17/11/2026)
+- AI cũng nhận xét mục 1 (thống kê điểm), 2.1 (phân bố điểm), 2.2 (phân bố 5 mức CLO).
+- Tách rõ các mục 3, 4, 5 và 6 trên cửa sổ xem trước; mỗi mục có nhận xét có thể chỉnh trước khi xuất.
+- Sheet BM33 lưu nhận xét từng mục tại vị trí tương ứng, vẫn giữ các công thức thống kê.
+- Chỉ truyền thống kê tổng hợp ẩn danh đến Gemini; không gửi danh sách SBD/bài làm.
