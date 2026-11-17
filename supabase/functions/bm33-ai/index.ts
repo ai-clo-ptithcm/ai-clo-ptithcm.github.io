@@ -14,7 +14,11 @@ function sanitize(s:any){
     target:s.required_clo_attainment_percent, highest:n(s.highest,0,10)?s.highest:null,
     lowest:n(s.lowest,0,10)?s.lowest:null,
     bands:s.bands.map((x:any)=>({band:short(x.label,25),count:Number.isInteger(x.count)?Math.max(0,Math.min(x.count,s.total_students)):0})),
-    clos:(Array.isArray(s.clos)?s.clos:[]).slice(0,10).map((x:any)=>({label:short(x.label,20),count:Number(x.count)||0,avg:n(x.avg,0,10)?x.avg:null,pass_rate:n(x.pass_rate)?x.pass_rate:null})),
+    clos:(Array.isArray(s.clos)?s.clos:[]).slice(0,10).map((x:any)=>({label:short(x.label,20),count:Number(x.count)||0,avg:n(x.avg,0,10)?x.avg:null,pass_rate:n(x.pass_rate)?x.pass_rate:null,
+      levels:(Array.isArray(x.levels)?x.levels:[]).slice(0,5).map((z:any)=>({
+        count:Number.isInteger(z.count)&&z.count>=0?Math.min(z.count,s.total_students):0,
+        rate:n(z.rate)?z.rate:null
+      }))})),
     question_summary:(Array.isArray(s.question_summary)?s.question_summary:[]).slice(0,10).map((x:any)=>({clo:short(x.label,20),correct_rate:n(x.rate)?x.rate:null,discrimination:n(x.discrimination,-1,1)?x.discrimination:null,groups:Number(x.questionCount)||0})),
     hardest_items:(Array.isArray(s.hardest_items)?s.hardest_items:[]).slice(0,20).map((x:any)=>({code:short(x.code,20),question:Number(x.question)||0,clo:short(x.clo,20),responses:Number(x.responses)||0,rate:n(x.correct_rate)?x.correct_rate:null,discrimination:n(x.discrimination,-1,1)?x.discrimination:null}))
   };
@@ -59,7 +63,9 @@ Deno.serve(async(req:Request)=>{
       'Không viết tên sinh viên, SBD, đáp án, không đưa ra quyết định thay giảng viên.',
       'Nhận xét statistics cho mục 1 nêu đúng số bài, điểm trung bình, cao nhất/thấp nhất và tỷ lệ đạt; không suy diễn nguyên nhân.',
       'Nhận xét distribution cho mục 2.1 dựa chính xác trên 6 khoảng điểm (count từng khoảng), xác định nhóm đông nhất, tránh suy diễn phân phối chuẩn nếu chưa kiểm định.',
-      'Trả về JSON object gồm các trường string statistics, distribution, difficulty, clo, alignment, coverage, bank, teaching, curriculum.',
+      'Nhận xét cloLevels cho mục 2.2: phân tích tỷ lệ 5 mức CLO (0: dưới 4; 1: 4 đến dưới 5,5; 2: 5,5 đến dưới 7; 3: 7 đến dưới 8,5; 4: từ 8,5), ghi rõ CLO nào cần chú ý; không nhầm bảng mức độ với tỷ lệ đạt CLO ở mục 4.',
+      'Mục 3 difficulty nói về độ khó và phân hóa câu hỏi, mục 4 clo nói mức đạt chuẩn đầu ra; mục 5 alignment và coverage chỉ kết luận trong phạm vi dữ liệu có, sự cố do giảng viên ghi; mục 6 bank, teaching, curriculum nêu khuyến nghị có căn cứ.',
+      'Trả về JSON object gồm đúng 10 trường string statistics, distribution, cloLevels, difficulty, clo, alignment, coverage, bank, teaching, curriculum.',
       'Mỗi trường 1-3 câu có số liệu khi thích hợp, đánh giá khách quan, nêu đề xuất cải tiến.'
     ].join('\n');
     const context=short(request.context,2000);
@@ -67,12 +73,12 @@ Deno.serve(async(req:Request)=>{
       headers:{'Content-Type':'application/json','x-goog-api-key':key},
       body:JSON.stringify({systemInstruction:{parts:[{text:instruction}]},
         contents:[{role:'user',parts:[{text:JSON.stringify({summary,syllabus_context:context})}]}],
-        generationConfig:{responseMimeType:'application/json',temperature:0.25,maxOutputTokens:1500}})});
+        generationConfig:{responseMimeType:'application/json',temperature:0.25,maxOutputTokens:2300}})});
     const result=await gemini.json().catch(()=>({}));
     if(!gemini.ok)return json({success:false,error:'Gemini hiện không khả dụng (HTTP '+gemini.status+').'},502,origin);
     const output=(result.candidates?.[0]?.content?.parts||[]).map((p:any)=>p.text||'').join('');
     const parsed=JSON.parse(output);
-    const fields=['statistics','distribution','difficulty','clo','alignment','coverage','bank','teaching','curriculum'];
+    const fields=['statistics','distribution','cloLevels','difficulty','clo','alignment','coverage','bank','teaching','curriculum'];
     const analysis=Object.fromEntries(fields.map(k=>[k,short(parsed[k],1600)]));
     if(!fields.some(k=>analysis[k]))throw new Error('AI trả về JSON rỗng.');
     return json({success:true,analysis,model},200,origin);
