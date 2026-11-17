@@ -190,10 +190,13 @@ Schema/RPC/RLS thay đổi phải có migration rõ ràng. Frontend-only phải 
 Công cụ public tại [`tools/cham-thi-clo/`](tools/cham-thi-clo/index.html) độc lập với Assessment online. Người dùng không cần đăng nhập để chấm, xem thống kê hoặc xuất file Excel.
 
 - Đọc một hoặc nhiều file UnT, một bộ đáp án + CLO, file khảo thí tùy chọn; vẫn kiểm tra SBD, mã đề và cho sửa dữ liệu trước khi chấm. **Không thay đổi thuật toán chấm điểm.**
+- **Số phách theo hai chiều**: khi xuất hiện bảng kiểm tra SBD, giảng viên nhập từ trên xuống và có thể chủ động bấm Gemini nhận diện các ảnh từ dưới lên (lô tối đa 4 ảnh, tối đa 2 lô đồng thời). Ảnh vẫn hiển thị tại **mọi dòng** và nhấp được để xem lớn; giảng viên được sửa **mọi SBD/mã đề**, kể cả dòng AI đã gợi ý.
+- Gợi ý AI không được tự duyệt/ghi đè thao tác người dùng. Giảng viên duyệt từng số hoặc chủ động duyệt hàng loạt sau khi đối chiếu; các yêu cầu đang chạy có thể dừng; khi AI lỗi, thao tác nhập tay và xuất kết quả vẫn dùng được. Dữ liệu ảnh chỉ gửi tới Edge Function khi người dùng bấm bật AI; không lưu ảnh lên Supabase Storage.
+
 - Xuất Bảng điểm phách và Bảng điểm chi tiết như trước, nhưng sắp xếp SBD **tăng dần theo giá trị số** trong từng phòng; vẫn giữ các dòng phách vắng mặt khi có danh sách khảo thí.
 - Nút **Xem / xuất BM33** mở cửa sổ xem trước: tổng số bài, GPA, phân bố điểm, tỷ lệ đạt CLO, độ khó và độ phân hóa câu hỏi theo **từng mã đề**. Nhận xét có thể chỉnh trước khi xuất.
 - **Phân tích bằng AI** chỉ chạy khi người dùng chủ động bấm nút. Gửi **thống kê tổng hợp ẩn danh**, không gửi SBD, tên hoặc bài làm của sinh viên. Chỉ tài khoản giảng viên/quản trị viên đăng nhập mới dùng AI; không đăng nhập vẫn xuất thủ công bình thường.
-- AI đưa nhận xét theo **tất cả phần BM33**: 1 (thống kê điểm), 2.1 (phân bố xếp loại), 2.2 (năm mức CLO), 3 (độ khó/độ phân hóa), 4 (đạt chuẩn CLO), 5 (nhận xét giảng viên), 6 (khuyến nghị cải tiến). Mỗi phần có vùng nhận xét riêng và **giảng viên kiểm duyệt, sửa hoặc để trống** trước khi xuất. AI không quyết định điểm, không tự khẳng định có sự cố thi hay đề thi phù hợp với đề cương khi thiếu thông tin.
+- AI hỗ trợ nhận xét ở tất cả phần BM33: **chỉ bổ sung dòng nhận xét ở mục 1, 2.1, 2.2**; **giữ nguyên bố cục cũ của mục 3, 4, 5, 6**. Trong Excel, mục 3 có nhận xét **theo từng CLO ở cột F**, mục 4 theo từng CLO ở **cột D**, mục 5–6 theo **từng tiêu chí**, không gom chung thành một dòng. Giảng viên kiểm duyệt, sửa hoặc để trống nhận xét trước khi xuất. AI không quyết định điểm, không tự khẳng định sự cố thi hoặc tính phù hợp với đề cương khi thiếu thông tin.
 - Xuất `Bao-cao-phan-tich-ket-qua-thi.xlsx` gồm sheet Đáp án, Toàn bộ bài làm, BM33 - Báo cáo và sheet phân tích từng nhóm câu hỏi/mã đề (nếu có).
 - Ngưỡng điểm đạt mặc định **4,0/10**, tỷ lệ sinh viên đạt CLO mặc định **70%**. Các ngưỡng phải được đối chiếu với quy định học phần/đơn vị trước khi dùng kết quả chính thức. Mức xếp loại Kém (`<4`) và Yếu (`4–<5`) đã được sửa lại theo thứ tự thông thường.
 
@@ -201,7 +204,7 @@ Công cụ public tại [`tools/cham-thi-clo/`](tools/cham-thi-clo/index.html) �
 
 **Backend AI:** `supabase/functions/bm33-ai/index.ts`. Edge Function này tách biệt khỏi `analyze-assessment` (Assessment online); triển khai trên **project `rraooqedkpyhokattwdz`, organization `mefpbfoxonywucvftgqg`**. Cấu hình `verify_jwt=true` và secret `GEMINI_API_KEY` hoặc `GEMINI_LIVE_API_KEY`. Phải **deploy Edge Function lên Supabase**, vì GitHub chỉ lưu source. Có guard role giảng viên/quản trị, giới hạn tối đa 5 lượt/5 phút/người trong một instance (không thay thế rate-limit tập trung).
 
-Cần kiểm thử nghiệp vụ trên mẫu UnT/khảo thí thực tế trước khi đưa BM33 vào hồ sơ chính thức.
+Cần kiểm thử nghiệp vụ trên mẫu UnT/khảo thí thực tế, đặc biệt lỗi Gemini, ảnh số phách khó đọc và thao tác đồng thời, trước khi đưa BM33 hoặc số phách AI vào hồ sơ chính thức.
 
 ## Tài liệu cần đọc trước khi sửa dự án
 

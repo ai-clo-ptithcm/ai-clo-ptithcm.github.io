@@ -1,0 +1,16 @@
+/* Dual manual + Gemini SBD review. Only affects Chấm thi CLO review. */
+.phach-ai-toolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:12px 0 16px;padding:14px;background:#f4f8ff;border:1px solid #cfe1fa;border-radius:12px}
+.phach-ai-progress{flex-basis:100%;font-size:13px;font-weight:650;color:#334155}
+.phach-ai-toolbar button:disabled,.sbd-accept-one:disabled{opacity:.55;cursor:not-allowed}
+.sbd-review-table .phach-view-btn{display:inline-flex;justify-content:center;align-items:center;padding:1px;border:0;border-radius:8px;background:transparent;cursor:zoom-in;max-width:100%}
+.sbd-review-table .phach-view-btn:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
+.sbd-review-table .sbd-accept-one{display:block;margin:5px 0 0;border:1px solid #93c5fd;background:#eff6ff;color:#1d4ed8;border-radius:7px;padding:5px 9px;font-size:12px;font-weight:700;cursor:pointer}
+.sbd-review-table .sbd-accept-one[hidden]{display:none}
+.sbd-review-table tr.phach-ai-suggested{background:#eff6ff}
+.sbd-review-table tr.phach-ai-suggested .sbd-state{color:#1d4ed8}
+.sbd-review-table .sbd-state{min-width:155px;font-size:12px}
+#phachPhotoDialog{border:1px solid #cbd5e1;border-radius:15px;padding:16px;width:min(760px,calc(100vw - 28px));max-height:90vh;background:#fff;color:#172033;box-shadow:0 24px 60px rgba(15,23,42,.3)}
+#phachPhotoDialog::backdrop{background:rgba(15,23,42,.64)}
+.phach-photo-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px}
+#phachPhotoImage{display:block;max-width:100%;max-height:68vh;margin:auto;object-fit:contain;image-rendering:auto}
+@media(max-width:660px){.phach-ai-toolbar button{width:100%}.sbd-review-table .sbd-state{min-width:115px}}
