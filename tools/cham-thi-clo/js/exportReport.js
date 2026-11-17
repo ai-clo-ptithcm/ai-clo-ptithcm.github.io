@@ -12,11 +12,14 @@ function addAllWorkSheet(wb,answerData,rooms){
   const cloPairs=clos.map((raw,i)=>({raw,label:cloDisplayName(raw,i)}));
   const headers=['Phòng / File','SBD','Mã đề',...Array.from({length:total},(_,i)=>`Câu ${i+1}`),'Số câu đúng','GPA',...cloPairs.map(x=>x.label)];
   ws.addRow(headers);styleSection(ws.getRow(1));
-  for(const room of rooms){
-    for(const s of [...(room.untData.students||[])].sort((a,b)=>Number(a.sbd)-Number(b.sbd))){
-      const row=[room.displayName||room.fileName,exportSbdValue(s.sbd),s.examCode,...(s.answers||[]).slice(0,total),s.result?.correct??null,s.result?.marks?.GPA??null,...cloPairs.map(c=>s.result?.marks?.[c.raw]??null)];
-      ws.addRow(row);
-    }
+  const entries=rooms.flatMap(room=>(room.untData.students||[]).map(s=>({room,s})));
+  entries.sort((a,b)=>{
+    const x=BigInt(String(a.s.sbd||'0')),y=BigInt(String(b.s.sbd||'0'));
+    return x<y?-1:x>y?1:0;
+  });
+  for(const {room,s} of entries){
+    const row=[room.displayName||room.fileName,exportSbdValue(s.sbd),s.examCode,...(s.answers||[]).slice(0,total),s.result?.correct??null,s.result?.marks?.GPA??null,...cloPairs.map(c=>s.result?.marks?.[c.raw]??null)];
+    ws.addRow(row);
   }
   ws.views=[{state:'frozen',xSplit:3,ySplit:1}];
   ws.getColumn(1).width=26;ws.getColumn(2).width=10;ws.getColumn(3).width=10;
