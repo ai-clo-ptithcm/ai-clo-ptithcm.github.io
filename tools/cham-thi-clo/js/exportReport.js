@@ -72,7 +72,12 @@ function addBm33Sheet(wb,answerData,allInfo,review={}){
     const fs=[`COUNTIF(${range},"<4")`,`COUNTIFS(${range},">=4",${range},"<5.5")`,`COUNTIFS(${range},">=5.5",${range},"<7")`,`COUNTIFS(${range},">=7",${range},"<8.5")`,`COUNTIF(${range},">=8.5")`];
     fs.forEach((f,i)=>ws.getCell(r,i+2).value={formula:`IFERROR(${f}/COUNT(${range}),0)`});for(let i=2;i<=6;i++)ws.getCell(r,i).numFmt='0.0%';r++;
   }
-  r++;
+  ws.getCell(r,1).value='Nhận xét mục 2.2';
+  ws.getCell(r,2).value=String(review.notes?.cloLevels||'...').slice(0,1800);
+  ws.mergeCells(r,2,r,7);
+  ws.getRow(r).height=72;
+  ws.getCell(r,2).alignment={vertical:'top',wrapText:true};
+  r+=2;
   ws.getCell(r,1).value='Điều kiện đạt các mức CLO';ws.getCell(r,2).value='Mức 0: <4';ws.getCell(r,3).value='Mức 1: 4–<5.5';ws.getCell(r,4).value='Mức 2: 5.5–<7';ws.getCell(r,5).value='Mức 3: 7–<8.5';ws.getCell(r,6).value='Mức 4: ≥8.5';styleSection(ws.getRow(r));r+=2;
 
   ws.getCell(r,1).value='3. Phân tích độ khó & độ phân hóa';ws.getCell(r,2).value='CLO';ws.getCell(r,3).value='Tỷ lệ trả lời đúng / đạt (%)';ws.getCell(r,4).value='Độ khó';ws.getCell(r,5).value='Độ phân hóa';ws.getCell(r,6).value='Nhận xét';styleSection(ws.getRow(r));r++;
@@ -88,7 +93,7 @@ function addBm33Sheet(wb,answerData,allInfo,review={}){
   ws.getCell(r,1).value='6. Khuyến nghị cải tiến';styleSection(ws.getRow(r));r++;
   ['Đối với ngân hàng đề thi','Đối với giảng dạy học phần','Đối với chương trình đào tạo'].forEach(t=>{ws.getCell(r,1).value=t;ws.getCell(r,2).value='...';ws.mergeCells(r,2,r,7);r++});
   r++;
-  ws.getCell(r,1).value='Ghi chú';ws.getCell(r,2).value='Các ô “...” là nội dung giảng viên nhập hoặc có thể được AI hỗ trợ ở phiên bản sau. Các ô thống kê đã gắn công thức Excel.';ws.mergeCells(r,2,r,7);
+  ws.getCell(r,1).value='Ghi chú';ws.getCell(r,2).value='Các nhận xét là nội dung giảng viên nhập hoặc duyệt từ gợi ý AI. Điểm và số liệu được tính theo công thức, không do AI quyết định.';ws.mergeCells(r,2,r,7);
   for(let rr=3;rr<=r;rr++){for(let cc=1;cc<=7;cc++){const cell=ws.getCell(rr,cc);cell.border={top:{style:'thin',color:{argb:'FFE2E8F0'}},left:{style:'thin',color:{argb:'FFE2E8F0'}},bottom:{style:'thin',color:{argb:'FFE2E8F0'}},right:{style:'thin',color:{argb:'FFE2E8F0'}}};cell.alignment={vertical:'middle',wrapText:true}}}
   for(let rr=3;rr<=8;rr++){ws.getCell(rr,2).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFF7D6'}}}
   for(let rr=weightStart;rr<weightStart+clos.length+1;rr++){ws.getCell(rr,2).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFF7D6'}}}
