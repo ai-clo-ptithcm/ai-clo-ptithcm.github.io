@@ -27,3 +27,10 @@ Bổ sung V1.10 (17/11/2026)
 - Một lô lỗi không làm mất các gợi ý đã đọc; có Dừng AI, chạy lại và nhập thủ công.
 - Edge Function recognize-phach-batch chỉ nhận ảnh/số dòng, không nhận tên hay đáp án, không lưu ảnh.
 - Thuật toán chấm và ba nút xuất Excel giữ nguyên.
+
+Điều chỉnh BM33 theo file mẫu đã xác nhận (17/11/2026)
+- Chỉ bổ sung nhận xét vào các phần 1, 2.1, 2.2.
+- Khôi phục bố cục cũ của mục 3: nhận xét theo từng dòng CLO ở cột F.
+- Khôi phục bố cục cũ của mục 4: nhận xét theo từng dòng CLO ở cột D.
+- Giữ mục 5 và 6 theo từng tiêu chí riêng; không gộp nhận xét mục 3 và 4 thành một dòng.
+- Không thay đổi công thức thống kê, thuật toán chấm, thứ tự sheet hoặc quy trình xác nhận số phách.
