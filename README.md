@@ -185,7 +185,7 @@ Thay code Function trên GitHub không đồng nghĩa Supabase đã redeploy Fun
 
 Schema/RPC/RLS thay đổi phải có migration rõ ràng. Frontend-only phải nói rõ không cần thao tác Supabase.
 
-## Công cụ Chấm thi CLO — EXAM-CLO BM33 v1.9
+## Công cụ Chấm thi CLO — EXAM-CLO BM33 v1.9.1
 
 Công cụ public tại [`tools/cham-thi-clo/`](tools/cham-thi-clo/index.html) độc lập với Assessment online. Người dùng không cần đăng nhập để chấm, xem thống kê hoặc xuất file Excel.
 
@@ -193,7 +193,7 @@ Công cụ public tại [`tools/cham-thi-clo/`](tools/cham-thi-clo/index.html) �
 - Xuất Bảng điểm phách và Bảng điểm chi tiết như trước, nhưng sắp xếp SBD **tăng dần theo giá trị số** trong từng phòng; vẫn giữ các dòng phách vắng mặt khi có danh sách khảo thí.
 - Nút **Xem / xuất BM33** mở cửa sổ xem trước: tổng số bài, GPA, phân bố điểm, tỷ lệ đạt CLO, độ khó và độ phân hóa câu hỏi theo **từng mã đề**. Nhận xét có thể chỉnh trước khi xuất.
 - **Phân tích bằng AI** chỉ chạy khi người dùng chủ động bấm nút. Gửi **thống kê tổng hợp ẩn danh**, không gửi SBD, tên hoặc bài làm của sinh viên. Chỉ tài khoản giảng viên/quản trị viên đăng nhập mới dùng AI; không đăng nhập vẫn xuất thủ công bình thường.
-- AI viết gợi ý cho nhận xét/khuyến nghị BM33; **giảng viên kiểm duyệt** trước khi xuất. AI không quyết định điểm, không tự khẳng định có sự cố thi hay đề thi phù hợp với đề cương khi thiếu thông tin.
+- AI đưa nhận xét theo **tất cả phần BM33**: 1 (thống kê điểm), 2.1 (phân bố xếp loại), 2.2 (năm mức CLO), 3 (độ khó/độ phân hóa), 4 (đạt chuẩn CLO), 5 (nhận xét giảng viên), 6 (khuyến nghị cải tiến). Mỗi phần có vùng nhận xét riêng và **giảng viên kiểm duyệt, sửa hoặc để trống** trước khi xuất. AI không quyết định điểm, không tự khẳng định có sự cố thi hay đề thi phù hợp với đề cương khi thiếu thông tin.
 - Xuất `Bao-cao-phan-tich-ket-qua-thi.xlsx` gồm sheet Đáp án, Toàn bộ bài làm, BM33 - Báo cáo và sheet phân tích từng nhóm câu hỏi/mã đề (nếu có).
 - Ngưỡng điểm đạt mặc định **4,0/10**, tỷ lệ sinh viên đạt CLO mặc định **70%**. Các ngưỡng phải được đối chiếu với quy định học phần/đơn vị trước khi dùng kết quả chính thức. Mức xếp loại Kém (`<4`) và Yếu (`4–<5`) đã được sửa lại theo thứ tự thông thường.
 

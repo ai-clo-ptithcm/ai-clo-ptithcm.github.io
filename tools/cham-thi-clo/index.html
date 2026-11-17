@@ -10,7 +10,7 @@
   <title>Chấm thi CLO | AI-CLO PTITHCM</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/ai-clo-theme.css">
-  <link rel="stylesheet" href="css/report-preview.css?v=1.9.0">
+  <link rel="stylesheet" href="css/report-preview.css?v=1.9.2">
   <link rel="stylesheet" href="css/ai-clo-info-shell-v2.css?v=1.8.2">
   <link rel="stylesheet" href="../../css/public-shell.css?v=1.0.0">
   <link rel="stylesheet" href="../../css/ai-chat.css">
@@ -69,22 +69,26 @@
   </section>
   <section><h3>Tỷ trọng CLO/GPA theo học phần (không bắt buộc)</h3><div class="bm33-metadata" id="bm33Weights"></div>
    <p class="bm33-data-note">Để trống nếu chưa có tỷ trọng quy định; các giá trị nhập được đưa vào BM33 Excel.</p></section>
-  <section><h3>1. Thống kê kết quả thi</h3><div id="bm33Summary"></div>
-   <p class="bm33-data-note">Tỷ lệ đạt điểm theo ngưỡng 4,0/10; tỷ lệ sinh viên đạt chuẩn CLO yêu cầu 70% — kiểm tra quy định học phần trước khi dùng chính thức.</p></section>
+  <section><h3>1. Thống kê điểm thi</h3><div id="bm33Summary"></div>
+   <p class="bm33-data-note">Tỷ lệ đạt điểm theo ngưỡng 4,0/10; tỷ lệ sinh viên đạt chuẩn CLO yêu cầu 70% — kiểm tra quy định học phần trước khi dùng chính thức.</p><div id="bm33NoteStatisticsHost" class="bm33-note-host"></div></section>
   <div class="bm33-two-cols">
-   <section><h3>2.1. Phân bố điểm</h3><div class="bm33-table-wrap"><table><thead><tr><th>Khoảng điểm</th><th>Số bài</th><th>Tỷ lệ</th></tr></thead><tbody id="bm33Bands"></tbody></table></div></section>
-   <section><h3>2.2. Mức độ đạt CLO</h3><div class="bm33-table-wrap"><table><thead><tr><th>CLO</th><th>Điểm TB</th><th>Tỷ lệ ≥ 4</th><th>Đánh giá</th></tr></thead><tbody id="bm33Clo"></tbody></table></div></section>
+   <section><h3>2.1. Phân bố điểm</h3><div class="bm33-table-wrap"><table><thead><tr><th>Khoảng điểm</th><th>Số bài</th><th>Tỷ lệ</th></tr></thead><tbody id="bm33Bands"></tbody></table></div><div id="bm33NoteDistributionHost" class="bm33-note-host"></div></section>
+   <section><h3>2.2. Thống kê mức đạt theo CLO</h3><div class="bm33-table-wrap"><table><thead><tr><th>CLO</th><th>Mức 0</th><th>Mức 1</th><th>Mức 2</th><th>Mức 3</th><th>Mức 4</th></tr></thead><tbody id="bm33CloLevels"></tbody></table></div><p class="bm33-data-note">Mức 0: &lt;4 · Mức 1: 4–&lt;5,5 · Mức 2: 5,5–&lt;7 · Mức 3: 7–&lt;8,5 · Mức 4: ≥8,5.</p><div id="bm33NoteLevelsHost" class="bm33-note-host"></div></section>
   </div>
   <section><h3>3. Phân tích độ khó và độ phân hóa theo mã đề</h3><p class="bm33-data-note" id="bm33QuestionCount"></p>
    <div class="bm33-table-wrap"><table><thead><tr><th>Mã đề / Câu</th><th>CLO</th><th>Tỷ lệ đúng</th><th>Phân hóa D</th></tr></thead><tbody id="bm33Questions"></tbody></table></div>
-   <p class="bm33-data-note">D = tỷ lệ làm đúng nhóm điểm cao 27% trừ nhóm điểm thấp 27%, tính trong từng mã đề; chỉ có khi mã đề đủ tối thiểu 12 bài. Cần đối chiếu nội dung câu hỏi trước khi kết luận.</p>
+   <p class="bm33-data-note">D = tỷ lệ làm đúng nhóm điểm cao 27% trừ nhóm điểm thấp 27%, tính trong từng mã đề; chỉ có khi mã đề đủ tối thiểu 12 bài. Cần đối chiếu nội dung câu hỏi trước khi kết luận.</p><div id="bm33NoteDifficultyHost" class="bm33-note-host"></div>
   </section>
-  <section><h3>4–6. Nhận xét, đánh giá và khuyến nghị</h3>
-   <p>Thống kê tính tại trình duyệt. AI chỉ tạo gợi ý khi giảng viên bấm nút. Có thể sửa tất cả nhận xét trước khi xuất Excel.</p>
+  <section><h3>4. Mức độ đạt chuẩn đầu ra học phần (CLO)</h3>
+   <div class="bm33-table-wrap"><table><thead><tr><th>CLO</th><th>Điểm TB</th><th>Tỷ lệ đạt (≥ 4)</th><th>Đánh giá (≥ 70%)</th></tr></thead><tbody id="bm33Clo"></tbody></table></div><div id="bm33NoteCloHost" class="bm33-note-host"></div>
+  </section>
+  <section><h3>5. Nhận xét của giảng viên chấm thi / giảng dạy</h3>
+   <p>Nhận xét về đề cương, tính bao quát và tình huống phát sinh. Không suy diễn sự cố khi chưa có ghi nhận thực tế.</p>
    <label class="bm33-note-field">Thông tin đề cương cho AI đối chiếu (không bắt buộc)
     <textarea id="bm33CourseContext" rows="2" maxlength="2000" placeholder="Dán tóm tắt đề cương, mục tiêu học phần; không nhập tên hoặc thông tin định danh sinh viên."></textarea></label>
-   <div id="bm33Notes" class="bm33-notes"></div>
+   <div id="bm33NoteAssessmentHost" class="bm33-notes bm33-note-host"></div>
   </section>
+  <section><h3>6. Khuyến nghị cải tiến</h3><div id="bm33NoteRecommendationsHost" class="bm33-notes bm33-note-host"></div></section>
   <div id="bm33AiStatus" role="status" aria-live="polite"></div>
  </div>
  <div class="bm33-dialog-actions">
@@ -96,6 +100,6 @@
 <script src="../../js/config.js" defer></script>
 <script src="libs/xlsx.full.min.js"></script>
 <script src="libs/exceljs.min.js"></script>
-<script type="module" src="js/app.js?v=1.9.0"></script>
+<script type="module" src="js/app.js?v=1.9.2"></script>
 </body>
 </html>

@@ -27,3 +27,8 @@
 #bm33AiStatus{min-height:24px;font-size:13px;color:#355573}
 #bm33Summary{font-weight:700;background:#f0f6ff;padding:13px;border-radius:9px}
 @media(max-width:760px){.bm33-two-cols,.bm33-metadata,.bm33-notes{grid-template-columns:1fr}.bm33-dialog-head,.bm33-dialog-actions{padding:12px 14px}.bm33-dialog-actions{flex-direction:column;align-items:stretch}.bm33-dialog-body{padding:14px}}
+
+.bm33-note-host:not(.bm33-notes) {margin-top:12px}
+.bm33-note-host:not(.bm33-notes) .bm33-note-field{width:100%}
+.bm33-note-host:not(.bm33-notes) textarea{min-height:90px}
+.bm33-note-host.bm33-notes{margin-top:12px}

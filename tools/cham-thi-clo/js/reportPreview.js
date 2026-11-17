@@ -2,8 +2,11 @@
 import { orderedCloList, cloDisplayName } from './exportCommon.js';
 
 const NOTE_FIELDS = [
-  ['difficulty','Độ khó và độ phân hóa'],
-  ['clo','Mức độ đạt các CLO'],
+  ['statistics','1. Nhận xét về thống kê điểm thi'],
+  ['distribution','2.1. Nhận xét về phân bố điểm thi'],
+  ['cloLevels','2.2. Nhận xét mức đạt theo các mức CLO'],
+  ['difficulty','3. Độ khó và độ phân hóa'],
+  ['clo','4. Mức độ đạt chuẩn đầu ra CLO'],
   ['alignment','Mức độ phù hợp với đề cương'],
   ['coverage','Tính bao quát và phân hóa'],
   ['incidents','Tình huống trong thi/chấm thi (giảng viên nhập)'],
@@ -32,7 +35,10 @@ export function summarizeBm33(answerData,rooms,passScore=4,target=70){
   const rawClos=answerData.useCLO?orderedCloList(answerData):[];
   const clos=rawClos.map((raw,i)=>{
     const scores=students.map(s=>s.result.marks?.[raw]).filter(Number.isFinite).map(Number);
+    const levelCounts=[0,0,0,0,0];
+    scores.forEach(score=>{const level=score<4?0:score<5.5?1:score<7?2:score<8.5?3:4;levelCounts[level]++});
     return {raw,label:cloDisplayName(raw,i),count:scores.length,avg:round(mean(scores),2),
+      levels:levelCounts.map(count=>({count,rate:scores.length?count/scores.length:0})),
       passed:scores.filter(x=>x>=passScore).length,passRate:scores.length?scores.filter(x=>x>=passScore).length/scores.length:null};
   });
   const byCode=new Map();
@@ -73,6 +79,9 @@ function renderStats(stats){
     ' · Tỷ lệ đạt: '+pct(stats.overview.passRate);
   const b=$('bm33Bands');clear(b);
   stats.bands.forEach(x=>row(b,[x.label,x.count,pct(x.rate)]));
+  const levels=$('bm33CloLevels');clear(levels);
+  stats.clos.forEach(c=>row(levels,[c.label,...c.levels.map(x=>pct(x.rate))]));
+  if(!stats.clos.length)row(levels,['Không có CLO','—','—','—','—','—']);
   const c=$('bm33Clo');clear(c);
   stats.clos.forEach(x=>row(c,[x.label,x.avg??'—',pct(x.passRate),
     x.passRate==null?'Không đủ dữ liệu':x.passRate*100>=stats.target?'Đạt':'Chưa đạt']));
@@ -108,14 +117,22 @@ function getMetadata(){return Object.fromEntries(['courseName','courseCode','cre
   .map(k=>[k,$('bm33Meta-'+k).value.trim()]))}
 function setNote(key,value){const el=$('bm33Note-'+key);if(el && typeof value==='string' && value.trim())el.value=value.trim()}
 function noteUI(){
-  const wrap=$('bm33Notes');if(wrap.children.length)return;
+  if($('bm33Note-statistics'))return;
+  const hosts={
+    statistics:'bm33NoteStatisticsHost', distribution:'bm33NoteDistributionHost',
+    cloLevels:'bm33NoteLevelsHost', difficulty:'bm33NoteDifficultyHost',clo:'bm33NoteCloHost',
+    alignment:'bm33NoteAssessmentHost',coverage:'bm33NoteAssessmentHost',incidents:'bm33NoteAssessmentHost',
+    bank:'bm33NoteRecommendationsHost',teaching:'bm33NoteRecommendationsHost',curriculum:'bm33NoteRecommendationsHost'
+  };
   NOTE_FIELDS.forEach(([key,title])=>{
     const label=document.createElement('label');label.className='bm33-note-field';
     const name=document.createElement('span');name.textContent=title;
     const textarea=document.createElement('textarea');textarea.id='bm33Note-'+key;
     textarea.rows=3;textarea.maxLength=1800;textarea.placeholder=key==='incidents'?
       'Chỉ giảng viên ghi nhận sự cố thực tế (nếu có)':'Có thể sửa nhận xét hoặc yêu cầu AI gợi ý';
-    label.append(name,textarea);wrap.append(label);
+    label.append(name,textarea);
+    const host=$(hosts[key]);if(!host)throw new Error('Không tìm thấy khu vực nhận xét: '+key);
+    host.append(label);
   });
 }
 function safeStatsForAi(stats){
@@ -124,7 +141,8 @@ function safeStatsForAi(stats){
     highest:stats.overview.maximum,lowest:stats.overview.minimum,
     pass_rate:round(stats.overview.passRate,3),pass_score:stats.passScore,
     required_clo_attainment_percent:stats.target,
-    bands:stats.bands, clos:stats.clos.map(c=>({label:c.label,count:c.count,avg:c.avg,pass_rate:round(c.passRate,3)})),
+    bands:stats.bands, clos:stats.clos.map(c=>({label:c.label,count:c.count,avg:c.avg,pass_rate:round(c.passRate,3),
+      levels:c.levels.map(x=>({count:x.count,rate:round(x.rate,3)}))})),
     question_summary:stats.itemsByClo,
     hardest_items:stats.items.slice().sort(sortQuestions).slice(0,20).map(q=>({
       code:q.code,question:q.question,clo:q.clo,responses:q.responses,
