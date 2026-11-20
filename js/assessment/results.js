@@ -396,8 +396,84 @@
         }
       }
 
+function effectiveExamAttempts(attempts, policy) {
+    if (policy === "average") return attempts;
+    const ordered = [...attempts].sort((a,b) => {
+      if (policy !== "latest") {
+        const delta = Number(b.score ?? -Infinity) - Number(a.score ?? -Infinity);
+        if (delta) return delta;
+      }
+      return Date.parse(b.submitted_at || 0) - Date.parse(a.submitted_at || 0) ||
+        Number(b.attempt_number || 0) - Number(a.attempt_number || 0);
+    });
+    const seen = new Set();
+    return ordered.filter((a) => {
+      if (seen.has(a.student_id)) return false;
+      seen.add(a.student_id);
+      return true;
+    });
+  }
+
+  async function loadExamResultBundle(exam, clos) {
+    const submitted = await fetchAllPages(() => db.from("exam_attempts")
+      .select("id,exam_id,student_id,attempt_number,submitted_at,score")
+      .eq("exam_id", exam.id).not("submitted_at", "is", null)
+      .order("submitted_at", { ascending: true }).order("id"));
+    const attempts = effectiveExamAttempts(submitted, exam.score_policy);
+    return {
+      attempts, clos, exams: [exam],
+      ...(await loadAttemptDetails(attempts.map((a) => a.id))),
+    };
+  }
+
+  async function attachTeacherExamInspector(c, clos, profiles, exams) {
+    if (!exams.length) return;
+    const root = c.querySelector(".assessment-results-v122");
+    if (!root) return;
+    const panel = document.createElement("section");
+    panel.className = "panel";
+    panel.innerHTML = `<div class="panel-head"><div><h3>Điểm CLO theo từng bài kiểm tra</h3><p class="hint">Tra cứu được cả bài không tính vào điểm CLO học phần. Kết quả tổng hợp phía trên giữ nguyên.</p></div></div><label class="field">Chọn bài kiểm tra<select id="v122ExamCloSelect">${exams.map((e) => `<option value="${escapeHtml(e.id)}">${escapeHtml(e.title || "Bài kiểm tra")}${e.counts_toward_grade ? "" : " · Không tính vào học phần"}</option>`).join("")}</select></label><div id="v122ExamCloDetail"></div>`;
+    root.appendChild(panel);
+    const selector = qs("#v122ExamCloSelect", panel);
+    const output = qs("#v122ExamCloDetail", panel);
+    let token = 0;
+    const showExam = async () => {
+      const current = ++token;
+      const exam = exams.find((x) => x.id === selector?.value);
+      if (!exam || !output) return;
+      output.innerHTML = '<p class="hint">Đang tải kết quả bài kiểm tra…</p>';
+      try {
+        const bundle = await loadExamResultBundle(exam, clos);
+        const metrics = buildOfficialMetrics(bundle);
+        const rows = makeTeacherRows(profiles, metrics).sort((a,b) =>
+          String(a.profile.mssv || "").localeCompare(String(b.profile.mssv || ""), "vi"));
+        const withData = rows.filter((r) => r.metric).length;
+        const m = metrics.classMetric;
+        const staging = document.createElement("div");
+        staging.innerHTML = `<p class="hint"><b>${escapeHtml(exam.title || "Bài kiểm tra")}</b> · ${exam.counts_toward_grade ? "Tính vào kết quả học phần" : "KHÔNG tính vào kết quả học phần"} · ${escapeHtml(scorePolicyLabel(exam.score_policy))}</p><div class="detail-grid"><div><small>SV có kết quả</small><b>${withData}/${profiles.length}</b></div><div><small>Lượt ghi nhận</small><b>${m.attempts}</b></div><div><small>Điểm trung bình</small><b>${withData ? m.gpa.toFixed(1) : "—"}</b></div></div><h4>Kết quả CLO của bài</h4>${resultCloCards(m)}<div class="table-wrap"><table><thead><tr><th>STT</th><th>Sinh viên</th><th>Điểm bài</th>${clos.map((clo) => `<th>${escapeHtml(clo.code)}</th>`).join("")}</tr></thead><tbody>${rows.map(({ profile: p, metric: metric }, index) => `<tr><td>${index + 1}</td><td><b>${escapeHtml(p.full_name || p.email || "Sinh viên")}</b><br><small>${escapeHtml(p.mssv || "")}</small></td><td>${metric ? metric.gpa.toFixed(1) : "—"}</td>${clos.map((clo) => { const x = metric?.clos.find((v) => v.code === clo.code); return `<td>${x?.total ? x.score.toFixed(1) : "—"}</td>`; }).join("")}</tr>`).join("") || `<tr><td colspan="${clos.length + 3}">Chưa có sinh viên trong lớp.</td></tr>`}</tbody></table></div>`;
+        if (current === token) output.innerHTML = staging.innerHTML;
+      } catch (error) {
+        if (current === token) {
+          output.innerHTML = '<p class="hint">Không thể tải kết quả CLO của bài này.</p>';
+          showError(error);
+        }
+      }
+    };
+    selector?.addEventListener("change", showExam);
+    const midterm = exams.find((e) => /giữa\s*(kỳ|kì)|midterm/i.test(e.title || ""));
+    selector.value = midterm?.id || exams[0].id;
+    await showExam();
+  }
+
       async function renderTeacherResults(c, bundle, metrics) {
-        const profiles = await loadSubjectStudentProfiles();
+        const [profiles, examResponse] = await Promise.all([
+          loadSubjectStudentProfiles(),
+          db.from("exams").select("id,title,score_policy,counts_toward_grade,created_at")
+            .eq("subject_id", subjectId())
+            .order("created_at", { ascending: false }),
+        ]);
+        if (examResponse.error) throw examResponse.error;
+        const allExams = examResponse.data || [];
         const withData = profiles.filter((p) => metrics.students.has(p.id));
         const classM = metrics.classMetric;
         const teacherRows = makeTeacherRows(profiles, metrics);
@@ -440,6 +516,7 @@
           if (!button) return;
           requestAssessmentAi("student", button.dataset.v122AiStudent, button);
         });
+        await attachTeacherExamInspector(c, bundle.clos, profiles, allExams);
       }
 
       function renderStudentResults(c, bundle, metrics) {
